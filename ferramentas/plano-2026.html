@@ -1,0 +1,837 @@
+<title>Plano de Metas 2026</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800&family=Public+Sans:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+
+<style>
+  :root {
+    --bg: #F4F6F8;
+    --surface: #FFFFFF;
+    --surface-2: #F0F2F5;
+    --ink: #171C24;
+    --muted: #5C6675;
+    --faint: #8A93A2;
+    --line: #E1E5EA;
+    --line-strong: #CDD3DB;
+    --accent: #C77B12;
+    --accent-soft: #F6E7CC;
+    --accent-ink: #7A4A05;
+    --success: #2C9366;
+    --success-soft: #DBF0E6;
+    --shadow: 0 1px 2px rgba(20,28,40,.04), 0 8px 24px rgba(20,28,40,.06);
+    --radius: 14px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #0D1015;
+      --surface: #161B22;
+      --surface-2: #1D232C;
+      --ink: #E7EBF1;
+      --muted: #9BA5B4;
+      --faint: #6B7482;
+      --line: #262D37;
+      --line-strong: #333C48;
+      --accent: #E8A544;
+      --accent-soft: #38301F;
+      --accent-ink: #F0BC6E;
+      --success: #4CB98A;
+      --success-soft: #17281F;
+      --shadow: 0 1px 2px rgba(0,0,0,.3), 0 10px 30px rgba(0,0,0,.35);
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #0D1015;
+    --surface: #161B22;
+    --surface-2: #1D232C;
+    --ink: #E7EBF1;
+    --muted: #9BA5B4;
+    --faint: #6B7482;
+    --line: #262D37;
+    --line-strong: #333C48;
+    --accent: #E8A544;
+    --accent-soft: #38301F;
+    --accent-ink: #F0BC6E;
+    --success: #4CB98A;
+    --success-soft: #17281F;
+    --shadow: 0 1px 2px rgba(0,0,0,.3), 0 10px 30px rgba(0,0,0,.35);
+  }
+
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } * { transition: none !important; } }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: "Public Sans", system-ui, sans-serif;
+    font-size: 16px;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+  }
+  h1, h2, h3 { font-family: "Archivo", system-ui, sans-serif; text-wrap: balance; margin: 0; }
+  .mono { font-family: "IBM Plex Mono", monospace; }
+
+  /* ---------- Top bar ---------- */
+  .topbar {
+    position: sticky; top: 0; z-index: 40;
+    background: color-mix(in srgb, var(--surface) 88%, transparent);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--line);
+  }
+  .topbar-inner {
+    max-width: 1120px; margin: 0 auto; padding: 14px 24px;
+    display: flex; align-items: center; gap: 20px; flex-wrap: wrap;
+  }
+  .brand { display: flex; align-items: baseline; gap: 10px; margin-right: auto; }
+  .brand .year { font-family: "Archivo"; font-weight: 800; font-size: 22px; letter-spacing: -.02em; }
+  .brand .word { font-size: 13px; color: var(--muted); text-transform: uppercase; letter-spacing: .14em; }
+  .countdown {
+    display: flex; align-items: center; gap: 8px;
+    font-family: "IBM Plex Mono"; font-size: 13px; color: var(--muted);
+    padding: 6px 12px; background: var(--surface-2); border-radius: 999px; border: 1px solid var(--line);
+  }
+  .countdown b { color: var(--accent); font-weight: 600; font-size: 15px; }
+  .prog-mini { display: flex; align-items: center; gap: 10px; min-width: 190px; }
+  .prog-mini .bar { flex: 1; height: 7px; background: var(--surface-2); border-radius: 999px; overflow: hidden; border: 1px solid var(--line); }
+  .prog-mini .fill { height: 100%; width: 0; background: linear-gradient(90deg, var(--accent), var(--success)); border-radius: 999px; transition: width .5s ease; }
+  .prog-mini .pct { font-family: "IBM Plex Mono"; font-size: 13px; font-weight: 600; min-width: 40px; text-align: right; }
+  .icon-btn {
+    border: 1px solid var(--line); background: var(--surface); color: var(--ink);
+    width: 38px; height: 38px; border-radius: 10px; cursor: pointer; font-size: 16px;
+    display: grid; place-items: center; transition: background .15s;
+  }
+  .icon-btn:hover { background: var(--surface-2); }
+
+  /* ---------- Layout ---------- */
+  .shell { max-width: 1120px; margin: 0 auto; padding: 32px 24px 96px; display: grid; grid-template-columns: 232px 1fr; gap: 40px; align-items: start; }
+  nav.stepper { position: sticky; top: 84px; display: flex; flex-direction: column; gap: 2px; }
+  nav.stepper a {
+    display: flex; align-items: center; gap: 12px; padding: 11px 12px; border-radius: 10px;
+    text-decoration: none; color: var(--muted); font-size: 14.5px; font-weight: 500; transition: background .15s, color .15s;
+  }
+  nav.stepper a:hover { background: var(--surface-2); color: var(--ink); }
+  nav.stepper a.active { background: var(--accent-soft); color: var(--accent-ink); }
+  nav.stepper a .num {
+    font-family: "IBM Plex Mono"; font-size: 12px; font-weight: 600;
+    width: 24px; height: 24px; border-radius: 7px; display: grid; place-items: center; flex: none;
+    background: var(--surface-2); color: var(--faint); border: 1px solid var(--line);
+  }
+  nav.stepper a.active .num { background: var(--accent); color: #fff; border-color: var(--accent); }
+  nav.stepper a.done .num { background: var(--success-soft); color: var(--success); border-color: transparent; }
+  main { display: flex; flex-direction: column; gap: 28px; min-width: 0; }
+
+  /* ---------- Hero ---------- */
+  .hero { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 32px; box-shadow: var(--shadow); position: relative; overflow: hidden; }
+  .hero::after { content: ""; position: absolute; right: -60px; top: -60px; width: 220px; height: 220px; background: radial-gradient(circle, var(--accent-soft), transparent 70%); opacity: .7; pointer-events: none; }
+  .hero .eyebrow { font-size: 12px; letter-spacing: .16em; text-transform: uppercase; color: var(--accent); font-weight: 600; }
+  .hero h1 { font-size: clamp(28px, 4.5vw, 42px); font-weight: 800; letter-spacing: -.025em; margin: 10px 0 12px; line-height: 1.05; }
+  .hero p { color: var(--muted); max-width: 60ch; margin: 0; font-size: 16.5px; }
+  .hero .credit { margin-top: 18px; font-size: 13px; color: var(--faint); }
+
+  /* ---------- Cards / sections ---------- */
+  section.card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 28px; box-shadow: var(--shadow); scroll-margin-top: 84px; }
+  .card-head { display: flex; align-items: flex-start; gap: 14px; margin-bottom: 20px; }
+  .card-head .badge {
+    font-family: "IBM Plex Mono"; font-weight: 600; font-size: 14px;
+    width: 34px; height: 34px; border-radius: 9px; display: grid; place-items: center; flex: none;
+    background: var(--accent-soft); color: var(--accent-ink);
+  }
+  .card-head h2 { font-size: 21px; font-weight: 700; letter-spacing: -.015em; }
+  .card-head .sub { color: var(--muted); font-size: 14px; margin-top: 3px; }
+
+  label.field { display: block; margin-bottom: 18px; }
+  label.field:last-child { margin-bottom: 0; }
+  .field .lbl { display: block; font-size: 13.5px; font-weight: 600; margin-bottom: 7px; }
+  .field .hint { font-weight: 400; color: var(--faint); font-size: 12.5px; }
+  input[type="text"], input[type="number"], input[type="date"], input[type="time"], textarea, select {
+    width: 100%; font: inherit; color: var(--ink); background: var(--surface-2);
+    border: 1px solid var(--line-strong); border-radius: 10px; padding: 11px 13px; transition: border-color .15s, box-shadow .15s;
+  }
+  textarea { resize: vertical; min-height: 78px; line-height: 1.5; }
+  input:focus, textarea:focus, select:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+  .row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .row-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; }
+  .chip {
+    font: inherit; font-size: 14px; cursor: pointer; padding: 8px 14px; border-radius: 999px;
+    background: var(--surface-2); border: 1px solid var(--line-strong); color: var(--muted); transition: all .15s;
+  }
+  .chip:hover { border-color: var(--accent); color: var(--ink); }
+  .chip.on { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+  .callout { background: var(--surface-2); border-left: 3px solid var(--accent); border-radius: 8px; padding: 13px 15px; font-size: 14px; color: var(--muted); }
+  .callout b { color: var(--ink); }
+
+  /* SMART preview */
+  .smart-preview { margin-top: 22px; background: linear-gradient(180deg, var(--accent-soft), transparent); border: 1px dashed var(--line-strong); border-radius: 12px; padding: 20px; }
+  .smart-preview .k { font-size: 11.5px; letter-spacing: .14em; text-transform: uppercase; color: var(--accent); font-weight: 600; }
+  .smart-preview .sentence { font-family: "Archivo"; font-weight: 600; font-size: 18px; line-height: 1.4; margin-top: 8px; letter-spacing: -.01em; }
+  .smart-preview .sentence .blank { color: var(--faint); font-style: italic; font-weight: 500; }
+
+  /* Quarters */
+  .quarters { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
+  .q {
+    border: 1px solid var(--line); border-radius: 12px; padding: 16px; background: var(--surface-2);
+  }
+  .q .qh { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 10px; }
+  .q .qh .qt { font-family: "IBM Plex Mono"; font-size: 12px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--accent); }
+  .q .qh .qm { font-size: 11.5px; color: var(--faint); }
+  .q .qbar { height: 8px; background: var(--surface); border: 1px solid var(--line); border-radius: 999px; overflow: hidden; margin: 12px 0 8px; }
+  .q .qbar span { display: block; height: 100%; width: 0; background: var(--success); border-radius: 999px; transition: width .5s ease; }
+  .q .qvals { display: flex; align-items: center; gap: 8px; font-size: 13px; }
+  .q .qvals input { padding: 7px 9px; text-align: right; font-family: "IBM Plex Mono"; }
+  .q .qvals .of { color: var(--faint); font-family: "IBM Plex Mono"; white-space: nowrap; }
+
+  /* Days */
+  .days { display: flex; gap: 6px; flex-wrap: wrap; }
+  .day { width: 40px; height: 40px; border-radius: 10px; border: 1px solid var(--line-strong); background: var(--surface-2); color: var(--muted); cursor: pointer; font: inherit; font-size: 13px; font-weight: 600; transition: all .15s; }
+  .day:hover { border-color: var(--accent); }
+  .day.on { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+  /* Reviews */
+  .review-log { margin-top: 20px; display: flex; flex-direction: column; gap: 10px; }
+  .review-item { border: 1px solid var(--line); border-radius: 10px; padding: 13px 15px; background: var(--surface-2); position: relative; }
+  .review-item .date { font-family: "IBM Plex Mono"; font-size: 12px; color: var(--accent); font-weight: 600; }
+  .review-item .qa { margin-top: 6px; font-size: 14px; }
+  .review-item .qa .q { color: var(--faint); font-size: 12.5px; }
+  .review-item .del { position: absolute; top: 10px; right: 10px; border: none; background: none; color: var(--faint); cursor: pointer; font-size: 15px; padding: 2px 6px; border-radius: 6px; }
+  .review-item .del:hover { background: var(--line); color: var(--ink); }
+  .empty { color: var(--faint); font-size: 13.5px; font-style: italic; }
+
+  /* Commitment message */
+  .msg-box { margin-top: 18px; background: var(--surface-2); border: 1px solid var(--line); border-radius: 12px; padding: 18px; font-size: 14.5px; line-height: 1.6; white-space: pre-wrap; }
+  .btn {
+    font: inherit; font-weight: 600; font-size: 14.5px; cursor: pointer; border-radius: 10px; padding: 11px 18px;
+    border: 1px solid var(--accent); background: var(--accent); color: #fff; transition: filter .15s, transform .05s; display: inline-flex; align-items: center; gap: 8px;
+  }
+  .btn:hover { filter: brightness(1.05); }
+  .btn:active { transform: translateY(1px); }
+  .btn.ghost { background: var(--surface); color: var(--ink); border-color: var(--line-strong); }
+  .btn.ghost:hover { background: var(--surface-2); }
+  .btn-row { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 16px; }
+
+  /* Challenge checklist */
+  .check-list { display: flex; flex-direction: column; gap: 10px; }
+  .check {
+    display: flex; align-items: flex-start; gap: 12px; padding: 14px 16px; border: 1px solid var(--line);
+    border-radius: 11px; background: var(--surface-2); cursor: pointer; transition: border-color .15s;
+  }
+  .check:hover { border-color: var(--accent); }
+  .check input { appearance: none; width: 22px; height: 22px; border: 2px solid var(--line-strong); border-radius: 7px; flex: none; margin-top: 1px; cursor: pointer; position: relative; transition: all .15s; }
+  .check input:checked { background: var(--success); border-color: var(--success); }
+  .check input:checked::after { content: "✓"; position: absolute; inset: 0; display: grid; place-items: center; color: #fff; font-size: 13px; font-weight: 700; }
+  .check .ct { font-size: 14.5px; }
+  .check .ct b { display: block; margin-bottom: 2px; }
+  .check .ct span { color: var(--muted); font-size: 13px; }
+  .check.done .ct b { text-decoration: line-through; color: var(--faint); }
+
+  footer { max-width: 1120px; margin: 0 auto; padding: 0 24px 60px; color: var(--faint); font-size: 12.5px; text-align: center; line-height: 1.7; }
+  .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(20px); background: var(--ink); color: var(--bg); padding: 11px 20px; border-radius: 999px; font-size: 14px; font-weight: 500; opacity: 0; pointer-events: none; transition: all .25s; z-index: 60; }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  @media (max-width: 860px) {
+    .shell { grid-template-columns: 1fr; gap: 20px; padding-top: 20px; }
+    nav.stepper { position: static; flex-direction: row; overflow-x: auto; gap: 6px; padding-bottom: 6px; }
+    nav.stepper a { white-space: nowrap; padding: 9px 12px; }
+    nav.stepper a span.txt { display: none; }
+    nav.stepper a .num { margin: 0; }
+    .row, .row-3, .quarters { grid-template-columns: 1fr; }
+    .prog-mini { order: 3; width: 100%; }
+  }
+</style>
+
+<div class="topbar">
+  <div class="topbar-inner">
+    <div class="brand">
+      <span class="year">2026</span>
+      <span class="word">Plano de Metas</span>
+    </div>
+    <div class="countdown">faltam <b id="days-left">—</b> dias p/ 31/12</div>
+    <div class="prog-mini" title="Progresso geral do seu plano">
+      <div class="bar"><div class="fill" id="prog-fill"></div></div>
+      <div class="pct mono" id="prog-pct">0%</div>
+    </div>
+    <button class="icon-btn" id="theme-btn" title="Alternar tema" aria-label="Alternar tema">◐</button>
+    <button class="icon-btn" id="reset-btn" title="Recomeçar do zero" aria-label="Recomeçar">⟲</button>
+  </div>
+</div>
+
+<div class="shell">
+  <nav class="stepper" id="stepper" aria-label="Etapas do método">
+    <a href="#etapa-1" data-step="1"><span class="num">1</span><span class="txt">Direção</span></a>
+    <a href="#etapa-2" data-step="2"><span class="num">2</span><span class="txt">Meta SMART</span></a>
+    <a href="#etapa-3" data-step="3"><span class="num">3</span><span class="txt">Trimestres</span></a>
+    <a href="#etapa-4" data-step="4"><span class="num">4</span><span class="txt">Rotina 1%</span></a>
+    <a href="#etapa-5" data-step="5"><span class="num">5</span><span class="txt">Revisão</span></a>
+    <a href="#etapa-6" data-step="6"><span class="num">6</span><span class="txt">Compromisso</span></a>
+    <a href="#etapa-7" data-step="7"><span class="num">✦</span><span class="txt">Desafio 24h</span></a>
+  </nav>
+
+  <main>
+    <div class="hero">
+      <div class="eyebrow">Do desejo à execução</div>
+      <h1>Transforme 2026 em um ano de execução, não só de planejamento.</h1>
+      <p>A maioria das pessoas não falha por falta de meta — falha por falta de planejamento. Este é o passo a passo para tirar suas metas do campo do desejo e colocá-las no plano material. Preencha cada etapa; tudo fica salvo neste navegador.</p>
+      <div class="credit">Método baseado no episódio #269 do JOTA JOTA Podcast (Joel Jota). Ferramenta de uso pessoal.</div>
+    </div>
+
+    <!-- 1. DIREÇÃO -->
+    <section class="card" id="etapa-1">
+      <div class="card-head">
+        <div class="badge">1</div>
+        <div>
+          <h2>Direção — antes de acelerar</h2>
+          <div class="sub">Não adianta acelerar se você está indo na direção errada.</div>
+        </div>
+      </div>
+      <label class="field">
+        <span class="lbl">Se nada mudar, onde você estará em 31/12/2026? <span class="hint">Não onde você gostaria — onde você vai estar de verdade se mantiver as mesmas decisões, o mesmo ritmo.</span></span>
+        <textarea id="vision" placeholder="Escreva com sinceridade. Esse desconforto vira combustível."></textarea>
+      </label>
+      <div class="field">
+        <span class="lbl">Qual é a sua área prioritária para 2026? <span class="hint">Você pode ter metas em várias áreas, mas o foco precisa de uma prioridade clara.</span></span>
+        <div class="chips" id="area-chips">
+          <button class="chip" data-area="Financeiro">Financeiro</button>
+          <button class="chip" data-area="Negócios">Negócios</button>
+          <button class="chip" data-area="Saúde">Saúde</button>
+          <button class="chip" data-area="Estudos">Estudos</button>
+          <button class="chip" data-area="Carreira">Carreira</button>
+          <button class="chip" data-area="Família">Família</button>
+        </div>
+        <input type="text" id="area-custom" placeholder="…ou digite outra área" style="margin-top:10px;max-width:340px">
+      </div>
+    </section>
+
+    <!-- 2. META SMART -->
+    <section class="card" id="etapa-2">
+      <div class="card-head">
+        <div class="badge">2</div>
+        <div>
+          <h2>Meta SMART</h2>
+          <div class="sub">"Quero melhorar" não é meta. Meta é o quê, quanto, como medir e até quando.</div>
+        </div>
+      </div>
+      <label class="field">
+        <span class="lbl">Específica <span class="hint">Tire do abstrato. Não é "juntar dinheiro" — é "R$ 20.000 numa conta de reserva".</span></span>
+        <input type="text" id="s-specific" placeholder="Ex.: Juntar uma reserva de emergência">
+      </label>
+      <div class="row">
+        <label class="field">
+          <span class="lbl">Mensurável — quanto? <span class="hint">O número que você vai perseguir.</span></span>
+          <input type="number" id="s-target" placeholder="20000" min="0">
+        </label>
+        <label class="field">
+          <span class="lbl">Unidade</span>
+          <input type="text" id="s-unit" placeholder="R$ / kg / cursos / clientes…">
+        </label>
+      </div>
+      <label class="field">
+        <span class="lbl">Ponto de partida hoje <span class="hint">De onde você começa (para medir a evolução).</span></span>
+        <input type="number" id="s-current" placeholder="0" min="0" style="max-width:220px">
+      </label>
+      <label class="field">
+        <span class="lbl">Atingível — cabe na sua realidade? <span class="hint">Olhe pra sua renda, custos e rotina. É desafiadora, mas possível?</span></span>
+        <input type="text" id="s-attainable" placeholder="Ex.: guardando ~R$ 1.700/mês, cabe se eu cortar X e Y">
+      </label>
+      <label class="field">
+        <span class="lbl">Relevante — por que isso importa de verdade? <span class="hint">A meta se conecta com propósito: segurança da família, liberdade, estabilidade…</span></span>
+        <input type="text" id="s-relevant" placeholder="Ex.: segurança pra minha família e paz pra arriscar no negócio">
+      </label>
+      <label class="field">
+        <span class="lbl">Temporal — prazo</span>
+        <input type="date" id="s-deadline" style="max-width:220px">
+      </label>
+
+      <div class="smart-preview">
+        <div class="k">Sua meta montada</div>
+        <div class="sentence" id="smart-sentence"></div>
+      </div>
+    </section>
+
+    <!-- 3. TRIMESTRES -->
+    <section class="card" id="etapa-3">
+      <div class="card-head">
+        <div class="badge">3</div>
+        <div>
+          <h2>4 ciclos de 12 semanas</h2>
+          <div class="sub">Um ano parece distante e o cérebro procrastina. Quebre em 4 miniano's com urgência real.</div>
+        </div>
+      </div>
+      <div class="callout" style="margin-bottom:18px">Dividimos sua meta de <b id="q-total">—</b> em 4 metas trimestrais. Ajuste cada trimestre como quiser e registre o quanto você realmente avançou.</div>
+      <div class="quarters" id="quarters"></div>
+    </section>
+
+    <!-- 4. ROTINA -->
+    <section class="card" id="etapa-4">
+      <div class="card-head">
+        <div class="badge">4</div>
+        <div>
+          <h2>Rotina & a melhora de 1% ao dia</h2>
+          <div class="sub">Meta sem rotina vira intenção. Intenção sem ação diária não gera resultado.</div>
+        </div>
+      </div>
+      <label class="field">
+        <span class="lbl">Qual ação diária, repetida todo dia, te aproxima da meta? <span class="hint">Seu 1%. Ex.: revisar 1 proposta de cliente, caminhar 10 min, estudar 30 min.</span></span>
+        <input type="text" id="r-action" placeholder="Sua ação de 1% ao dia">
+      </label>
+      <div class="row-3">
+        <label class="field">
+          <span class="lbl">Horário</span>
+          <input type="time" id="r-time">
+        </label>
+        <label class="field">
+          <span class="lbl">Duração</span>
+          <input type="text" id="r-duration" placeholder="30 min">
+        </label>
+        <label class="field">
+          <span class="lbl">&nbsp;</span>
+          <div class="callout" style="border-left-color:var(--success);font-size:12.5px">Comece pelo mais difícil: o dia começa com uma vitória.</div>
+        </label>
+      </div>
+      <div class="field">
+        <span class="lbl">Dias da semana</span>
+        <div class="days" id="days">
+          <button class="day" data-d="Seg">S</button>
+          <button class="day" data-d="Ter">T</button>
+          <button class="day" data-d="Qua">Q</button>
+          <button class="day" data-d="Qui">Q</button>
+          <button class="day" data-d="Sex">S</button>
+          <button class="day" data-d="Sáb">S</button>
+          <button class="day" data-d="Dom">D</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- 5. REVISÃO -->
+    <section class="card" id="etapa-5">
+      <div class="card-head">
+        <div class="badge">5</div>
+        <div>
+          <h2>Revisão semanal</h2>
+          <div class="sub">O que não é revisado se desgasta. Faça no domingo, com duas perguntas.</div>
+        </div>
+      </div>
+      <label class="field">
+        <span class="lbl">1. O que eu fiz essa semana que me aproximou da meta?</span>
+        <textarea id="rev-did" placeholder="Suas vitórias da semana"></textarea>
+      </label>
+      <label class="field">
+        <span class="lbl">2. O que eu preciso ajustar para a próxima semana?</span>
+        <textarea id="rev-adjust" placeholder="Seus ajustes"></textarea>
+      </label>
+      <button class="btn" id="rev-save">＋ Registrar revisão</button>
+      <div class="review-log" id="review-log"></div>
+    </section>
+
+    <!-- 6. COMPROMISSO -->
+    <section class="card" id="etapa-6">
+      <div class="card-head">
+        <div class="badge">6</div>
+        <div>
+          <h2>Compromisso externo</h2>
+          <div class="sub">Meta compartilhada com a pessoa certa tem muito mais força. Sozinho é fácil negociar com você mesmo.</div>
+        </div>
+      </div>
+      <label class="field">
+        <span class="lbl">Com quem você vai se comprometer? <span class="hint">Alguém que caminha com você: cônjuge, mentor, um amigo que fecha contigo. Não conte pra quem torce contra.</span></span>
+        <input type="text" id="c-person" placeholder="Nome da pessoa" style="max-width:340px">
+      </label>
+      <div class="callout">Mensagem pronta para enviar hoje:</div>
+      <div class="msg-box mono" id="c-message"></div>
+      <div class="btn-row">
+        <button class="btn" id="copy-msg">⧉ Copiar mensagem</button>
+        <button class="btn ghost" id="wa-msg">Enviar no WhatsApp</button>
+      </div>
+    </section>
+
+    <!-- 7. DESAFIO -->
+    <section class="card" id="etapa-7">
+      <div class="card-head">
+        <div class="badge">✦</div>
+        <div>
+          <h2>Desafio das próximas 24 horas</h2>
+          <div class="sub">Começo vence intenção todos os dias. Faça isso hoje e você já sai na frente.</div>
+        </div>
+      </div>
+      <div class="check-list" id="challenge">
+        <label class="check"><input type="checkbox" data-c="c1"><span class="ct"><b>Escrever 1 meta SMART</b><span>Na área que hoje é prioridade. Não precisa estar perfeita — precisa estar no papel.</span></span></label>
+        <label class="check"><input type="checkbox" data-c="c2"><span class="ct"><b>Desenhar o plano de 12 semanas</b><span>Com 2 ou 3 ações principais para o primeiro trimestre.</span></span></label>
+        <label class="check"><input type="checkbox" data-c="c3"><span class="ct"><b>Definir o plano mínimo semanal</b><span>Seu bloco diário de foco: horário, duração e dias.</span></span></label>
+        <label class="check"><input type="checkbox" data-c="c4"><span class="ct"><b>Mandar a mensagem de compromisso</b><span>Para uma pessoa de confiança, pedindo que te cobre.</span></span></label>
+      </div>
+    </section>
+  </main>
+</div>
+
+<footer>
+  Plano de Metas 2026 · ferramenta de uso pessoal, inspirada no método do JOTA JOTA Podcast #269 (Joel Jota).<br>
+  Seus dados ficam salvos só neste navegador — nada é enviado para nenhum servidor.
+</footer>
+
+<div class="toast" id="toast"></div>
+
+<script>
+(function () {
+  "use strict";
+  var KEY = "plano-metas-2026";
+  var $ = function (s) { return document.querySelector(s); };
+  var $$ = function (s) { return Array.prototype.slice.call(document.querySelectorAll(s)); };
+
+  var state = load();
+
+  function blank() {
+    return {
+      vision: "", area: "",
+      smart: { specific: "", target: "", unit: "", current: "", attainable: "", relevant: "", deadline: "2026-12-31" },
+      quarters: [{ goal: "", done: "" }, { goal: "", done: "" }, { goal: "", done: "" }, { goal: "", done: "" }],
+      quartersTouched: false,
+      routine: { action: "", time: "", duration: "", days: [] },
+      reviews: [],
+      commitment: { person: "" },
+      challenge: { c1: false, c2: false, c3: false, c4: false },
+      theme: null
+    };
+  }
+  function load() {
+    try {
+      var raw = localStorage.getItem(KEY);
+      if (!raw) return blank();
+      var d = JSON.parse(raw);
+      var b = blank();
+      // shallow merge to survive schema additions
+      return Object.assign(b, d, {
+        smart: Object.assign(b.smart, d.smart || {}),
+        routine: Object.assign(b.routine, d.routine || {}),
+        commitment: Object.assign(b.commitment, d.commitment || {}),
+        challenge: Object.assign(b.challenge, d.challenge || {}),
+        quarters: (d.quarters && d.quarters.length === 4) ? d.quarters : b.quarters
+      });
+    } catch (e) { return blank(); }
+  }
+  function save() {
+    try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) {}
+  }
+
+  var toastT;
+  function toast(msg) {
+    var t = $("#toast"); t.textContent = msg; t.classList.add("show");
+    clearTimeout(toastT); toastT = setTimeout(function () { t.classList.remove("show"); }, 1900);
+  }
+
+  var fmt = new Intl.NumberFormat("pt-BR");
+  function num(v) { var n = parseFloat(v); return isNaN(n) ? 0 : n; }
+  function niceNum(v) { var n = num(v); return Number.isInteger(n) ? fmt.format(n) : fmt.format(Math.round(n)); }
+
+  /* ---------- Theme ---------- */
+  function applyTheme() {
+    if (state.theme) document.documentElement.setAttribute("data-theme", state.theme);
+    else document.documentElement.removeAttribute("data-theme");
+  }
+  $("#theme-btn").addEventListener("click", function () {
+    var cur = state.theme;
+    if (!cur) {
+      var dark = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
+      cur = dark ? "dark" : "light";
+    }
+    state.theme = cur === "dark" ? "light" : "dark";
+    applyTheme(); save();
+  });
+
+  /* ---------- Countdown ---------- */
+  function updateCountdown() {
+    var end = new Date(2026, 11, 31);
+    var now = new Date();
+    var diff = Math.ceil((end - now) / 86400000);
+    $("#days-left").textContent = diff > 0 ? fmt.format(diff) : "0";
+  }
+
+  /* ---------- Bindings ---------- */
+  function bindText(sel, get, set) {
+    var el = $(sel);
+    el.value = get() || "";
+    el.addEventListener("input", function () { set(el.value); save(); onChange(); });
+  }
+
+  bindText("#vision", function () { return state.vision; }, function (v) { state.vision = v; });
+
+  bindText("#s-specific", function () { return state.smart.specific; }, function (v) { state.smart.specific = v; });
+  bindText("#s-target", function () { return state.smart.target; }, function (v) { state.smart.target = v; });
+  bindText("#s-unit", function () { return state.smart.unit; }, function (v) { state.smart.unit = v; });
+  bindText("#s-current", function () { return state.smart.current; }, function (v) { state.smart.current = v; });
+  bindText("#s-attainable", function () { return state.smart.attainable; }, function (v) { state.smart.attainable = v; });
+  bindText("#s-relevant", function () { return state.smart.relevant; }, function (v) { state.smart.relevant = v; });
+  bindText("#s-deadline", function () { return state.smart.deadline; }, function (v) { state.smart.deadline = v; });
+
+  bindText("#r-action", function () { return state.routine.action; }, function (v) { state.routine.action = v; });
+  bindText("#r-time", function () { return state.routine.time; }, function (v) { state.routine.time = v; });
+  bindText("#r-duration", function () { return state.routine.duration; }, function (v) { state.routine.duration = v; });
+
+  bindText("#area-custom", function () {
+    var known = ["Financeiro", "Negócios", "Saúde", "Estudos", "Carreira", "Família"];
+    return known.indexOf(state.area) === -1 ? state.area : "";
+  }, function (v) { if (v) state.area = v; renderAreaChips(); });
+
+  bindText("#c-person", function () { return state.commitment.person; }, function (v) { state.commitment.person = v; });
+
+  /* Area chips */
+  function renderAreaChips() {
+    $$("#area-chips .chip").forEach(function (c) {
+      c.classList.toggle("on", c.getAttribute("data-area") === state.area);
+    });
+  }
+  $$("#area-chips .chip").forEach(function (c) {
+    c.addEventListener("click", function () {
+      state.area = c.getAttribute("data-area");
+      $("#area-custom").value = "";
+      renderAreaChips(); save(); onChange();
+    });
+  });
+
+  /* Days */
+  function renderDays() {
+    $$("#days .day").forEach(function (d) {
+      d.classList.toggle("on", state.routine.days.indexOf(d.getAttribute("data-d")) !== -1);
+    });
+  }
+  $$("#days .day").forEach(function (d) {
+    d.addEventListener("click", function () {
+      var v = d.getAttribute("data-d");
+      var i = state.routine.days.indexOf(v);
+      if (i === -1) state.routine.days.push(v); else state.routine.days.splice(i, 1);
+      renderDays(); save();
+    });
+  });
+
+  /* SMART sentence */
+  function renderSmart() {
+    var s = state.smart;
+    var unit = (s.unit || "").trim();
+    var target = s.target !== "" ? (unit && /^R\$/i.test(unit) ? unit + " " + niceNum(s.target) : niceNum(s.target) + (unit ? " " + unit : "")) : null;
+    var deadline = s.deadline ? new Date(s.deadline + "T00:00").toLocaleDateString("pt-BR") : null;
+    function span(txt, placeholder) { return txt ? esc(txt) : '<span class="blank">' + placeholder + "</span>"; }
+    var html = "Até " + span(deadline, "[prazo]") + ", eu vou "
+      + span(s.specific, "[o quê]")
+      + (target ? " — <b>" + esc(target) + "</b>" : ' <span class="blank">[quanto]</span>')
+      + ". Isso importa porque " + span(s.relevant, "[por quê]") + ".";
+    $("#smart-sentence").innerHTML = html;
+  }
+  function esc(t) { return String(t).replace(/[&<>]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]; }); }
+
+  /* Quarters */
+  function autoQuarters() {
+    // cumulative milestones from current -> target, if user hasn't customized goals
+    var total = num(state.smart.target);
+    var start = num(state.smart.current);
+    var span = total - start;
+    if (state.quartersTouched) return;
+    for (var i = 0; i < 4; i++) {
+      state.quarters[i].goal = span > 0 ? Math.round(start + span * (i + 1) / 4) : "";
+    }
+  }
+  function renderQuarters() {
+    autoQuarters();
+    var unit = (state.smart.unit || "").trim();
+    var isMoney = /^R\$/i.test(unit);
+    var wrap = $("#quarters"); wrap.innerHTML = "";
+    var totalTxt = state.smart.target !== "" ? (isMoney ? unit + " " + niceNum(state.smart.target) : niceNum(state.smart.target) + (unit ? " " + unit : "")) : "—";
+    $("#q-total").textContent = totalTxt;
+    var months = ["jan–mar", "abr–jun", "jul–set", "out–dez"];
+    state.quarters.forEach(function (q, i) {
+      var goal = num(q.goal), done = num(q.done);
+      var pct = goal > 0 ? Math.min(100, Math.round(done / goal * 100)) : 0;
+      var el = document.createElement("div");
+      el.className = "q";
+      el.innerHTML =
+        '<div class="qh"><span class="qt">Trimestre ' + (i + 1) + '</span><span class="qm mono">' + months[i] + '</span></div>' +
+        '<div style="font-size:12.5px;color:var(--muted)">Meta acumulada até o fim do trimestre</div>' +
+        '<div class="qbar"><span style="width:' + pct + '%"></span></div>' +
+        '<div class="qvals">' +
+          '<span class="of">alvo</span><input type="number" class="q-goal" data-i="' + i + '" value="' + (q.goal === "" ? "" : q.goal) + '">' +
+          '<span class="of">feito</span><input type="number" class="q-done" data-i="' + i + '" value="' + (q.done === "" ? "" : q.done) + '">' +
+          '<span class="of mono">' + pct + '%</span>' +
+        '</div>';
+      wrap.appendChild(el);
+    });
+    $$(".q-goal").forEach(function (inp) {
+      inp.addEventListener("input", function () {
+        state.quartersTouched = true;
+        state.quarters[+inp.getAttribute("data-i")].goal = inp.value === "" ? "" : num(inp.value);
+        save(); renderQuarters(); updateProgress();
+      });
+    });
+    $$(".q-done").forEach(function (inp) {
+      inp.addEventListener("input", function () {
+        state.quarters[+inp.getAttribute("data-i")].done = inp.value === "" ? "" : num(inp.value);
+        save(); renderQuarters(); updateProgress();
+      });
+    });
+  }
+
+  /* Reviews */
+  function renderReviews() {
+    var log = $("#review-log"); log.innerHTML = "";
+    if (!state.reviews.length) {
+      log.innerHTML = '<div class="empty">Nenhuma revisão registrada ainda. Quem revisa corrige, e quem corrige com frequência evolui.</div>';
+      return;
+    }
+    state.reviews.slice().reverse().forEach(function (r) {
+      var el = document.createElement("div");
+      el.className = "review-item";
+      el.innerHTML =
+        '<button class="del" title="Excluir" data-id="' + r.id + '">✕</button>' +
+        '<div class="date mono">' + esc(r.date) + '</div>' +
+        (r.did ? '<div class="qa"><span class="q">Avançou:</span> ' + esc(r.did) + '</div>' : '') +
+        (r.adjust ? '<div class="qa"><span class="q">Ajustar:</span> ' + esc(r.adjust) + '</div>' : '');
+      log.appendChild(el);
+    });
+    $$("#review-log .del").forEach(function (b) {
+      b.addEventListener("click", function () {
+        var id = b.getAttribute("data-id");
+        state.reviews = state.reviews.filter(function (r) { return String(r.id) !== String(id); });
+        save(); renderReviews();
+      });
+    });
+  }
+  $("#rev-save").addEventListener("click", function () {
+    var did = $("#rev-did").value.trim(), adj = $("#rev-adjust").value.trim();
+    if (!did && !adj) { toast("Escreva ao menos uma resposta."); return; }
+    var now = new Date();
+    state.reviews.push({
+      id: now.getTime(),
+      date: now.toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "numeric" }),
+      did: did, adjust: adj
+    });
+    $("#rev-did").value = ""; $("#rev-adjust").value = "";
+    save(); renderReviews(); toast("Revisão registrada ✓");
+  });
+
+  /* Commitment message */
+  function buildMessage() {
+    var person = (state.commitment.person || "").trim();
+    var hi = person ? "Oi, " + person + "! " : "Oi! ";
+    var meta = state.smart.specific ? state.smart.specific : "[sua meta]";
+    var target = "";
+    if (state.smart.target !== "") {
+      var unit = (state.smart.unit || "").trim();
+      target = /^R\$/i.test(unit) ? " (" + unit + " " + niceNum(state.smart.target) + ")" : (unit ? " (" + niceNum(state.smart.target) + " " + unit + ")" : "");
+    }
+    var q1 = num(state.quarters[0].goal);
+    var plano = q1 > 0
+      ? "Nas próximas 12 semanas meu foco é chegar em " + niceNum(q1) + (/^R\$/i.test((state.smart.unit||"")) ? "" : " " + (state.smart.unit||"")).trim() + "."
+      : "Já montei meu plano para as próximas 12 semanas.";
+    return hi + "Comecei a estruturar minhas metas para 2026. " +
+      "Uma meta importante pra mim é: " + meta + target + ". " +
+      plano + " " +
+      "Quero que você me cobre disso — vou te atualizar a cada 7 dias. Combinado?";
+  }
+  function renderMessage() { $("#c-message").textContent = buildMessage(); }
+  $("#copy-msg").addEventListener("click", function () {
+    var txt = buildMessage();
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(txt).then(function () { toast("Mensagem copiada ✓"); }, function () { fallbackCopy(txt); });
+    } else fallbackCopy(txt);
+  });
+  function fallbackCopy(txt) {
+    var ta = document.createElement("textarea"); ta.value = txt; document.body.appendChild(ta); ta.select();
+    try { document.execCommand("copy"); toast("Mensagem copiada ✓"); } catch (e) { toast("Copie manualmente."); }
+    document.body.removeChild(ta);
+  }
+  $("#wa-msg").addEventListener("click", function () {
+    window.open("https://wa.me/?text=" + encodeURIComponent(buildMessage()), "_blank", "noopener");
+  });
+
+  /* Challenge */
+  function renderChallenge() {
+    $$("#challenge .check").forEach(function (lbl) {
+      var box = lbl.querySelector("input");
+      var k = box.getAttribute("data-c");
+      box.checked = !!state.challenge[k];
+      lbl.classList.toggle("done", box.checked);
+    });
+  }
+  $$("#challenge input").forEach(function (box) {
+    box.addEventListener("change", function () {
+      state.challenge[box.getAttribute("data-c")] = box.checked;
+      box.closest(".check").classList.toggle("done", box.checked);
+      save(); updateProgress();
+    });
+  });
+
+  /* ---------- Progress ---------- */
+  function updateProgress() {
+    var pts = 0, max = 7;
+    if (state.vision.trim()) pts++;
+    if (state.area) pts++;
+    // smart essentials
+    if (state.smart.specific && state.smart.target !== "" && state.smart.deadline) pts++;
+    if (state.smart.relevant && state.smart.attainable) pts++;
+    if (state.routine.action && state.routine.days.length) pts++;
+    if (state.reviews.length) pts++;
+    if (state.commitment.person) pts++;
+
+    // Blend structure completion with actual metric progress toward the goal
+    var target = num(state.smart.target), start = num(state.smart.current);
+    var done = state.quarters.reduce(function (a, q) { return a + num(q.done); }, 0);
+    var metricPct = null;
+    if (target > 0) {
+      var denom = (target - start) > 0 ? (target - start) : target;
+      var made = Math.max(0, done - (done >= start ? 0 : 0));
+      metricPct = Math.max(0, Math.min(1, (done) / (target)));
+    }
+    var structPct = pts / max;
+    var overall = metricPct === null ? structPct : (structPct * 0.6 + metricPct * 0.4);
+    var pct = Math.round(overall * 100);
+    $("#prog-fill").style.width = pct + "%";
+    $("#prog-pct").textContent = pct + "%";
+
+    // stepper done marks
+    var done1 = !!(state.vision.trim() && state.area);
+    var done2 = !!(state.smart.specific && state.smart.target !== "" && state.smart.deadline);
+    var done3 = state.quarters.some(function (q) { return num(q.done) > 0; }) || state.quartersTouched;
+    var done4 = !!(state.routine.action && state.routine.days.length);
+    var done5 = state.reviews.length > 0;
+    var done6 = !!state.commitment.person;
+    var done7 = Object.keys(state.challenge).every(function (k) { return state.challenge[k]; });
+    var marks = [done1, done2, done3, done4, done5, done6, done7];
+    $$("#stepper a").forEach(function (a, i) { a.classList.toggle("done", marks[i]); });
+  }
+
+  function onChange() {
+    renderSmart();
+    renderQuarters();
+    renderMessage();
+    updateProgress();
+  }
+
+  /* ---------- Scroll spy ---------- */
+  var links = $$("#stepper a");
+  var obs = new IntersectionObserver(function (entries) {
+    entries.forEach(function (e) {
+      if (e.isIntersecting) {
+        var id = e.target.id;
+        links.forEach(function (a) { a.classList.toggle("active", a.getAttribute("href") === "#" + id); });
+      }
+    });
+  }, { rootMargin: "-45% 0px -50% 0px" });
+  $$("main section.card").forEach(function (s) { obs.observe(s); });
+
+  /* ---------- Reset ---------- */
+  $("#reset-btn").addEventListener("click", function () {
+    if (confirm("Recomeçar do zero? Isso apaga tudo o que você preencheu neste navegador.")) {
+      var theme = state.theme;
+      state = blank(); state.theme = theme;
+      save(); location.reload();
+    }
+  });
+
+  /* ---------- Init ---------- */
+  applyTheme();
+  updateCountdown();
+  renderAreaChips();
+  renderDays();
+  renderReviews();
+  renderChallenge();
+  onChange();
+})();
+</script>
