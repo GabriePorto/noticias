@@ -1,0 +1,116 @@
+<!doctype html><html><head><meta charset="utf-8"><link rel="stylesheet" href="fonts.css"><style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --verde:#00594C; --verde2:#00786A; --coral:#F2795A; --coral-cl:#FBD9CE;
+  --off:#F7F5F2; --teal:#CDE9E3;
+}
+body{width:1080px;height:1920px;overflow:hidden;font-family:'Poppins',sans-serif;background:var(--off)}
+.canvas{position:relative;width:1080px;height:1920px;background:
+   radial-gradient(1200px 900px at 85% -8%, #FFFFFF 0%, rgba(255,255,255,0) 60%),
+   linear-gradient(168deg,#FBFAF8 0%, #F2EFEA 55%, #EAE6E0 100%);
+   overflow:hidden}
+
+/* marca d'água do símbolo */
+.wm{position:absolute;opacity:.5}
+.mark{position:relative}
+.mark .bar{position:absolute;border-radius:999px;background:var(--verde)}
+.mark .di{position:absolute;border-radius:999px;background:var(--coral)}
+
+/* faixa verde inferior */
+.faixa{position:absolute;left:0;right:0;bottom:0;height:430px;
+  background:linear-gradient(150deg,var(--verde) 0%, #00463C 100%)}
+.faixa:before{content:"";position:absolute;top:-90px;left:0;right:0;height:180px;
+  background:linear-gradient(150deg,var(--verde) 0%, #00463C 100%);
+  border-radius:50% 50% 0 0 / 100px 100px 0 0}
+
+/* topo */
+.topo{position:absolute;top:110px;left:0;right:0;display:flex;flex-direction:column;align-items:center;gap:26px}
+.logo{display:flex;align-items:center;gap:26px}
+.logotxt{display:flex;flex-direction:column;line-height:.9}
+.logotxt b{font-size:78px;font-weight:600;color:var(--verde);letter-spacing:-1px}
+.logotxt span{font-size:31px;letter-spacing:15px;color:var(--coral);font-weight:400;padding-left:6px}
+
+.tag{display:inline-flex;align-items:center;gap:16px;background:#fff;border:2px solid var(--coral-cl);
+  padding:16px 34px;border-radius:999px;box-shadow:0 12px 40px rgba(0,89,76,.07)}
+.tag i{width:14px;height:14px;border-radius:50%;background:var(--coral);display:block}
+.tag span{font-size:26px;letter-spacing:6px;font-weight:600;color:var(--verde)}
+
+/* miolo */
+.miolo{position:absolute;top:452px;left:96px;right:96px}
+.data{font-family:'SairaC',sans-serif;font-weight:900;font-size:208px;line-height:.84;
+  color:var(--verde);letter-spacing:-4px}
+.data em{font-style:normal;color:var(--coral)}
+.sub{font-family:'SairaC',sans-serif;font-weight:700;font-size:56px;letter-spacing:11px;
+  color:var(--verde2);margin-top:14px}
+.rule{width:150px;height:10px;border-radius:99px;background:var(--coral);margin:46px 0 42px}
+h1{font-size:60px;font-weight:600;color:#12312B;line-height:1.22;letter-spacing:-1px}
+h1 b{color:var(--verde);font-weight:600;position:relative;white-space:nowrap}
+h1 b:after{content:"";position:absolute;left:0;right:0;bottom:6px;height:16px;background:var(--coral);opacity:.28;border-radius:8px;z-index:-1}
+p.txt{margin-top:36px;font-size:33px;line-height:1.6;color:#4A5A56;max-width:830px;font-weight:400}
+
+/* bandeira minimal */
+.flag{position:absolute;right:96px;top:880px;display:flex;gap:14px}
+.flag i{display:block;width:26px;height:26px;border-radius:50%}
+
+/* rodapé */
+.rodape{position:absolute;left:96px;right:96px;bottom:96px;color:#fff}
+.rodape .frase{font-family:'SairaC',sans-serif;font-weight:700;font-size:52px;letter-spacing:4px;line-height:1.15}
+.rodape .frase em{font-style:normal;color:#FFC08F}
+.rodape .linha{height:2px;background:rgba(255,255,255,.25);margin:40px 0 30px}
+.rodape .info{display:flex;justify-content:space-between;align-items:center}
+.rodape .info span{font-size:29px;letter-spacing:2px;color:rgba(255,255,255,.85)}
+.rodape .info b{font-size:29px;font-weight:600;letter-spacing:3px;color:#fff}
+</style></head><body>
+<div class="canvas">
+
+  <!-- símbolo grande de fundo -->
+  <div class="wm" style="right:-190px;top:640px;opacity:.10">
+    <div class="mark" style="width:760px;height:760px">
+      <div class="bar" style="width:104px;height:760px;left:328px;top:0"></div>
+      <div class="bar" style="width:760px;height:104px;left:0;top:328px"></div>
+      <div class="di" style="width:86px;height:300px;left:110px;top:110px;transform:rotate(45deg)"></div>
+      <div class="di" style="width:86px;height:300px;right:110px;bottom:110px;transform:rotate(45deg)"></div>
+    </div>
+  </div>
+  <div class="wm" style="left:-150px;top:80px;opacity:.07">
+    <div class="mark" style="width:420px;height:420px">
+      <div class="bar" style="width:58px;height:420px;left:181px;top:0"></div>
+      <div class="bar" style="width:420px;height:58px;left:0;top:181px"></div>
+    </div>
+  </div>
+
+  <div class="topo">
+    <div class="logo">
+      <div class="mark" style="width:108px;height:108px">
+        <div class="bar" style="width:20px;height:108px;left:44px;top:0"></div>
+        <div class="bar" style="width:108px;height:20px;left:0;top:44px"></div>
+        <div class="di" style="width:16px;height:48px;left:12px;top:12px;transform:rotate(45deg)"></div>
+        <div class="di" style="width:16px;height:48px;left:12px;bottom:12px;transform:rotate(-45deg)"></div>
+        <div class="bar" style="width:16px;height:48px;right:12px;top:12px;transform:rotate(-45deg)"></div>
+        <div class="bar" style="width:16px;height:48px;right:12px;bottom:12px;transform:rotate(45deg)"></div>
+      </div>
+      <div class="logotxt"><b>stetikos</b><span>HOSPITAL</span></div>
+    </div>
+    <div class="tag"><i></i><span>INDEPENDÊNCIA DO BRASIL</span></div>
+  </div>
+
+  <div class="miolo">
+    <div class="data">7 DE<br><em>SETEMBRO</em></div>
+    <div class="sub">1822 &nbsp;•&nbsp; 2026</div>
+    <div class="rule"></div>
+    <h1>Independência também é<br><b>se sentir bem</b> na própria pele.</h1>
+    <p class="txt">Hoje o Brasil celebra a liberdade de seguir o próprio caminho. No Stetikos Hospital, essa liberdade começa quando você se olha no espelho e reconhece a sua melhor versão.</p>
+  </div>
+
+  <div class="flag">
+    <i style="background:#0E9B62"></i><i style="background:#F5C518"></i><i style="background:#1E3A8A"></i>
+  </div>
+
+  <div class="faixa"></div>
+  <div class="rodape">
+    <div class="frase">CUIDADO, SEGURANÇA E<br><em>LIBERDADE PRA SER VOCÊ.</em></div>
+    <div class="linha"></div>
+    <div class="info"><span>Feliz 7 de Setembro</span><b>@STETIKOSHOSPITAL</b></div>
+  </div>
+
+</div></body></html>

@@ -1,0 +1,87 @@
+<!doctype html><html><head><meta charset="utf-8"><link rel="stylesheet" href="fonts.css"><style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--navy:#0A1A3C;--navy2:#061029;--royal:#1B4FA0;--royal2:#2E6FD4;--graf:#171A21;--branco:#FFFFFF}
+body{width:1080px;height:1920px;overflow:hidden;font-family:'Poppins',sans-serif}
+.canvas{position:relative;width:1080px;height:1920px;overflow:hidden;
+ background:
+  radial-gradient(900px 700px at 78% 22%, rgba(46,111,212,.42) 0%, rgba(46,111,212,0) 62%),
+  radial-gradient(700px 600px at 8% 88%, rgba(27,79,160,.30) 0%, rgba(27,79,160,0) 60%),
+  linear-gradient(158deg,#0C2050 0%, var(--navy) 42%, #050C1E 100%)}
+
+/* textura de linhas diagonais (speed lines) */
+.lines{position:absolute;inset:0;opacity:.10;
+ background:repeating-linear-gradient(115deg, #fff 0 2px, transparent 2px 34px)}
+.glow{position:absolute;width:900px;height:900px;right:-260px;top:520px;border-radius:50%;
+ background:radial-gradient(circle,rgba(46,111,212,.35) 0%,rgba(46,111,212,0) 65%)}
+
+/* faixa grafite */
+.strip{position:absolute;left:0;right:0;top:1178px;height:10px;transform:skewY(-4deg);opacity:.55;
+ background:linear-gradient(90deg,rgba(23,26,33,.0) 0%, #171A21 18%, #23272F 55%, rgba(23,26,33,0) 100%);
+ border-top:2px solid rgba(46,111,212,.55);border-bottom:2px solid rgba(46,111,212,.55)}
+
+/* topo */
+.topo{position:absolute;top:104px;left:0;right:0;text-align:center}
+.wordmark{font-family:'SairaC',sans-serif;font-weight:900;font-size:92px;letter-spacing:10px;
+ color:#fff;transform:skewX(-9deg);line-height:1}
+.wordmark span{color:var(--royal2)}
+.sublogo{margin-top:12px;font-size:26px;letter-spacing:19px;color:rgba(255,255,255,.7);font-weight:400;padding-left:19px}
+.pill{display:inline-flex;align-items:center;gap:16px;margin-top:40px;padding:15px 36px;border-radius:999px;
+ border:2px solid rgba(255,255,255,.28);background:rgba(255,255,255,.06)}
+.pill i{width:12px;height:12px;border-radius:50%;background:#F5C518;display:block}
+.pill span{font-size:25px;letter-spacing:7px;font-weight:600;color:#fff}
+
+/* miolo */
+.miolo{position:absolute;top:596px;left:88px;right:88px}
+.data{font-family:'SairaC',sans-serif;font-weight:900;font-size:200px;line-height:.84;color:#fff;
+ transform:skewX(-9deg);letter-spacing:-2px;text-shadow:0 24px 60px rgba(0,0,0,.45)}
+.data em{font-style:normal;-webkit-text-stroke:3px rgba(255,255,255,.85);color:transparent}
+.ano{margin-top:26px;font-family:'SairaC',sans-serif;font-weight:700;font-size:50px;letter-spacing:13px;
+ color:var(--royal2);transform:skewX(-9deg)}
+.rule{width:170px;height:10px;background:linear-gradient(90deg,var(--royal2),#0E9B62 55%,#F5C518);
+ border-radius:99px;margin:96px 0 40px}
+h1{font-family:'SairaC',sans-serif;font-weight:900;font-size:78px;line-height:1.0;color:#fff;letter-spacing:1px}
+h1 em{font-style:normal;color:var(--royal2)}
+p.txt{margin-top:34px;font-size:32px;line-height:1.6;color:rgba(255,255,255,.78);max-width:800px}
+
+/* rodapé */
+.rodape{position:absolute;left:88px;right:88px;bottom:98px}
+.bar{height:2px;background:rgba(255,255,255,.18);margin-bottom:34px}
+.row{display:flex;justify-content:space-between;align-items:flex-end;gap:40px}
+.row .l{font-family:'SairaC',sans-serif;font-weight:700;font-size:44px;letter-spacing:4px;color:#fff;white-space:nowrap}
+.row .l small{display:block;font-family:'Poppins',sans-serif;font-weight:400;font-size:23px;letter-spacing:1px;
+ color:rgba(255,255,255,.6);margin-top:10px;white-space:nowrap}
+.row .r{text-align:right;white-space:nowrap;font-size:25px;letter-spacing:2px;color:rgba(255,255,255,.75);line-height:1.7}
+.row .r b{color:#fff;font-weight:600}
+.flagbar{position:absolute;left:0;right:0;bottom:0;height:14px;display:flex}
+.flagbar i{flex:1}
+</style></head><body>
+<div class="canvas">
+  <div class="lines"></div>
+  <div class="glow"></div>
+  <div class="strip"></div>
+
+  <div class="topo">
+    <div class="wordmark">AUTO<span>CAR</span></div>
+    <div class="sublogo">AUTO PEÇAS</div>
+    <div><div class="pill"><i></i><span>INDEPENDÊNCIA DO BRASIL</span></div></div>
+  </div>
+
+  <div class="miolo">
+    <div class="data">7 DE<br><em>SETEMBRO</em></div>
+    <div class="ano">1822 — 2026</div>
+    <div class="rule"></div>
+    <h1>LIBERDADE DE IR E VIR<br><em>COMEÇA COM O CARRO EM DIA.</em></h1>
+    <p class="txt">Neste 7 de Setembro, a AutoCar celebra a independência do Brasil e a de quem não abre mão de pegar a estrada com segurança. Peça certa, preço justo e você no controle.</p>
+  </div>
+
+  <div class="rodape">
+    <div class="bar"></div>
+    <div class="row">
+      <div class="l">FELIZ 7 DE SETEMBRO<small>Belo Horizonte • MG</small></div>
+      <div class="r"><b>@AUTOCARAUTOPECAS</b><br>www.autocarautopecas.com.br</div>
+    </div>
+  </div>
+  <div class="flagbar">
+    <i style="background:#0E9B62"></i><i style="background:#F5C518"></i><i style="background:#1B4FA0"></i>
+  </div>
+</div></body></html>
