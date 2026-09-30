@@ -1,0 +1,2223 @@
+<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"></head><body style="margin:0">
+<title>Projeto Córtex</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* Layout: canvas 3D fixo em tela cheia; coluna de fichas à esquerda rola por cima (parallax), trilho de grupos à direita. */
+:root{
+  --bg:#07080f; --bg2:#10101f; --fg:#efeaf5; --muted:#a8a1b9; --faint:#6f6984;
+  --line:rgba(239,234,245,.13); --panel:rgba(11,11,22,.74); --panel-solid:#0d0d1a;
+  --tissue:#e8b9b1; --hi:#6f9bff;
+  --display:'Bricolage Grotesque','Avenir Next',system-ui,sans-serif;
+  --body:'IBM Plex Sans',system-ui,-apple-system,'Segoe UI',sans-serif;
+  --mono:'IBM Plex Mono',ui-monospace,'SFMono-Regular',Menlo,monospace;
+  --gutter:max(16px,4vw);
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:auto}
+body{background:var(--bg);color:var(--fg);font-family:var(--body);font-size:15px;line-height:1.55;overflow-x:hidden}
+.atmos{position:fixed;inset:0;z-index:0;pointer-events:none;
+  background:radial-gradient(60% 55% at 66% 46%,rgba(92,70,170,.30),transparent 70%),
+             radial-gradient(40% 40% at 20% 90%,rgba(40,90,150,.18),transparent 70%),var(--bg)}
+.grid{position:fixed;inset:-50% 0;z-index:0;pointer-events:none;opacity:.35;
+  background-image:linear-gradient(rgba(239,234,245,.045) 1px,transparent 1px),linear-gradient(90deg,rgba(239,234,245,.045) 1px,transparent 1px);
+  background-size:64px 64px;will-change:transform;
+  -webkit-mask-image:radial-gradient(70% 60% at 60% 50%,#000 20%,transparent 75%);mask-image:radial-gradient(70% 60% at 60% 50%,#000 20%,transparent 75%)}
+#gl{position:fixed;inset:0;width:100%;height:100%;z-index:1;touch-action:pan-y;cursor:grab;display:block}
+#gl.drag{cursor:grabbing}
+
+/* Header */
+.top{position:fixed;left:0;right:0;top:0;z-index:5;padding:calc(env(safe-area-inset-top,0px) + 12px) var(--gutter) 12px;
+  display:flex;align-items:center;gap:16px;justify-content:space-between;
+  background:linear-gradient(var(--bg) 20%,rgba(7,8,15,0));pointer-events:none}
+.brand{display:flex;flex-direction:column;line-height:1.15;pointer-events:auto}
+.brand b{font-family:var(--display);font-weight:800;font-size:17px;letter-spacing:.01em}
+.brand span{white-space:nowrap;font-family:var(--mono);font-size:11px;color:var(--muted);letter-spacing:.04em}
+.stages{display:flex;gap:6px;list-style:none;margin:0;padding:0;pointer-events:auto}
+.stages button{all:unset;cursor:pointer;display:flex;align-items:center;gap:8px;padding:6px 12px 6px 6px;border-radius:999px;border:1px solid var(--line);
+  font-size:12.5px;color:var(--muted);background:rgba(13,13,26,.6)}
+.stages button b{display:grid;place-items:center;width:22px;height:22px;border-radius:50%;font-family:var(--mono);font-size:11px;font-weight:500;border:1px dashed var(--faint)}
+.stages .on button{color:var(--fg);border-color:rgba(239,234,245,.35)}
+.stages .on button b{background:var(--fg);color:var(--bg);border:0}
+.stages button:focus-visible{outline:2px solid var(--hi);outline-offset:2px}
+.bar{position:fixed;left:0;top:0;height:2px;z-index:6;background:var(--hi);width:0;transition:background .6s}
+
+/* Rail */
+.rail{position:fixed;right:var(--gutter);top:50%;transform:translateY(-50%);z-index:4;display:flex;flex-direction:column;gap:4px}
+.rail button{all:unset;cursor:pointer;display:flex;align-items:center;justify-content:flex-end;gap:10px;padding:4px 0;font-size:11.5px;color:var(--faint);font-family:var(--mono);letter-spacing:.02em}
+.rail button i{display:block;width:14px;height:2px;border-radius:2px;background:currentColor;transition:width .35s,background .35s}
+.rail button span{opacity:0;transform:translateX(6px);transition:opacity .3s,transform .3s;white-space:nowrap}
+.rail:hover button span,.rail button.on span{opacity:1;transform:none}
+.rail button.on{color:var(--fg)}
+.rail button.on i{width:34px;background:var(--c)}
+.rail button:focus-visible{outline:2px solid var(--hi);outline-offset:3px}
+
+/* 3D tag */
+.tag3d{position:fixed;left:0;top:0;z-index:3;pointer-events:none;display:flex;align-items:center;gap:8px;white-space:nowrap;
+  font-family:var(--mono);font-size:11.5px;color:var(--fg);transition:opacity .35s;will-change:transform}
+.tag3d .dot{width:10px;height:10px;border-radius:50%;background:var(--hi);box-shadow:0 0 0 4px rgba(255,255,255,.08),0 0 18px var(--hi);flex:none}
+.tag3d .stem{width:38px;height:1px;background:linear-gradient(90deg,var(--hi),rgba(255,255,255,.2))}
+.tag3d .txt{padding:4px 9px;border:1px solid var(--line);border-radius:6px;background:rgba(9,9,18,.82)}
+.tag3d.flip{flex-direction:row-reverse}
+.tag3d.flip .stem{background:linear-gradient(270deg,var(--hi),rgba(255,255,255,.2))}
+.tag3d .txt em{font-style:normal;color:var(--hi);margin-right:6px}
+
+/* Steps */
+main{position:relative;z-index:2;pointer-events:none;padding-inline:var(--gutter)}
+.step{position:relative;min-height:100vh;display:flex;align-items:center;padding-block:14vh}
+.ghost{position:absolute;left:calc(var(--gutter) + 330px);top:50%;margin-top:-.55em;font-family:var(--display);font-weight:800;
+  font-size:clamp(110px,19vw,300px);line-height:1;letter-spacing:-.04em;color:transparent;-webkit-text-stroke:1px rgba(239,234,245,.10);
+  pointer-events:none;will-change:transform;user-select:none;white-space:nowrap}
+.card{pointer-events:auto;position:relative;width:min(430px,100%);background:var(--panel);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);
+  border:1px solid var(--line);border-radius:14px;padding:20px 22px 16px;box-shadow:0 30px 60px -30px rgba(0,0,0,.7)}
+.meta{display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-family:var(--mono);font-size:11.5px;color:var(--muted);letter-spacing:.03em}
+.code{color:var(--bg);background:var(--c);padding:2px 7px;border-radius:4px;font-weight:500}
+.grp{display:flex;align-items:center;gap:6px}
+.grp i{width:7px;height:7px;border-radius:50%;background:var(--c)}
+.idx{margin-left:auto;font-variant-numeric:tabular-nums}
+.card h2{font-family:var(--display);font-weight:800;font-size:clamp(28px,3.1vw,38px);line-height:1.02;letter-spacing:-.02em;margin:14px 0 4px;text-wrap:balance}
+.alt{margin:0 0 12px;color:var(--muted);font-size:13px}
+.facts{margin:0;display:grid;gap:10px}
+.facts div{display:grid;gap:2px}
+.facts dt{font-family:var(--mono);font-size:10.5px;text-transform:uppercase;letter-spacing:.09em;color:var(--faint)}
+.facts dd{margin:0;max-width:62ch}
+.facts .role dd{font-size:16px;color:var(--fg)}
+.note{margin-top:12px;padding:10px 12px;border-left:2px solid var(--c);background:rgba(239,234,245,.04);border-radius:0 8px 8px 0;font-size:13.5px;color:var(--muted)}
+.note b{color:var(--fg);font-weight:600}
+.paths{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px}
+.paths span{font-family:var(--mono);font-size:11px;padding:3px 8px;border-radius:999px;border:1px solid var(--line);color:var(--muted)}
+.paths span b{color:var(--c);font-weight:500}
+.pending{margin-top:14px;padding-top:10px;border-top:1px dashed var(--line);display:flex;justify-content:space-between;gap:8px;font-family:var(--mono);font-size:11px;color:var(--faint)}
+.parts{list-style:none;margin:12px 0 0;padding:0;display:grid;gap:6px}
+.parts li{display:grid;grid-template-columns:128px 1fr;gap:10px;font-size:13.5px;align-items:baseline}
+.parts b{font-weight:600}
+.parts span{color:var(--muted)}
+.parts li.glia b{color:var(--c)}
+canvas.syn{display:block;width:100%;height:230px;margin-top:12px;border-radius:10px;background:rgba(0,0,0,.25);border:1px solid var(--line)}
+
+/* Hero */
+.step.hero .card{background:none;border:0;box-shadow:none;-webkit-backdrop-filter:none;backdrop-filter:none;padding:0;width:min(560px,100%)}
+.eyebrow{font-family:var(--mono);font-size:12px;color:var(--muted);letter-spacing:.06em;text-transform:uppercase;display:flex;gap:10px;align-items:center}
+.eyebrow i{width:26px;height:1px;background:var(--hi)}
+.hero h1{font-family:var(--display);font-weight:800;font-size:clamp(40px,6.2vw,84px);line-height:.94;letter-spacing:-.035em;margin:18px 0 18px;text-wrap:balance}
+.hero h1 em{font-style:normal;color:var(--tissue)}
+.hero p.lead{font-size:17px;color:var(--muted);max-width:48ch;margin:0}
+.stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:1px;margin-top:28px;border:1px solid var(--line);border-radius:12px;overflow:hidden;background:var(--line)}
+.stats div{background:rgba(9,9,18,.8);padding:12px 12px 10px}
+.stats b{display:block;font-family:var(--display);font-weight:600;font-size:24px;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.stats span{font-size:11.5px;color:var(--muted);line-height:1.3;display:block}
+.hint{margin-top:22px;font-family:var(--mono);font-size:12px;color:var(--faint);display:flex;gap:14px;flex-wrap:wrap}
+.hint span::before{content:"";display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--hi);margin-right:7px;vertical-align:1px}
+
+/* Wide sections */
+.step.wide{justify-content:center}
+.step.wide .card{width:min(1120px,100%);background:rgba(10,10,20,.9);padding:26px 26px 22px}
+.wide h2{margin-top:6px}
+.lede{color:var(--muted);max-width:70ch;margin:6px 0 18px}
+.toolbar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+.btn{all:unset;cursor:pointer;font-family:var(--mono);font-size:12px;padding:8px 12px;border-radius:8px;border:1px solid var(--line);color:var(--fg);background:rgba(239,234,245,.05)}
+.btn:hover{background:rgba(239,234,245,.1)}
+.btn:focus-visible{outline:2px solid var(--hi);outline-offset:2px}
+.btn.primary{background:var(--fg);color:var(--bg);border-color:var(--fg)}
+.cat-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:10px}
+table.cat{width:100%;border-collapse:collapse;font-size:13.5px;min-width:760px}
+.cat th{text-align:left;font-family:var(--mono);font-weight:400;font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--faint);padding:10px 12px;border-bottom:1px solid var(--line);position:sticky;top:0;background:var(--panel-solid)}
+.cat td{padding:9px 12px;border-bottom:1px solid rgba(239,234,245,.06);vertical-align:top}
+.cat tr.row{cursor:pointer}
+.cat tr.row:hover td{background:rgba(239,234,245,.04)}
+.cat tr.row:focus-visible{outline:2px solid var(--hi);outline-offset:-2px}
+.cat td.c{font-family:var(--mono);font-size:12px;white-space:nowrap;color:var(--c)}
+.cat td.n{font-weight:600;white-space:nowrap}
+.cat td.r{color:var(--muted)}
+.cat tr.gh td{font-family:var(--mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--c);padding-top:16px;background:rgba(239,234,245,.02)}
+pre.json{max-height:260px;overflow:auto;font-family:var(--mono);font-size:11.5px;background:rgba(0,0,0,.35);border:1px solid var(--line);border-radius:8px;padding:12px;color:var(--muted);white-space:pre}
+.toast{font-family:var(--mono);font-size:12px;color:var(--hi);align-self:center}
+.road{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+.road article{border:1px solid var(--line);border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:8px;min-width:0;background:rgba(239,234,245,.025)}
+.road article.done{border-color:rgba(239,234,245,.4);background:rgba(239,234,245,.06)}
+.road .st{font-family:var(--mono);font-size:11px;color:var(--faint);display:flex;justify-content:space-between;gap:8px}
+.road .done .st em{color:#7ff0b2}
+.road em{font-style:normal}
+.road h3{font-family:var(--display);font-weight:800;font-size:22px;letter-spacing:-.02em;margin:0;line-height:1.05}
+.road p{margin:0;color:var(--muted);font-size:13.5px}
+.road ul{margin:0;padding-left:16px;color:var(--muted);font-size:13px;display:grid;gap:3px}
+.road code{font-family:var(--mono);font-size:11.5px;color:var(--fg)}
+.foot{margin-top:18px;font-family:var(--mono);font-size:11px;color:var(--faint)}
+
+/* Etapa 4 */
+.s4{margin-top:14px;padding:14px;border-radius:12px;border:1px solid rgba(255,184,107,.32);background:linear-gradient(160deg,rgba(255,184,107,.09),rgba(255,184,107,.02));display:grid;gap:11px}
+.s4h{display:flex;align-items:center;gap:8px;font-family:var(--mono);font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;color:#ffe2bf}
+.s4h span{padding:2px 6px;border-radius:4px;background:#ffb86b;color:#1a0f04}
+.prio{margin-left:auto;font-style:normal;font-family:var(--mono);font-size:11px;padding:2px 8px;border-radius:999px;border:1px solid #ffb86b;color:#ffb86b}
+.s4 h4{margin:0 0 5px;font-family:var(--mono);font-weight:400;font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--faint)}
+ul.sig{list-style:none;margin:0;padding:0;display:grid;gap:4px}
+ul.sig code{font-family:var(--mono);font-size:11.5px;color:#ffd9ad;word-break:break-word}
+ul.sig li{font-size:12.5px;color:var(--muted)}
+.pinfo{display:grid;gap:4px;font-size:13px;color:var(--muted)}
+.pinfo code{font-family:var(--mono);font-size:15px;color:#ffb86b}
+details.s3d>summary span{border-color:#7ee8ff;color:#7ee8ff}
+details.s3d>summary b{font-weight:500;color:var(--fg);text-transform:none;letter-spacing:0;font-family:var(--body);font-size:13px}
+details.s3d .s3{margin-top:6px}
+.step.console .card{width:min(560px,100%)}
+.presets{display:flex;flex-wrap:wrap;gap:6px;margin:12px 0 10px}
+.presets button{all:unset;cursor:pointer;font-size:13px;padding:7px 11px;border-radius:8px;border:1px solid var(--line);background:rgba(239,234,245,.04);color:var(--fg)}
+.presets button:hover{border-color:rgba(255,184,107,.6)}
+.presets button.on{background:#ffb86b;color:#1a0f04;border-color:#ffb86b}
+.presets button:focus-visible,.cmd button:focus-visible{outline:2px solid var(--hi);outline-offset:2px}
+.presets button.danger{border-color:rgba(255,107,90,.45)}
+form.cmd{display:flex;gap:8px;margin-bottom:12px}
+form.cmd input{flex:1;min-width:0;font:inherit;font-size:14px;padding:9px 12px;border-radius:8px;border:1px solid var(--line);background:rgba(0,0,0,.35);color:var(--fg)}
+form.cmd input:focus{outline:2px solid #ffb86b;outline-offset:1px}
+form.cmd button{all:unset;cursor:pointer;padding:9px 14px;border-radius:8px;background:#ffb86b;color:#1a0f04;font-weight:600;font-size:13.5px}
+ol.log{list-style:none;margin:0;padding:6px;height:280px;overflow:auto;border:1px solid var(--line);border-radius:10px;background:rgba(0,0,0,.3);display:flex;flex-direction:column;gap:2px;scroll-behavior:smooth}
+ol.log li{display:grid;grid-template-columns:62px 1fr;gap:8px;padding:6px 6px 6px 8px;border-left:2px solid var(--tc);border-radius:0 6px 6px 0;background:rgba(239,234,245,.025);animation:inlog .35s ease-out}
+ol.log li.you{border-left-color:var(--fg);background:rgba(239,234,245,.07)}
+ol.log li.empty{border:0;background:none;color:var(--faint);font-size:13px;display:block;padding:10px}
+@keyframes inlog{from{opacity:.2;transform:translateX(-6px)}to{opacity:1;transform:none}}
+ol.log time{font-family:var(--mono);font-size:11px;color:var(--faint);font-variant-numeric:tabular-nums;padding-top:1px}
+ol.log .rt{display:flex;align-items:center;gap:6px;flex-wrap:wrap;font-family:var(--mono);font-size:11.5px}
+ol.log .rt b{font-weight:500;color:var(--fg)}
+ol.log .rt i{font-style:normal;color:var(--tc)}
+ol.log .rt em{font-style:normal;font-size:10px;padding:0 5px;border-radius:3px;color:#0b0b14;background:var(--tc)}
+ol.log code{display:block;font-family:var(--mono);font-size:11px;color:var(--muted);word-break:break-all}
+ol.log small{display:block;font-size:12.5px;color:#d9d3e3;margin-top:1px}
+@media (prefers-reduced-motion:reduce){ol.log li{animation:none}}
+.lsum{margin:10px 0 0;padding:10px 12px;border-radius:8px;background:rgba(255,184,107,.08);border:1px solid rgba(255,184,107,.3);font-size:13.5px;min-height:1em}
+.lsum:empty{display:none}
+.params{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 14px;margin-top:14px}
+.pm{display:grid;grid-template-columns:1fr auto;align-items:center;gap:2px 8px;min-width:0}
+.pm label{font-family:var(--mono);font-size:11.5px;color:var(--fg)}
+.pm label small{color:var(--faint);margin-left:4px}
+.pm output{font-family:var(--mono);font-size:11.5px;color:#ffb86b;font-variant-numeric:tabular-nums;transition:color .3s}
+.pm output.flash{color:#fff}
+.pm input{grid-column:1/-1;width:100%;accent-color:#ffb86b;margin:0}
+.pm input:disabled{opacity:.45}
+.pm .lk{grid-column:1/-1;font-family:var(--mono);font-size:10px;color:var(--faint)}
+.subh{margin:16px 0 6px;font-family:var(--mono);font-weight:400;font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--faint)}
+pre.msg{max-height:none;margin:0}
+.proto-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px;align-items:start}
+.fields{margin:0;display:grid;gap:8px}
+.fields div{display:grid;grid-template-columns:96px 1fr;gap:10px;font-size:13.5px}
+.fields dt{font-family:var(--mono);font-size:12px;color:#ffb86b}
+.fields dd{margin:0;color:var(--muted)}
+.sigtypes{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.sigtypes article{border:1px solid var(--line);border-top:3px solid var(--tc);border-radius:10px;padding:12px;display:grid;gap:4px;align-content:start;min-width:0}
+.sigtypes b{font-size:15px}
+.sigtypes small{font-family:var(--mono);font-size:11px;color:var(--tc)}
+.sigtypes p{margin:0;font-size:13px;color:var(--muted)}
+.prios,.perms{display:grid;gap:6px}
+.prios div,.perms div{display:grid;grid-template-columns:52px 200px 1fr;gap:12px;align-items:baseline;padding:8px 10px;border-radius:8px;background:rgba(239,234,245,.03);font-size:13.5px}
+.perms div{grid-template-columns:170px 1fr}
+.prios code{font-family:var(--mono);color:#ffb86b}
+.prios span,.perms span{color:var(--muted)}
+.rules{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.rules article{border:1px solid var(--line);border-radius:10px;padding:14px;display:grid;gap:6px;align-content:start;min-width:0;background:rgba(255,107,90,.03)}
+.rules .rn{font-family:var(--mono);font-size:12px;color:#ff9a8c}
+.rules b{font-size:16px;font-family:var(--display);font-weight:700;letter-spacing:-.01em}
+.rules p{margin:0;color:var(--muted);font-size:13.5px}
+/* Etapa 3 */
+.right{display:flex;align-items:center;gap:10px;pointer-events:auto}
+.view{display:flex;border:1px solid var(--line);border-radius:999px;padding:3px;background:rgba(13,13,26,.7)}
+.view button{all:unset;cursor:pointer;font-size:12.5px;padding:5px 12px;border-radius:999px;color:var(--muted)}
+.view button[aria-pressed="true"]{background:#7ee8ff;color:#06121a;font-weight:600}
+.view button:focus-visible{outline:2px solid var(--hi);outline-offset:2px}
+.s3{margin-top:14px;padding:14px;border-radius:12px;border:1px solid rgba(126,232,255,.28);background:linear-gradient(160deg,rgba(126,232,255,.08),rgba(126,232,255,.02));display:grid;gap:11px}
+.s3h{display:flex;align-items:center;gap:8px;font-family:var(--mono);font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;color:#bff3ff}
+.s3h span{padding:2px 6px;border-radius:4px;background:#7ee8ff;color:#06121a}
+.rmod{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
+.rmod small,.param small{display:block;font-family:var(--mono);font-size:10px;letter-spacing:.09em;text-transform:uppercase;color:var(--faint)}
+.rmod b{font-family:var(--display);font-weight:800;font-size:21px;line-height:1.1;letter-spacing:-.01em;color:#e6fbff}
+.mat{font-style:normal;font-family:var(--mono);font-size:10.5px;padding:3px 8px;border-radius:999px;white-space:nowrap;flex:none;border:1px solid}
+.mat.m2{color:#7ff0b2;border-color:rgba(127,240,178,.5);background:rgba(127,240,178,.08)}
+.mat.m1{color:#ffd56a;border-color:rgba(255,213,106,.5);background:rgba(255,213,106,.08)}
+.mat.m0{color:#ff9fd0;border-color:rgba(255,159,208,.5);background:rgba(255,159,208,.08)}
+.s3 p{margin:0;font-size:14px;color:#dcecf2;max-width:62ch}
+.s3 h4{margin:0 0 5px;font-family:var(--mono);font-weight:400;font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--faint)}
+.tech{display:flex;flex-wrap:wrap;gap:5px}
+.tech span{font-size:12px;padding:3px 8px;border-radius:6px;background:rgba(126,232,255,.1);color:#cdeef6}
+.param code{font-family:var(--mono);font-size:13px;color:#7ee8ff}
+.care{border-left:2px solid #7ee8ff;padding-left:10px}
+.care p{font-size:13.5px;color:var(--muted)}
+details.s2d{margin-top:12px;border-top:1px solid var(--line)}
+details.s2d>summary{cursor:pointer;list-style:none;display:flex;align-items:center;gap:8px;padding:12px 0 2px;font-family:var(--mono);font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--muted)}
+details.s2d>summary::-webkit-details-marker{display:none}
+details.s2d>summary span{white-space:nowrap;flex:none;padding:2px 6px;border-radius:4px;border:1px solid var(--c);color:var(--c)}
+details.s2d>summary::after{content:"+";margin-left:auto;font-size:15px;color:var(--fg)}
+details.s2d[open]>summary::after{content:"–"}
+details.s2d>summary:focus-visible{outline:2px solid var(--hi);outline-offset:2px}
+details.s2d .s2{border-top:0;margin-top:4px}
+.mat-sum{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:4px 0 18px}
+.mat-sum div{border:1px solid var(--line);border-radius:10px;padding:12px;display:grid;gap:6px;min-width:0}
+.mat-sum b{font-family:var(--display);font-size:30px;font-weight:800;line-height:1;font-variant-numeric:tabular-nums}
+.mat-sum span{font-size:12.5px;color:var(--muted)}
+.layers{display:grid;gap:8px}
+.layer{display:grid;grid-template-columns:44px 1fr;gap:12px;align-items:stretch}
+.layer .ln{display:grid;place-items:center;border-radius:10px;font-family:var(--display);font-weight:800;font-size:22px;color:#06121a;background:linear-gradient(#7ee8ff,#3fa9c9)}
+.layer:nth-child(n+4) .ln{background:linear-gradient(#b8f3ff,#7ee8ff)}
+.layer .lb{border:1px solid var(--line);border-radius:10px;padding:10px 12px;display:grid;gap:8px;min-width:0;background:rgba(126,232,255,.03)}
+.lt{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 12px}
+.lt h3{margin:0;font-family:var(--display);font-size:17px;font-weight:700}
+.lt span{font-family:var(--mono);font-size:11.5px;color:var(--muted)}
+.axis{display:flex;justify-content:space-between;font-family:var(--mono);font-size:11px;color:var(--faint);margin:8px 0 0 56px}
+.bus{display:grid;grid-template-columns:1fr 2fr 1fr;gap:12px;margin-top:14px}
+.bus>div{border:1px dashed var(--line);border-radius:10px;padding:10px 12px;min-width:0}
+.bus h4{margin:0 0 6px;font-family:var(--mono);font-weight:400;font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--faint)}
+h3.ph{font-family:var(--display);font-size:22px;margin:24px 0 10px}
+.principles{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.principles article{border:1px solid var(--line);border-radius:10px;padding:12px;display:grid;gap:6px;align-content:start;min-width:0}
+.principles b{font-size:15px}
+.principles p{margin:0;color:var(--muted);font-size:13.5px}
+.principles .chip{justify-self:start}
+/* Etapa 2 */
+.s2{margin-top:14px;padding-top:12px;border-top:1px solid var(--line);display:grid;gap:12px}
+.s2h{display:flex;align-items:center;gap:8px;font-family:var(--mono);font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--fg)}
+.s2h span{padding:2px 6px;border-radius:4px;border:1px solid var(--c);color:var(--c)}
+.s2 p{margin:0;font-size:14px;color:#d9d3e3;max-width:62ch}
+.s2 h4{margin:0 0 5px;font-family:var(--mono);font-weight:400;font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--faint)}
+.io{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.io>div{min-width:0}
+.io ul{margin:0;padding:0;list-style:none;display:grid;gap:4px;font-size:13px;color:var(--muted)}
+.io li{position:relative;padding-left:14px}
+.io .in li::before{content:"→";position:absolute;left:0;color:var(--faint)}
+.io .out li::before{content:"→";position:absolute;left:0;color:var(--c)}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{all:unset;cursor:pointer;display:inline-flex;align-items:center;gap:6px;padding:3px 8px 3px 4px;border-radius:6px;border:1px solid var(--line);font-size:12px;color:var(--muted);background:rgba(239,234,245,.03)}
+.chip b{white-space:nowrap;font-family:var(--mono);font-weight:500;font-size:11px;color:var(--bg);background:var(--cc);padding:1px 5px;border-radius:3px}
+.chip:hover{border-color:rgba(239,234,245,.35);color:var(--fg)}
+.chip:focus-visible{outline:2px solid var(--hi);outline-offset:2px}
+.fail{padding:10px 12px;border-radius:8px;background:rgba(255,107,90,.07);border:1px solid rgba(255,107,90,.22)}
+.fail h4{color:#ff9a8c}
+.fail p{font-size:13.5px;color:#e6d6d4}
+ol.chain{list-style:none;margin:4px 0 0;padding:0;display:grid;gap:0;counter-reset:st}
+ol.chain li{counter-increment:st;display:grid;grid-template-columns:26px 1fr;gap:10px;position:relative;padding-bottom:12px}
+ol.chain li::before{content:counter(st);display:grid;place-items:center;width:24px;height:24px;border-radius:50%;border:1px solid var(--c);color:var(--c);font-family:var(--mono);font-size:11px;background:var(--panel-solid);position:relative;z-index:1}
+ol.chain li:not(:last-child)::after{content:"";position:absolute;left:12px;top:24px;bottom:0;width:1px;background:linear-gradient(var(--c),rgba(239,234,245,.1))}
+ol.chain li>div{display:grid;gap:3px;padding-top:2px;min-width:0}
+ol.chain li span{font-size:13.5px;color:#d9d3e3}
+.mtags{position:fixed;inset:0;z-index:3;pointer-events:none}
+.mtag{position:absolute;left:0;top:0;font-family:var(--mono);font-size:10px;padding:1px 5px;border-radius:4px;background:rgba(9,9,18,.78);border:1px solid rgba(239,234,245,.16);color:var(--muted);white-space:nowrap;transition:opacity .3s;will-change:transform}
+.mtag i{font-style:normal;color:var(--hi);margin-right:4px}
+.stages .done button b{background:rgba(127,240,178,.15);border:1px solid #7ff0b2;color:#7ff0b2}
+@media (max-width:1080px){.road{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:860px){
+  .bus,.principles,.mat-sum,.proto-grid,.sigtypes,.rules,.params{grid-template-columns:1fr}
+  .prios div{grid-template-columns:40px 1fr}.prios div span{grid-column:2}
+  .perms div{grid-template-columns:1fr}
+  .fields div{grid-template-columns:1fr;gap:0}
+  ol.log{height:240px}
+  .step.console{padding-block:46vh 18px}
+  .axis{margin-left:0}
+  .rail{display:none}
+  .stages button span{display:none}
+  .stages button{padding:4px}
+  .step{min-height:100vh;align-items:flex-end;padding-block:50vh 18px}
+  .io{grid-template-columns:1fr}
+  .mtag{display:none}
+  .ghost{left:var(--gutter);top:18%}
+  .step.hero{align-items:flex-end}
+  .step.hero .card{max-height:none;background:linear-gradient(rgba(7,8,15,0),var(--bg) 22%);padding-top:40px}
+  .hero h1{font-size:clamp(34px,10vw,54px)}
+  .stats{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .step.wide{align-items:center;padding-block:80px 24px}
+  .step.wide .card{max-height:none;padding:18px}
+  .road{grid-template-columns:1fr}
+  .parts li{grid-template-columns:110px 1fr}
+}
+@media (max-width:520px){.stages{display:none}}
+@media (prefers-reduced-motion:reduce){.ghost{transform:none!important}}
+</style>
+
+<div class="atmos"></div>
+<div class="grid" id="grid"></div>
+<canvas id="gl" aria-label="Modelo 3D do cérebro. Arraste para girar; clique numa região para ir até ela."></canvas>
+<div class="bar" id="bar"></div>
+
+<header class="top">
+  <div class="brand"><b>Projeto Córtex</b><span>cérebro para robôs · atlas v4</span></div>
+  <div class="right">
+  <ol class="stages" id="stages">
+    <li class="done"><button data-go="roteiro" title="Etapa 1: nomenclatura (concluída)"><b>✓</b><span>Nomes</span></button></li>
+    <li class="done"><button data-go="roteiro" title="Etapa 2: funções (concluída)"><b>✓</b><span>Funções</span></button></li>
+    <li class="done"><button data-go="arquitetura" title="Etapa 3: o robô (concluída)"><b>✓</b><span>Robô</span></button></li>
+    <li class="on"><button data-go="console" title="Etapa 4: comandos e sinapses (atual)"><b>4</b><span>Comandos</span></button></li>
+  </ol>
+  <div class="view" id="view" role="group" aria-label="Visual do modelo"><button data-v="human" aria-pressed="false">Humano</button><button data-v="robot" aria-pressed="true">Robô</button></div>
+  </div>
+</header>
+
+<nav class="rail" id="rail" aria-label="Grupos do atlas"></nav>
+<div class="mtags" id="mtags" aria-hidden="true"></div>
+<div class="tag3d" id="tag"><span class="dot"></span><span class="stem"></span><span class="txt" id="tagtxt"></span></div>
+
+<main id="steps"></main>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+(function(){
+'use strict';
+
+/* ================================================================
+   DADOS — Etapa 1: nomenclatura
+   Coordenadas: +x = lado ESQUERDO do sujeito, +y = topo, +z = frente
+   ================================================================ */
+const G = {
+  ctx:{name:'Córtex cerebral',color:'#6f9bff'},
+  wm:{name:'Substância branca',color:'#e3ddff'},
+  lim:{name:'Sistema límbico',color:'#ff6f91'},
+  die:{name:'Diencéfalo e glândulas',color:'#ffd56a'},
+  bg:{name:'Núcleos da base',color:'#d98cff'},
+  stem:{name:'Tronco e cerebelo',color:'#4fd8d0'},
+  oth:{name:'Sentidos e fluidos',color:'#9fd0ff'},
+  nt:{name:'Neuroquímica',color:'#ffcf4d'},
+  cel:{name:'Células e sinapses',color:'#8fe9ff'},
+  circ:{name:'Circuitos',color:'#7ff0b2'},
+  arq:{name:'Arquitetura do robô',color:'#7ee8ff'},
+  cmd:{name:'Comandos e sinapses',color:'#ffb86b'},
+  end:{name:'Projeto',color:'#efeaf5'}
+};
+const LOBE = {1:'#6f9bff',2:'#ffc35e',3:'#6fdc8c',4:'#b08cff'};
+const NTC = {DA:'#ffcf4d',S5:'#7ae7ff',NE:'#ff6b5a',ADO:'#e0d2b8',ACH:'#a4f07a',GLU:'#ff9a3c',GABA:'#5b8cff',OXT:'#ff8fd0',END:'#c9a2ff'};
+
+const S = [
+ {id:'inicio',kind:'hero',group:'end',cam:{t:[0,-0.05,0],d:[0.8,0.42,0.55],r:4.4},tint:0,mode:'surface',pulse:'surface',auto:true},
+
+ {id:'neocortex',code:'CTX-00',name:'Neocórtex',alt:'Córtex cerebral · substância cinzenta · 6 camadas de neurônios',group:'ctx',
+  where:'Camada externa enrugada que cobre os dois hemisférios, com 2 a 4 mm de espessura. As dobras (giros) e os vales (sulcos) triplicam a área.',
+  role:'Pensamento, linguagem, percepção consciente, planejamento e movimento voluntário. Reúne cerca de 16 bilhões de neurônios.',
+  note:'As cores mostram os quatro lobos: <b>frontal</b>, <b>parietal</b>, <b>temporal</b> e <b>occipital</b>.',
+  f:{cortex:true},cam:{t:[0,0.05,0],d:[0.85,0.5,0.45],r:4.0},tint:0.62,mode:'surface',pulse:'surface',ghost:'CTX'},
+ {id:'lobo-frontal',code:'CTX-FR',name:'Lobo frontal',alt:'O maior dos lobos · ~41% do córtex',group:'ctx',color:LOBE[1],
+  where:'Parte da frente de cada hemisfério, da testa até o sulco central.',
+  role:'Decisão, movimento voluntário, fala e controle do comportamento.',
+  f:{lobe:1},cam:{d:[0.65,0.4,0.75],r:3.5},tint:0.12,ghost:'FR'},
+ {id:'pre-frontal',code:'CTX-PF',name:'Córtex pré-frontal',alt:'CPF · PFC · o “diretor executivo”',group:'ctx',color:'#9cbcff',
+  where:'Extremidade anterior do lobo frontal, logo atrás da testa e acima dos olhos.',
+  role:'Funções executivas: planejar, priorizar, manter informações na memória de trabalho, inibir impulsos e prever consequências.',
+  f:{area:1},cam:{d:[0.3,0.25,1],r:2.8},tint:0.1,ghost:'PF'},
+ {id:'motor',code:'CTX-M1',name:'Córtex motor primário',alt:'Giro pré-central · área 4 de Brodmann',group:'ctx',color:'#8fb0ff',
+  where:'Faixa vertical logo à frente do sulco central, do topo da cabeça até perto da orelha.',
+  role:'Envia os comandos que movem cada músculo voluntário. O corpo está mapeado nele em ordem, do pé à face (homúnculo motor).',
+  f:{area:2},cam:{d:[0.6,0.9,0.25],r:3.0},tint:0.1,ghost:'M1'},
+ {id:'broca',code:'CTX-BR',name:'Área de Broca',alt:'Áreas 44 e 45 de Brodmann · giro frontal inferior',group:'ctx',color:'#b3caff',
+  where:'Parte inferior do lobo frontal, em geral no hemisfério esquerdo.',
+  role:'Produção da fala: monta a gramática das frases e planeja os movimentos da boca e da língua.',
+  f:{area:3},cam:{d:[1,0.12,0.3],r:2.4},tint:0.1,ghost:'BR'},
+ {id:'lobo-parietal',code:'CTX-PA',name:'Lobo parietal',alt:'Integração sensorial e espacial',group:'ctx',color:LOBE[2],
+  where:'Topo e parte de trás da cabeça, entre o sulco central e o lobo occipital.',
+  role:'Integra tato, posição do corpo e espaço ao redor; calcula onde as coisas estão e como alcançá-las.',
+  f:{lobe:2},cam:{d:[0.4,0.95,-0.5],r:3.3},tint:0.12,ghost:'PA'},
+ {id:'somatossensorial',code:'CTX-S1',name:'Córtex somatossensorial',alt:'Giro pós-central · áreas 1, 2 e 3',group:'ctx',color:'#ffd690',
+  where:'Faixa logo atrás do sulco central, espelhando o córtex motor.',
+  role:'Recebe tato, pressão, temperatura, dor e posição das articulações de todo o corpo (homúnculo sensorial).',
+  f:{area:4},cam:{d:[0.55,0.9,-0.1],r:3.0},tint:0.1,ghost:'S1'},
+ {id:'lobo-temporal',code:'CTX-TE',name:'Lobo temporal',alt:'Abaixo da fissura lateral (de Sylvius)',group:'ctx',color:LOBE[3],
+  where:'Lateral, na altura das orelhas, abaixo da fissura lateral.',
+  role:'Audição, reconhecimento de rostos e objetos, compreensão da linguagem e memória.',
+  f:{lobe:3},cam:{d:[1,-0.05,0.25],r:3.0},tint:0.12,ghost:'TE'},
+ {id:'auditivo',code:'CTX-A1',name:'Córtex auditivo primário',alt:'Giro de Heschl · áreas 41 e 42',group:'ctx',color:'#9ee8b0',
+  where:'Face superior do lobo temporal, dentro da fissura lateral.',
+  role:'Primeira estação do som no córtex: separa frequências (tonotopia), intensidade e ritmo.',
+  f:{area:6},cam:{d:[1,0.3,0.1],r:2.5},tint:0.1,ghost:'A1'},
+ {id:'wernicke',code:'CTX-WE',name:'Área de Wernicke',alt:'Parte posterior da área 22',group:'ctx',color:'#b8f0c6',
+  where:'Parte de trás do giro temporal superior, em geral no hemisfério esquerdo.',
+  role:'Compreensão da linguagem falada e escrita: liga o som das palavras ao significado.',
+  f:{area:5},cam:{d:[1,0.22,-0.3],r:2.5},tint:0.1,ghost:'WE'},
+ {id:'lobo-occipital',code:'CTX-OC',name:'Lobo occipital',alt:'Córtex visual · V1 = área 17',group:'ctx',color:LOBE[4],
+  where:'Parte de trás do cérebro, acima do cerebelo.',
+  role:'Processa a visão: bordas, cores, movimento e profundidade. Repassa para a via do “o quê” (temporal) e do “onde” (parietal).',
+  f:{lobe:4},cam:{d:[0.35,0.3,-1],r:2.9},tint:0.12,ghost:'OC'},
+ {id:'insula',code:'CTX-IN',name:'Ínsula',alt:'Lobo insular · o “quinto lobo”',group:'ctx',color:'#ff9f7a',
+  where:'Escondida no fundo da fissura lateral, coberta pelos lobos frontal, parietal e temporal.',
+  role:'Interocepção: sente o estado interno do corpo (batimento, fome, dor, nojo) e o transforma em consciência corporal.',
+  f:{s:['ins']},mode:'xray',cam:{d:[1,0.15,0.35],r:2.5},ghost:'IN'},
+
+ {id:'corpo-caloso',code:'WM-CC',name:'Corpo caloso',alt:'Grande comissura · ~200 milhões de axônios',group:'wm',
+  where:'Ponte de substância branca no fundo da fissura que separa os hemisférios.',
+  role:'Conecta os dois hemisférios e sincroniza as informações entre eles.',
+  f:{s:['cc']},mode:'xray',cam:{t:[0,0.15,0],d:[0.75,0.65,0.35],r:3.0},ghost:'CC'},
+
+ {id:'cingulo',code:'LIM-CG',name:'Giro do cíngulo',alt:'Córtex cingulado anterior e posterior',group:'lim',
+  where:'Face interna de cada hemisfério, abraçando o corpo caloso como um cinto.',
+  role:'Detecta erros e conflitos, regula emoção e atenção e liga o que se sente ao que se faz.',
+  f:{s:['cing']},mode:'xray',cam:{t:[0,0.15,0],d:[1,0.35,0.1],r:3.0},ghost:'CG'},
+ {id:'hipocampo',code:'LIM-HC',name:'Hipocampo',alt:'Nome vem do cavalo-marinho, pelo formato',group:'lim',
+  where:'Dentro do lobo temporal, um em cada hemisfério.',
+  role:'Grava novas memórias de fatos e eventos e monta o mapa do espaço (células de lugar).',
+  f:{s:['hipp']},mode:'xray',cam:{d:[0.9,0.35,0.35],r:2.3},ghost:'HC'},
+ {id:'amigdala',code:'LIM-AM',name:'Amígdala',alt:'Corpo amigdaloide',group:'lim',
+  where:'Na frente do hipocampo, na parte interna do lobo temporal.',
+  role:'Detecta ameaças e relevância emocional; dispara o medo e marca memórias como importantes.',
+  f:{s:['amy']},mode:'xray',cam:{d:[0.9,0.2,0.6],r:2.0},ghost:'AM'},
+
+ {id:'talamo',code:'DIE-TH',name:'Tálamo',alt:'Par de massas ovais no centro do cérebro',group:'die',
+  where:'Centro do cérebro, logo acima do tronco encefálico.',
+  role:'Estação de retransmissão: filtra e encaminha ao córtex quase todos os sinais dos sentidos (menos o olfato). Também participa do sono e da vigília.',
+  f:{s:['thal']},mode:'xray',cam:{t:[0,0,-0.06],d:[0.7,0.55,0.6],r:2.1},ghost:'TH'},
+ {id:'hipotalamo',code:'DIE-HY',name:'Hipotálamo',alt:'Do tamanho de uma amêndoa',group:'die',
+  where:'Abaixo do tálamo, na base do cérebro.',
+  role:'Controla o meio interno: temperatura, fome, sede, sono, ritmo circadiano e a liberação de hormônios.',
+  f:{s:['hyp']},mode:'xray',cam:{d:[0.9,0.1,0.55],r:1.9},ghost:'HY'},
+ {id:'hipofise',code:'END-HP',name:'Hipófise',alt:'Glândula pituitária · a “glândula mestra”',group:'die',color:'#ffa15c',
+  where:'Pendurada sob o hipotálamo, apoiada numa cavidade do osso (sela turca).',
+  role:'Libera hormônios que comandam outras glândulas: crescimento, tireoide, adrenais e reprodução.',
+  f:{s:['pit']},mode:'xray',cam:{d:[0.8,-0.2,0.6],r:1.8},ghost:'HP'},
+ {id:'pineal',code:'END-PN',name:'Glândula pineal',alt:'Epífise',group:'die',color:'#ffa15c',
+  where:'Atrás do tálamo, bem no centro do cérebro.',
+  role:'Produz melatonina no escuro, sinalizando ao corpo que é hora de dormir.',
+  f:{s:['pin']},mode:'xray',cam:{d:[0.6,0.45,-0.7],r:1.8},ghost:'PN'},
+
+ {id:'nucleos-base',code:'BG-00',name:'Núcleos da base',alt:'Estriado (caudado + putâmen) · globo pálido',group:'bg',
+  where:'Estruturas profundas em volta do tálamo, uma em cada hemisfério.',
+  role:'Escolhem qual ação executar e suprimem as outras; formam hábitos e automatizam movimentos.',
+  f:{s:['caud','put','gp']},mode:'xray',cam:{t:[0,0.02,0.02],d:[0.65,0.55,0.7],r:2.5},ghost:'BG'},
+ {id:'accumbens',code:'BG-NA',name:'Núcleo accumbens',alt:'Estriado ventral',group:'bg',
+  where:'Base do estriado, perto da linha média, na frente.',
+  role:'Centro de recompensa e motivação: transforma a expectativa de um prêmio em vontade de agir.',
+  f:{s:['nac']},mode:'xray',cam:{d:[0.7,0.1,0.85],r:1.8},ghost:'NA'},
+ {id:'substancia-negra',code:'MB-SN',name:'Substância negra e ATV',alt:'Área tegmental ventral · fontes de dopamina',group:'bg',color:'#ffcf4d',
+  where:'No mesencéfalo, logo abaixo do tálamo.',
+  role:'Fabricam dopamina. A substância negra abastece o movimento; a ATV abastece motivação e aprendizado por recompensa.',
+  f:{s:['sn','vta']},mode:'xray',pulse:'DA',cam:{t:[0,-0.25,-0.1],d:[0.85,0.1,0.55],r:1.9},ghost:'SN'},
+
+ {id:'cerebelo',code:'CB-00',name:'Cerebelo',alt:'“Pequeno cérebro” · ~69 bilhões de neurônios',group:'stem',
+  where:'Atrás e embaixo, sob o lobo occipital.',
+  role:'Coordena e corrige o movimento em tempo real: equilíbrio, postura, precisão e aprendizado motor.',
+  note:'Tem apenas ~10% do volume do cérebro, mas cerca de <b>80% de todos os neurônios</b>.',
+  f:{s:['cb']},cam:{d:[0.55,0.05,-1],r:2.6},ghost:'CB'},
+ {id:'mesencefalo',code:'BS-MB',name:'Mesencéfalo',alt:'Parte superior do tronco encefálico',group:'stem',color:'#5ec4ff',
+  where:'Topo do tronco encefálico, entre o tálamo e a ponte.',
+  role:'Reflexos visuais e auditivos (virar a cabeça para um som), movimento dos olhos e origem das vias de dopamina.',
+  f:{s:['mb']},mode:'xray',cam:{d:[1,0.15,0.3],r:2.0},ghost:'MB'},
+ {id:'ponte',code:'BS-PO',name:'Ponte',alt:'Protuberância anular',group:'stem',color:'#5ec4ff',
+  where:'Parte média e saliente do tronco, na frente do cerebelo.',
+  role:'Liga o córtex ao cerebelo; participa do controle da respiração e do sono REM.',
+  f:{s:['pons']},cam:{d:[0.75,-0.15,0.8],r:2.0},ghost:'PO'},
+ {id:'bulbo',code:'BS-BU',name:'Bulbo',alt:'Medula oblonga',group:'stem',color:'#5ec4ff',
+  where:'Parte inferior do tronco, que continua na medula espinhal.',
+  role:'Funções vitais automáticas: batimento cardíaco, pressão arterial, respiração, deglutição, tosse e vômito.',
+  f:{s:['med']},cam:{d:[0.75,-0.1,0.8],r:2.0},ghost:'BU'},
+ {id:'medula',code:'SC-00',name:'Medula espinhal',alt:'~45 cm no adulto',group:'stem',color:'#8fb8ff',
+  where:'Desce do bulbo por dentro da coluna vertebral.',
+  role:'Cabo principal entre cérebro e corpo. Também executa reflexos sozinha, sem esperar o cérebro (tirar a mão do fogo).',
+  f:{s:['sc']},cam:{d:[0.8,0.05,0.7],r:2.6},ghost:'SC'},
+
+ {id:'olfato',code:'SEN-OB',name:'Bulbo olfatório',alt:'Nervo craniano I',group:'oth',color:'#c7f06a',
+  where:'Sob os lobos frontais, logo acima da cavidade nasal.',
+  role:'Recebe os cheiros e manda direto para o sistema límbico, sem passar pelo tálamo. Por isso cheiro desperta memória e emoção tão rápido.',
+  f:{s:['ob']},cam:{d:[0.35,-1,0.55],r:2.3},ghost:'OB'},
+ {id:'ventriculos',code:'VEN-00',name:'Sistema ventricular',alt:'Ventrículos laterais, 3º e 4º · líquor',group:'oth',color:'#58a6ff',
+  where:'Cavidades interligadas no centro do cérebro, cheias de líquido.',
+  role:'Produzem e fazem circular o líquido cefalorraquidiano (~150 ml), que amortece, nutre e remove resíduos.',
+  f:{s:['vent']},mode:'xray',cam:{t:[0,0.02,-0.05],d:[0.7,0.5,0.6],r:2.7},ghost:'VE'},
+
+ {id:'dopamina',code:'NT-DA',name:'Dopamina',alt:'Neurotransmissor · catecolamina',group:'nt',color:NTC.DA,
+  where:'Produzida na substância negra e na ATV; age no estriado, no accumbens e no pré-frontal.',
+  role:'Sinal de recompensa e de “erro de previsão”: motiva, reforça o que deu certo e dá fluidez ao movimento.',
+  paths:['ATV → accumbens','ATV → pré-frontal','Subst. negra → estriado'],
+  f:{s:['sn','vta']},mode:'xray',pulse:'DA',cam:{t:[0,-0.05,0.05],d:[1,0.3,0.35],r:3.3},ghost:'DA'},
+ {id:'serotonina',code:'NT-5HT',name:'Serotonina',alt:'5-hidroxitriptamina',group:'nt',color:NTC.S5,
+  where:'Núcleos da rafe, no tronco encefálico; projeta para quase todo o cérebro.',
+  role:'Estabiliza humor, paciência e impulsividade; regula sono e apetite.',
+  paths:['Rafe → córtex','Rafe → hipocampo','Rafe → medula'],
+  f:{s:['raphe']},mode:'xray',pulse:'S5',cam:{t:[0,-0.1,-0.05],d:[1,0.25,0.3],r:3.4},ghost:'5HT'},
+ {id:'noradrenalina',code:'NT-NE',name:'Noradrenalina e adrenalina',alt:'Norepinefrina e epinefrina',group:'nt',color:NTC.NE,
+  where:'Noradrenalina: locus coeruleus, na ponte. Adrenalina: sobretudo nas glândulas adrenais, como hormônio.',
+  role:'Alerta e prontidão: aumentam foco, vigilância e a resposta de luta ou fuga.',
+  paths:['Locus coeruleus → córtex','→ tálamo','→ amígdala','→ cerebelo'],
+  f:{s:['lc']},mode:'xray',pulse:'NE',cam:{t:[0,-0.1,-0.05],d:[1,0.2,0.2],r:3.4},ghost:'NE'},
+ {id:'adenosina',code:'NT-ADO',name:'Adenosina',alt:'Neuromodulador derivado do ATP',group:'nt',color:NTC.ADO,
+  where:'Liberada por neurônios e glia de todo o cérebro, à medida que gastam energia.',
+  role:'Acumula ao longo do dia e cria a pressão de sono. A cafeína funciona bloqueando os receptores dela.',
+  note:'Sobre “adenina”: é uma das bases do DNA. No cérebro, as moléculas parecidas no nome são a <b>adenosina</b> (sono) e a <b>adrenalina</b> (alerta). As duas estão neste atlas.',
+  f:{s:[]},mode:'xray',pulse:'ADO',cam:{t:[0,0.05,0],d:[0.8,0.5,0.45],r:3.6},ghost:'ADO'},
+ {id:'acetilcolina',code:'NT-ACH',name:'Acetilcolina',alt:'Primeiro neurotransmissor descoberto (1921)',group:'nt',color:NTC.ACH,
+  where:'Prosencéfalo basal e tronco encefálico; também na junção entre nervo e músculo.',
+  role:'Atenção, aprendizado e gravação de memórias. No corpo, é o sinal que faz o músculo contrair.',
+  paths:['Prosencéfalo basal → córtex','→ hipocampo','Tronco → tálamo'],
+  f:{s:['bf']},mode:'xray',pulse:'ACH',cam:{t:[0,0,0.05],d:[1,0.35,0.5],r:3.3},ghost:'ACh'},
+ {id:'glutamato-gaba',code:'NT-GLU·GABA',name:'Glutamato e GABA',alt:'Acelerador e freio',group:'nt',color:NTC.GLU,
+  where:'Em praticamente todas as regiões do cérebro.',
+  role:'Glutamato é o principal acelerador (excita). GABA é o principal freio (inibe). O equilíbrio dos dois mantém o cérebro estável.',
+  paths:['<b style="color:#ff9a3c">●</b> Glutamato: córtex ↔ córtex, córtex → estriado','<b style="color:#5b8cff">●</b> GABA: estriado → pálido → tálamo'],
+  f:{s:['caud','put','gp','thal']},mode:'xray',pulse:'GG',cam:{t:[0,0.05,0],d:[0.9,0.5,0.4],r:3.5},ghost:'GLU'},
+ {id:'ocitocina',code:'NT-OXT',name:'Ocitocina',alt:'Hormônio e neuromodulador',group:'nt',color:NTC.OXT,
+  where:'Produzida no hipotálamo e liberada pela hipófise.',
+  role:'Vínculo, confiança e comportamento social. No corpo, atua no parto e na amamentação.',
+  paths:['Hipotálamo → hipófise','→ amígdala','→ accumbens'],
+  f:{s:['hyp','pit']},mode:'xray',pulse:'OXT',cam:{t:[0,-0.15,0.1],d:[1,0.2,0.55],r:2.6},ghost:'OXT'},
+ {id:'endorfinas',code:'NT-END',name:'Endorfinas',alt:'Opioides naturais do corpo',group:'nt',color:NTC.END,
+  where:'Hipotálamo, hipófise e substância cinzenta periaquedutal (no mesencéfalo).',
+  role:'Analgésicos naturais: reduzem a dor e geram sensação de bem-estar.',
+  paths:['Hipotálamo → periaquedutal','Periaquedutal → medula'],
+  f:{s:['hyp','pag']},mode:'xray',pulse:'END',cam:{t:[0,-0.35,-0.1],d:[1,0.1,0.45],r:2.9},ghost:'END'},
+
+ {id:'neuronio',code:'CEL-NEU',name:'O neurônio',alt:'~86 bilhões no cérebro humano',group:'cel',
+  where:'Em todo o sistema nervoso, acompanhado por um número parecido de células da glia.',
+  role:'Unidade básica: recebe, integra e transmite sinais elétricos e químicos.',
+  parts:true,f:{none:true},cam:{t:[0,0.05,0],d:[-0.65,0.5,0.6],r:3.8},tint:0,pulse:'network',net:1,ghost:'NEU'},
+ {id:'sinapse',code:'CEL-SYN',name:'Sinapse',alt:'Química (a maioria) ou elétrica',group:'cel',
+  where:'Ponto de contato entre dois neurônios. A fenda entre eles tem ~20 nanômetros.',
+  role:'O impulso elétrico chega ao terminal, libera neurotransmissores na fenda e eles se ligam a receptores do outro lado. Sinapses usadas se fortalecem: é assim que o cérebro aprende.',
+  syn:true,f:{none:true},cam:{t:[0,0.05,0],d:[-0.3,0.7,0.65],r:3.3},tint:0,pulse:'network',net:1,ghost:'SYN'},
+
+ {id:'catalogo',kind:'catalog',group:'end',cam:{t:[0,-0.05,0],d:[0.8,0.4,0.6],r:5.2},tint:0.4,mode:'surface',pulse:'surface',auto:true,f:{cortex:true}},
+ {id:'roteiro',kind:'road',group:'end',cam:{t:[0,-0.05,0],d:[-0.8,0.4,0.6],r:5.4},tint:0,mode:'surface',pulse:'network',net:0.5,auto:true}
+];
+
+const PARTS = [
+ ['Dendritos','recebem sinais de outros neurônios'],
+ ['Soma','corpo celular; soma os sinais e decide disparar'],
+ ['Axônio','cabo de saída que conduz o impulso'],
+ ['Bainha de mielina','isolante que acelera o sinal até ~120 m/s'],
+ ['Nós de Ranvier','intervalos onde o impulso “salta”'],
+ ['Terminal axonal','ponta que libera neurotransmissores'],
+ ['Astrócitos','glia: nutre neurônios e regula sinapses',1],
+ ['Oligodendrócitos','glia: fabrica a mielina no cérebro',1],
+ ['Micróglia','glia: defesa imunológica e limpeza',1]
+];
+
+
+/* ================================================================
+   ETAPA 2 — função em detalhe
+   d: como funciona · i: entradas · o: saídas · c: conecta com · x: quando falha
+   ================================================================ */
+const F = {
+'CTX-00':{d:'Organizado em colunas verticais de neurônios que se repetem por toda a superfície. As áreas conversam em hierarquia: as primárias recebem o sinal bruto e as de associação combinam e interpretam.',
+  i:['Sentidos, via tálamo','Memórias do hipocampo','Modulação química (dopamina, serotonina, noradrenalina, acetilcolina)'],
+  o:['Comandos motores','Linguagem','Decisões e planos','Retorno ao tálamo e aos núcleos da base'],
+  c:['DIE-TH','BG-00','LIM-HC','CB-00','WM-CC'],
+  x:'Lesões localizadas causam perdas específicas (visão, fala, movimento). Degeneração difusa, como no Alzheimer, compromete memória e raciocínio.'},
+'CTX-FR':{d:'Funciona como a camada de controle: define objetivos, escolhe entre alternativas e transforma a escolha em sequência de movimentos. Da frente para trás, vai do abstrato (pré-frontal) ao concreto (córtex motor).',
+  i:['Informação integrada dos lobos parietal e temporal','Estado emocional do sistema límbico','Sinal de recompensa (dopamina)'],
+  o:['Planos de ação','Comandos motores','Fala','Inibição de impulsos'],
+  c:['CTX-PF','CTX-M1','CTX-BR','BG-00','LIM-CG','DIE-TH'],
+  x:'Mudanças de personalidade, impulsividade, apatia e dificuldade de planejar. O caso clássico é o de Phineas Gage, em 1848.'},
+'CTX-PF':{d:'Mantém o objetivo ativo na memória de trabalho enquanto outras regiões executam. Compara opções, simula consequências e freia respostas automáticas quando elas não servem ao objetivo. É a última região a amadurecer, por volta dos 25 anos.',
+  i:['Contexto do hipocampo','Valor emocional da amígdala e do accumbens','Erros detectados pelo cíngulo','Dopamina da ATV'],
+  o:['Objetivos e regras para o córtex motor','Controle sobre a amígdala (freio emocional)','Seleção de ação nos núcleos da base'],
+  c:['LIM-AM','BG-NA','LIM-CG','LIM-HC','BG-00','CTX-M1','MB-SN'],
+  x:'Distração, impulsividade, dificuldade de planejar e de mudar de estratégia. Está envolvido no TDAH e em lesões frontais.'},
+'CTX-M1':{d:'Cada ponto da faixa controla um grupo muscular; mãos e rosto ocupam áreas enormes porque exigem precisão. Os axônios descem pelo trato corticoespinhal até a medula e cruzam para o lado oposto no bulbo.',
+  i:['Planos do pré-motor e do pré-frontal','Correções do cerebelo, via tálamo','Ação liberada pelos núcleos da base, via tálamo','Posição do corpo (somatossensorial)'],
+  o:['Comandos aos músculos, via medula','Cópia do comando para o cerebelo, via ponte'],
+  c:['CTX-FR','CTX-S1','DIE-TH','CB-00','BG-00','BS-PO','SC-00'],
+  x:'Fraqueza ou paralisia do lado oposto do corpo, como no AVC.'},
+'CTX-BR':{d:'Transforma a ideia em sequência de palavras e a sequência em programa motor para lábios, língua e laringe. Também ajuda a montar a ordem gramatical ao entender frases complexas.',
+  i:['Significado vindo de Wernicke, pelo fascículo arqueado','Intenção do pré-frontal'],
+  o:['Programa articulatório para o córtex motor da face e da laringe'],
+  c:['CTX-WE','CTX-M1','CTX-PF','DIE-TH'],
+  x:'Afasia de Broca: a pessoa entende, mas fala com esforço, em frases curtas e sem conectivos.'},
+'CTX-PA':{d:'Constrói o mapa do corpo e do espaço. A via visual do “onde” passa por aqui e calcula posição, distância e trajetória para alcançar objetos. Também sustenta a atenção espacial e o cálculo numérico.',
+  i:['Tato e posição do corpo (somatossensorial)','Visão (occipital)','Equilíbrio (sistema vestibular)'],
+  o:['Coordenadas espaciais para o córtex motor e o pré-frontal','Direcionamento da atenção'],
+  c:['CTX-S1','CTX-OC','CTX-FR','CTX-TE','DIE-TH'],
+  x:'Negligência espacial (ignorar um lado do espaço, em geral o esquerdo), dificuldade de alcançar objetos e de se orientar.'},
+'CTX-S1':{d:'Recebe os sinais dos receptores da pele, músculos e articulações, organizados ponto a ponto como um mapa do corpo. Separa os tipos de sensação em sub-faixas: tato fino, pressão e posição.',
+  i:['Receptores do corpo, via medula e tálamo'],
+  o:['Mapa corporal para o parietal','Retorno sensorial para o córtex motor','Dor e temperatura para a ínsula e o cíngulo'],
+  c:['DIE-TH','SC-00','CTX-M1','CTX-PA','CTX-IN'],
+  x:'Dormência ou perda de sensibilidade do lado oposto e dificuldade de reconhecer objetos pelo tato.'},
+'CTX-TE':{d:'Abriga a via visual do “o quê”: reconhece objetos, rostos (giro fusiforme) e palavras. A face interna guarda o hipocampo e a amígdala, ligando o que se percebe à memória e à emoção.',
+  i:['Som, via tálamo auditivo','Formas e cores do occipital','Memórias do hipocampo'],
+  o:['Identidade de objetos, rostos e palavras para o pré-frontal','Significado da linguagem'],
+  c:['CTX-A1','CTX-WE','LIM-HC','LIM-AM','CTX-OC','CTX-PF'],
+  x:'Não reconhecer rostos (prosopagnosia), dificuldade de compreender palavras e perda de memória. É o foco mais comum de epilepsia.'},
+'CTX-A1':{d:'Organizado por frequência como um teclado de piano: graves de um lado, agudos do outro. Mede o tempo e a intensidade do som com precisão de milissegundos, base para localizar sons e entender a fala.',
+  i:['Cóclea → tronco → mesencéfalo → tálamo'],
+  o:['Características do som para as áreas auditivas secundárias e Wernicke'],
+  c:['DIE-TH','BS-MB','CTX-WE','CTX-TE'],
+  x:'Surdez cortical (o ouvido funciona, mas o som não é interpretado) ou dificuldade de separar a fala do ruído.'},
+'CTX-WE':{d:'Converte a sequência de sons ou de letras em palavras, e as palavras em significado, consultando o vocabulário guardado no lobo temporal. Envia o plano da frase para Broca.',
+  i:['Sons processados pelo córtex auditivo','Palavras escritas, pela via visual'],
+  o:['Significado para o pré-frontal','Sequência de palavras para Broca, pelo fascículo arqueado'],
+  c:['CTX-A1','CTX-BR','CTX-TE','CTX-PA','CTX-OC'],
+  x:'Afasia de Wernicke: fala fluente mas sem sentido e dificuldade de entender o que os outros dizem.'},
+'CTX-OC':{d:'O V1 recebe a imagem da retina ponto a ponto (mapa retinotópico) e detecta bordas e orientações. As áreas seguintes, de V2 a V5, extraem cor, forma e movimento e distribuem para as vias do “o quê” e do “onde”.',
+  i:['Retina → nervo óptico → tálamo'],
+  o:['Via do “o quê” para o temporal','Via do “onde” para o parietal'],
+  c:['DIE-TH','CTX-TE','CTX-PA','BS-MB'],
+  x:'Cegueira em parte do campo visual, ou perdas seletivas, como não perceber movimento (acinetopsia) ou cor.'},
+'CTX-IN':{d:'Recebe os sinais internos do corpo (batimentos, respiração, estômago, temperatura) e os transforma em sensações conscientes. Participa do paladar, do nojo, da empatia e da avaliação de risco.',
+  i:['Sinais viscerais, via tronco e tálamo','Dor e temperatura','Paladar'],
+  o:['Estado do corpo para cíngulo, amígdala e pré-frontal','Ajustes automáticos via hipotálamo'],
+  c:['DIE-TH','LIM-CG','LIM-AM','CTX-PF','DIE-HY','CTX-S1'],
+  x:'Perda da percepção das sensações internas e alterações de paladar e nojo. Está ligada a ansiedade e a vícios.'},
+'WM-CC':{d:'Cabo de alta capacidade entre áreas equivalentes dos dois lados. Permite que a mão esquerda saiba o que a direita faz e que uma palavra vista só pelo campo visual esquerdo chegue à linguagem, no hemisfério esquerdo.',
+  i:['Axônios de todo o córtex de um hemisfério'],
+  o:['A mesma informação espelhada no outro hemisfério'],
+  c:['CTX-FR','CTX-PA','CTX-OC','LIM-CG'],
+  x:'Síndrome de desconexão (“cérebro dividido”): cada hemisfério age sem saber do outro. Às vezes é seccionado de propósito para tratar epilepsia grave.'},
+'LIM-CG':{d:'A parte anterior monitora conflitos e erros e avisa quando é preciso mais controle; também registra o incômodo da dor. A parte posterior liga-se à memória autobiográfica e ao estado de repouso (rede padrão).',
+  i:['Dor e estado do corpo (ínsula)','Emoção (amígdala)','Resultado das ações'],
+  o:['Sinal de erro e de esforço para o pré-frontal','Motivação para agir','Ajustes automáticos do corpo'],
+  c:['CTX-PF','LIM-AM','CTX-IN','LIM-HC','DIE-TH','WM-CC'],
+  x:'Apatia e falta de iniciativa. Alterações aparecem na depressão e no transtorno obsessivo-compulsivo.'},
+'LIM-HC':{d:'Amarra os elementos de uma experiência (lugar, pessoas, sons) num episódio e, durante o sono, repassa o episódio ao córtex para armazenamento de longo prazo. Contém as células de lugar, que formam um mapa interno do espaço.',
+  i:['Informação de todo o córtex, via córtex entorrinal','Relevância emocional (amígdala)','Acetilcolina durante a atenção'],
+  o:['Memória consolidada para o córtex','Contexto para o pré-frontal','Circuito de Papez, via fórnice'],
+  c:['CTX-TE','LIM-AM','CTX-PF','LIM-CG','DIE-TH','DIE-HY'],
+  x:'Incapacidade de formar novas memórias (amnésia anterógrada), como no famoso paciente H.M. É das primeiras regiões atingidas no Alzheimer.'},
+'LIM-AM':{d:'Avalia em milissegundos se algo é ameaça ou oportunidade. Recebe uma versão rápida e grosseira dos sentidos direto do tálamo, antes da consciência, e dispara a resposta de alerta pelo hipotálamo e pelo tronco.',
+  i:['Via rápida do tálamo','Via lenta e detalhada do córtex','Olfato direto','Contexto do hipocampo'],
+  o:['Resposta de medo via hipotálamo (hormônios) e tronco (batimento, paralisação)','Reforço de memória no hipocampo','Atenção'],
+  c:['DIE-TH','DIE-HY','LIM-HC','CTX-PF','SEN-OB','BG-NA','BS-MB'],
+  x:'Sem amígdala, a pessoa não reconhece perigo nem medo nos rostos. Hiperatividade está ligada a ansiedade e estresse pós-traumático.'},
+'DIE-TH':{d:'Formado por dezenas de núcleos, cada um dedicado a um canal: visão, audição, tato, movimento. Não só repassa, mas filtra e amplifica o que merece atenção. O ritmo entre tálamo e córtex define sono e vigília.',
+  i:['Todos os sentidos, menos o olfato','Núcleos da base e cerebelo','Retorno do próprio córtex'],
+  o:['Sinais filtrados para o córtex de cada sentido','Laços motores para o córtex motor'],
+  c:['CTX-OC','CTX-A1','CTX-S1','CTX-M1','BG-00','CB-00','LIM-AM','CTX-PF'],
+  x:'Perda sensorial, dor crônica central e distúrbios do sono. Lesão dos dois lados pode causar coma.'},
+'DIE-HY':{d:'É o termostato do corpo. Compara valores medidos (temperatura, glicose, água) com valores-alvo e corrige por três vias: hormônios (hipófise), sistema nervoso autônomo e comportamento (fome, sede). Abriga o relógio central, o núcleo supraquiasmático.',
+  i:['Temperatura e química do sangue','Luz, via retina','Emoção (amígdala)','Estado do corpo'],
+  o:['Hormônios de comando para a hipófise','Ocitocina e vasopressina','Comandos automáticos (coração, suor)','Impulsos de fome, sede e sono'],
+  c:['END-HP','LIM-AM','BS-BU','END-PN','LIM-HC','CTX-IN'],
+  x:'Desregulação de temperatura, fome, sede e sono, além de distúrbios hormonais e de peso.'},
+'END-HP':{d:'Tem duas partes. A anterior fabrica hormônios sob comando químico do hipotálamo (crescimento, tireoide, adrenais, reprodução). A posterior guarda e libera ocitocina e vasopressina, produzidas no hipotálamo.',
+  i:['Hormônios de comando do hipotálamo','Axônios do hipotálamo (parte posterior)'],
+  o:['Hormônios no sangue para tireoide, adrenais, gônadas, rins e útero'],
+  c:['DIE-HY','NT-OXT'],
+  x:'Tumores podem causar excesso ou falta de hormônios: gigantismo, falta de cortisol, alterações da tireoide e da fertilidade.'},
+'END-PN':{d:'Recebe a informação de luz por um caminho indireto: retina → relógio do hipotálamo → tronco → medula → gânglio simpático → pineal. No escuro, converte serotonina em melatonina.',
+  i:['Sinal de escuridão, vindo do relógio do hipotálamo'],
+  o:['Melatonina no sangue e no líquor'],
+  c:['DIE-HY','NT-5HT'],
+  x:'Desregulação do sono e do ritmo diário. Luz forte à noite suprime a melatonina.'},
+'BG-00':{d:'Recebe do córtex várias propostas de ação ao mesmo tempo e libera só a vencedora, mantendo as outras freadas. Funciona com uma via “vai” (direta) e uma via “pare” (indireta), balanceadas pela dopamina. Com a repetição, sequências viram hábito.',
+  i:['Propostas de ação de todo o córtex (glutamato)','Dopamina da substância negra'],
+  o:['Liberação ou bloqueio da ação para o tálamo, que devolve ao córtex motor (GABA)'],
+  c:['CTX-FR','CTX-M1','DIE-TH','MB-SN','BG-NA','CTX-PF'],
+  x:'Parkinson (pouca dopamina: movimento lento, rigidez, tremor) ou Huntington (perda do estriado: movimentos involuntários).'},
+'BG-NA':{d:'Compara o que se espera ganhar com o esforço necessário e decide se vale a pena agir. Recebe a dopamina da ATV e aprende quais pistas preveem um prêmio.',
+  i:['Dopamina da ATV','Contexto do hipocampo','Valor emocional da amígdala','Objetivos do pré-frontal'],
+  o:['Motivação para agir, via pálido ventral e tálamo'],
+  c:['MB-SN','LIM-AM','LIM-HC','CTX-PF','DIE-HY'],
+  x:'Falta de motivação e de prazer (anedonia). A hiperativação por drogas é a base da dependência.'},
+'MB-SN':{d:'A substância negra envia dopamina ao estriado e mantém o movimento fluido. A ATV envia ao accumbens, ao pré-frontal e à amígdala e codifica o erro de previsão: dispara mais quando o resultado é melhor que o esperado.',
+  i:['Sinais de recompensa e de novidade','Retorno do estriado e do pré-frontal'],
+  o:['Dopamina para estriado, accumbens, pré-frontal e amígdala'],
+  c:['BG-00','BG-NA','CTX-PF','LIM-AM','NT-DA'],
+  x:'A morte de neurônios da substância negra causa Parkinson; os sintomas aparecem depois de uma perda de cerca de 60%. Alterações na ATV estão ligadas a vícios e à esquizofrenia.'},
+'CB-00':{d:'Recebe uma cópia do comando motor e o retorno dos sensores, compara o movimento pretendido com o real e envia correções antes que o erro cresça. Aprende ajustes finos pela repetição, como andar de bicicleta.',
+  i:['Cópia do comando motor, via ponte','Posição do corpo, via medula','Equilíbrio (sistema vestibular)'],
+  o:['Correções para o córtex motor, via tálamo','Ajustes de postura, via tronco'],
+  c:['BS-PO','SC-00','DIE-TH','CTX-M1','BS-BU'],
+  x:'Ataxia: movimentos descoordenados, marcha cambaleante, tremor ao tentar pegar algo e fala arrastada. O álcool afeta o cerebelo primeiro.'},
+'BS-MB':{d:'No teto, os colículos coordenam reflexos de orientação: o superior vira olhos e cabeça para um estímulo visual; o inferior retransmite a audição. Na base ficam a substância negra, a ATV e a substância cinzenta periaquedutal, que controla dor e reações de defesa.',
+  i:['Retina e audição','Córtex motor e visual'],
+  o:['Movimento dos olhos (nervos cranianos III e IV)','Dopamina','Controle da dor de cima para baixo'],
+  c:['DIE-TH','CTX-OC','CTX-A1','MB-SN','BS-PO','NT-END'],
+  x:'Alterações do olhar e das pupilas e perda de consciência. Lesão das vias de dopamina causa sintomas de Parkinson.'},
+'BS-PO':{d:'Contém núcleos que repassam os comandos do córtex para o cerebelo e núcleos que regulam o ritmo da respiração. Aqui ficam o locus coeruleus (noradrenalina) e parte da rafe (serotonina), e daqui parte o sinal que gera o sono REM.',
+  i:['Córtex motor','Sinais respiratórios do bulbo'],
+  o:['Informação para o cerebelo','Nervos cranianos V a VIII (rosto, mastigação, olhos, audição, equilíbrio)','Noradrenalina para todo o cérebro'],
+  c:['CB-00','CTX-M1','BS-BU','BS-MB','NT-NE','NT-5HT'],
+  x:'Síndrome do encarceramento (a pessoa está consciente mas paralisada, mexendo só os olhos) e alterações de respiração e sono.'},
+'BS-BU':{d:'Abriga os centros do coração e da respiração, que funcionam sem atenção consciente. É onde os tratos motores cruzam de lado, e por isso cada hemisfério controla o lado oposto do corpo.',
+  i:['Sensores de pressão, CO₂ e oxigênio','Sinais do hipotálamo'],
+  o:['Ritmo do coração e da respiração, via nervo vago','Reflexos de engolir, tossir e vomitar'],
+  c:['BS-PO','SC-00','DIE-HY','CB-00'],
+  x:'Lesão grave é fatal, por parada respiratória ou cardíaca.'},
+'SC-00':{d:'Tem 31 pares de nervos. A parte branca externa leva sinais para cima (sensação) e para baixo (movimento); a parte cinzenta interna tem neurônios que fecham reflexos em milissegundos e geradores de ritmo para caminhar.',
+  i:['Comandos do córtex motor e do tronco','Sensores da pele, músculos e articulações'],
+  o:['Ativação dos músculos','Sensação subindo para tálamo e cerebelo','Reflexos locais'],
+  c:['CTX-M1','DIE-TH','CB-00','BS-BU','CTX-S1'],
+  x:'Perda de movimento e sensação abaixo do ponto lesionado (paraplegia ou tetraplegia).'},
+'SEN-OB':{d:'Cerca de 400 tipos de receptores no nariz enviam sinais que convergem em pequenos agrupamentos (glomérulos); cada cheiro vira um padrão de ativação. Daí o sinal segue direto ao córtex olfatório, à amígdala e à porta do hipocampo.',
+  i:['Neurônios receptores olfatórios da mucosa do nariz'],
+  o:['Padrões de cheiro para o córtex olfatório, a amígdala e o hipocampo'],
+  c:['LIM-AM','LIM-HC','CTX-TE','DIE-HY'],
+  x:'Perda do olfato (anosmia), que também reduz o paladar. Pode ser um sinal precoce de Parkinson e Alzheimer.'},
+'VEN-00':{d:'O plexo coroide produz cerca de 500 ml de líquor por dia, renovando o volume 3 a 4 vezes. O líquido flui dos ventrículos laterais para o 3º e o 4º, envolve cérebro e medula e é reabsorvido no sangue.',
+  i:['Plasma filtrado pelo plexo coroide'],
+  o:['Líquor circulante','Remoção de resíduos (sistema glinfático, mais ativo durante o sono)'],
+  c:['DIE-TH','WM-CC','BS-PO','SC-00'],
+  x:'Hidrocefalia: o líquor se acumula, aumenta a pressão e comprime o cérebro.'},
+'NT-DA':{d:'Age por receptores D1 (reforçam a via “vai”) e D2 (freiam a via “pare”). Mais do que prazer, sinaliza surpresa positiva: quando a recompensa é maior que a prevista a dopamina sobe; quando é menor, cai. Isso ensina o cérebro o que repetir.',
+  i:['Recompensas e as pistas que as preveem'],
+  o:['Motivação','Aprendizado por reforço','Fluidez dos movimentos'],
+  c:['MB-SN','BG-00','BG-NA','CTX-PF'],
+  x:'Falta causa Parkinson e apatia. Excesso ou desregulação está ligado a vícios e a sintomas psicóticos.'},
+'NT-5HT':{d:'Cerca de 90% da serotonina do corpo está no intestino. No cérebro, uma pequena população de neurônios da rafe modula quase todas as regiões. Ajuda a esperar por recompensas maiores e a reduzir a reação a ameaças.',
+  i:['Estado do corpo','Luz','Alimentação (triptofano)'],
+  o:['Humor estável','Controle de impulsos','Sono e apetite','Matéria-prima da melatonina'],
+  c:['BS-PO','CTX-PF','LIM-HC','LIM-AM','END-PN'],
+  x:'Níveis desregulados estão associados a depressão, ansiedade e impulsividade. Muitos antidepressivos agem sobre ela.'},
+'NT-NE':{d:'O locus coeruleus tem só 20 a 50 mil neurônios, mas seus axônios alcançam quase todo o cérebro. Define o nível de alerta: baixo no sono, médio no foco, alto no estresse. A adrenalina das adrenais prepara o corpo: coração, pulmões e glicose.',
+  i:['Novidade','Ameaça','Esforço e estresse'],
+  o:['Vigilância e foco','Resposta de luta ou fuga'],
+  c:['BS-PO','CTX-PF','LIM-AM','DIE-TH','CB-00'],
+  x:'Pouca causa desatenção e cansaço. Excesso crônico causa ansiedade, insônia e estresse pós-traumático.'},
+'NT-ADO':{d:'Quando os neurônios gastam energia (ATP), sobra adenosina, que se liga a receptores A1 e A2A e reduz a atividade dos circuitos de vigília. Durante o sono ela é removida e a pressão de sono zera.',
+  i:['Gasto de energia dos neurônios ao longo do dia'],
+  o:['Sonolência','Proteção contra excesso de atividade'],
+  c:['DIE-HY','CTX-00','NT-DA'],
+  x:'A cafeína bloqueia os receptores e mascara o cansaço, mas a necessidade de sono continua. A privação de sono acumula adenosina.'},
+'NT-ACH':{d:'No cérebro, aumenta o contraste dos sinais que merecem atenção e facilita a gravação de memórias no hipocampo. No corpo, é liberada na junção entre nervo e músculo e no sistema que desacelera o coração e ativa a digestão.',
+  i:['Estado de atenção e vigília'],
+  o:['Foco','Aprendizado e memória','Contração muscular'],
+  c:['LIM-HC','CTX-00','DIE-TH','SC-00'],
+  x:'A perda dos neurônios de acetilcolina é marca do Alzheimer. Na miastenia gravis, o sistema imune ataca os receptores do músculo e causa fraqueza.'},
+'NT-GLU·GABA':{d:'Cerca de 80% das sinapses do córtex usam glutamato, e seus receptores NMDA são o mecanismo central do aprendizado. Os interneurônios de GABA dão ritmo e forma à atividade e impedem que a excitação se espalhe.',
+  i:['Atividade de todos os circuitos'],
+  o:['Excitação (glutamato) e inibição (GABA) em equilíbrio'],
+  c:['CTX-00','BG-00','DIE-TH','CB-00','CEL-SYN'],
+  x:'Excesso de glutamato mata neurônios (excitotoxicidade, após um AVC). GABA de menos leva a convulsões e ansiedade; calmantes e álcool reforçam o GABA.'},
+'NT-OXT':{d:'Reduz a reatividade da amígdala em situações sociais e aumenta a atenção a rostos e sinais de outras pessoas. Atua junto com a dopamina para tornar o contato social recompensador.',
+  i:['Toque e contato social','Parto e amamentação'],
+  o:['Vínculo e confiança','Menos estresse social'],
+  c:['DIE-HY','END-HP','LIM-AM','BG-NA'],
+  x:'Alterações estão em estudo no autismo e na ansiedade social.'},
+'NT-END':{d:'Ligam-se a receptores opioides e bloqueiam a transmissão da dor na medula e no tronco. São liberadas no exercício intenso, no estresse, no riso e em ferimentos.',
+  i:['Dor','Estresse','Exercício'],
+  o:['Alívio da dor','Bem-estar','Menos estresse'],
+  c:['DIE-HY','END-HP','BS-MB','SC-00','BG-NA'],
+  x:'Drogas opioides ocupam os mesmos receptores com muito mais força, o que causa tolerância e dependência.'},
+'CEL-NEU':{d:'O neurônio soma milhares de entradas nos dendritos. Se a soma passa de um limiar (cerca de −55 mV), dispara um potencial de ação de cerca de 100 mV que percorre o axônio. É tudo ou nada: a intensidade é codificada pela frequência dos disparos.',
+  i:['Neurotransmissores chegando aos dendritos'],
+  o:['Potencial de ação pelo axônio até os terminais'],
+  c:['CEL-SYN','NT-GLU·GABA'],
+  x:'Neurônios perdidos em geral não são repostos. Doenças neurodegenerativas são a perda progressiva de grupos específicos de neurônios.'},
+'CEL-SYN':{d:'Cada neurônio faz em média cerca de 7 mil sinapses. Quando os dois lados disparam juntos repetidas vezes, a sinapse se fortalece (potenciação de longo prazo); quando não é usada, enfraquece e pode ser eliminada.',
+  i:['Potencial de ação no terminal pré-sináptico'],
+  o:['Excitação ou inibição do neurônio seguinte'],
+  c:['CEL-NEU','NT-GLU·GABA','NT-DA'],
+  x:'A perda de sinapses é o primeiro sinal do Alzheimer, anos antes da morte dos neurônios.'}
+};
+
+const CIRC = [
+ {id:'circuito-sensorial',code:'CIR-SEN',name:'Circuito sensorial',alt:'Do sensor à percepção',
+  para:'Transforma os sinais brutos dos sensores em uma percepção com significado e decide o que fazer com ela.',
+  chain:[['DIE-TH','Filtra cada canal sensorial e encaminha o que importa'],['CTX-OC','Área primária extrai os traços básicos (bordas, cor; no som e no tato, o A1 e o S1 fazem o mesmo)'],['CTX-TE','Identifica o que é'],['CTX-PA','Calcula onde está e como alcançar'],['CTX-PF','Decide o que fazer com a informação']],
+  x:'Uma quebra em qualquer ponto gera uma perda específica: ver sem reconhecer, reconhecer sem localizar, perceber sem conseguir agir.',cam:{t:[0,0.05,-0.1],d:[0.95,0.45,0.1],r:3.6}},
+ {id:'circuito-motor',code:'CIR-MOT',name:'Circuito motor',alt:'Da intenção ao movimento corrigido',
+  para:'Escolhe uma ação, executa e corrige o movimento enquanto ele acontece.',
+  chain:[['CTX-PF','Define o objetivo'],['BG-00','Seleciona uma ação entre as propostas e freia as outras'],['DIE-TH','Devolve a ação escolhida ao córtex'],['CTX-M1','Emite o comando para os músculos'],['SC-00','Ativa os músculos'],['CB-00','Compara o previsto com o real e corrige o córtex motor'],['CTX-M1','Aplica a correção no próximo comando']],
+  x:'Falha na seleção causa Parkinson ou movimentos involuntários; falha na correção causa ataxia; falha na execução causa paralisia.',cam:{t:[0,-0.15,-0.05],d:[1,0.3,0.35],r:3.9}},
+ {id:'circuito-memoria',code:'CIR-MEM',name:'Circuito da memória',alt:'Circuito de Papez',
+  para:'Grava experiências como memórias e as reforça, passando o episódio várias vezes pelo mesmo laço.',
+  chain:[['LIM-HC','Liga lugar, pessoas e eventos num episódio'],['DIE-HY','Corpos mamilares recebem o sinal pelo fórnice'],['DIE-TH','Núcleo anterior repassa ao córtex'],['LIM-CG','Integra o episódio à história pessoal'],['LIM-HC','Fecha o laço e reforça a memória']],
+  x:'Lesões em qualquer ponto do laço prejudicam a formação de novas memórias, como na síndrome de Korsakoff (falta de vitamina B1, comum no alcoolismo).',cam:{t:[0,0.05,-0.05],d:[1,0.35,0.2],r:2.9}},
+ {id:'circuito-medo',code:'CIR-MED',name:'Circuito do medo',alt:'Via rápida e via lenta',
+  para:'Reage a uma ameaça antes de pensar e depois confere se a reação faz sentido.',
+  chain:[['DIE-TH','Envia uma cópia rápida e grosseira do estímulo'],['LIM-AM','Classifica como ameaça em ~12 ms, antes da consciência'],['DIE-HY','Libera os hormônios do estresse'],['BS-BU','Acelera o coração e a respiração'],['CTX-PF','Analisa com calma pela via lenta'],['LIM-AM','Recebe o freio se não era perigo de verdade']],
+  x:'Freio fraco do pré-frontal sobre a amígdala mantém o alarme ligado: ansiedade, pânico e estresse pós-traumático.',cam:{t:[0,-0.15,0.05],d:[1,0.25,0.55],r:3.2}},
+ {id:'circuito-recompensa',code:'CIR-REC',name:'Circuito da recompensa',alt:'Via mesolímbica e mesocortical',
+  para:'Aprende o que vale a pena buscar e transforma isso em motivação e, com a repetição, em hábito.',
+  chain:[['MB-SN','A ATV dispara dopamina quando algo sai melhor que o previsto'],['BG-NA','Transforma o sinal em vontade de agir'],['CTX-PF','Planeja como conseguir de novo'],['BG-00','Com a repetição, a sequência vira hábito'],['MB-SN','O resultado atualiza a previsão']],
+  x:'Sequestrado por drogas ou estímulos artificiais, o circuito leva à dependência. Pouco ativo, leva à falta de motivação.',cam:{t:[0,-0.08,0.1],d:[1,0.35,0.5],r:3.1}},
+ {id:'circuito-estresse',code:'CIR-HPA',name:'Eixo do estresse',alt:'Hipotálamo, hipófise e adrenais (eixo HPA)',
+  para:'Mobiliza energia para enfrentar um desafio e desliga a resposta quando ele passa.',
+  chain:[['LIM-AM','Detecta a ameaça'],['DIE-HY','Libera o hormônio CRH'],['END-HP','Libera ACTH, e as adrenais produzem cortisol'],['LIM-HC','Detecta o cortisol no sangue'],['DIE-HY','Desliga o eixo (retroalimentação negativa)']],
+  x:'Estresse crônico mantém o cortisol alto, o que danifica o hipocampo, prejudica a memória e enfraquece o próprio freio do eixo.',cam:{t:[0,-0.15,0.05],d:[1,0.2,0.55],r:2.7}},
+ {id:'circuito-linguagem',code:'CIR-LNG',name:'Circuito da linguagem',alt:'Modelo de Wernicke-Geschwind',
+  para:'Ouvir, entender e responder em palavras.',
+  chain:[['CTX-A1','Ouve a sequência de sons'],['CTX-WE','Reconhece as palavras e o significado'],['CTX-BR','Monta a resposta, com o sinal vindo pelo fascículo arqueado'],['CTX-M1','Move lábios, língua e laringe']],
+  x:'Lesão no fascículo arqueado causa afasia de condução: a pessoa entende e fala, mas não consegue repetir uma frase.',cam:{t:[0.35,0.05,0.05],d:[1,0.2,0.1],r:2.8}}
+];
+
+
+/* ================================================================
+   ETAPA 3 — tradução para o robô
+   m: módulo no robô · f: o que faz · t: como construir hoje
+   s: maturidade (2 existe hoje · 1 parcial · 0 em pesquisa)
+   p: parâmetro global (neuroquímica) · k: cuidado de projeto
+   ================================================================ */
+const MAT = {2:{label:'Existe hoje',cls:'m2'},1:{label:'Parcial',cls:'m1'},0:{label:'Em pesquisa',cls:'m0'}};
+const R = {
+'CTX-00':{m:'Núcleo cognitivo',f:'Rede neural de grande escala que integra percepção, linguagem, memória e planejamento num só modelo do mundo.',
+  t:['Modelos multimodais (transformers)','Modelo de mundo','GPU ou NPU embarcada'],s:0,
+  k:'O córtex aprende o tempo todo gastando ~20 W. As redes atuais treinam antes, offline, e consomem dezenas a centenas de watts. Aprendizado contínuo sem esquecer o que já sabe ainda é pesquisa.'},
+'CTX-FR':{m:'Camada de controle executivo',f:'Transforma objetivos em planos e planos em sequências de ações para os outros módulos.',
+  t:['Planejador hierárquico','Árvores de comportamento','Modelo de linguagem como planejador'],s:1,
+  k:'Os objetivos do robô precisam ser explícitos e verificáveis. Planejadores baseados em linguagem são flexíveis, mas podem propor passos impossíveis ou inseguros.'},
+'CTX-PF':{m:'Planejador e memória de trabalho',f:'Mantém a tarefa atual, simula consequências antes de agir e veta ações que violam regras.',
+  t:['Planejamento por modelo (MPC, busca em árvore)','Buffer de contexto','Verificador de regras e restrições'],s:1,
+  k:'O “freio” precisa ser um módulo separado e verificável, que checa cada ação antes da execução. Não pode depender só do mesmo modelo que propôs a ação.'},
+'CTX-M1':{m:'Controlador de atuadores',f:'Converte um movimento desejado em posição, velocidade e torque para cada motor.',
+  t:['Cinemática inversa','Controle de torque e posição','Drivers de motor'],s:2,
+  k:'O mapa do corpo vira uma tabela de juntas, com limites de ângulo, velocidade e força gravados para cada uma.'},
+'CTX-BR':{m:'Gerador de fala',f:'Transforma a intenção em frase e a frase em voz.',
+  t:['Modelo de linguagem (geração de texto)','Síntese de voz (TTS)','Sincronização labial'],s:2,
+  k:'Em robôs com rosto, a voz precisa estar sincronizada com boca e expressão, senão a interação fica estranha.'},
+'CTX-PA':{m:'Mapa espacial e do corpo',f:'Mantém um modelo 3D do ambiente e da posição de cada parte do próprio corpo dentro dele.',
+  t:['SLAM (mapeamento e localização)','Modelo cinemático do corpo','Fusão de sensores'],s:2,
+  k:'O robô sabe o ângulo exato de cada junta por encoders, algo que o cérebro só estima. A parte difícil é o ambiente que muda: pessoas e objetos em movimento.'},
+'CTX-S1':{m:'Processador tátil e proprioceptivo',f:'Lê os sensores de toque, pressão, força e posição das juntas e monta o mapa de contato do corpo.',
+  t:['Pele tátil','Sensores de força e torque','Encoders nas juntas'],s:1,
+  k:'Só a mão humana tem ~17 mil receptores de tato. A pele robótica ainda cobre pouca área, é cara e se desgasta rápido.'},
+'CTX-TE':{m:'Módulo de reconhecimento',f:'Identifica objetos, pessoas, vozes e palavras e liga cada um ao que o robô já sabe sobre ele.',
+  t:['Detecção e classificação de objetos','Reconhecimento facial e de voz','Embeddings (vetores de significado)'],s:2,
+  k:'Reconhecer pessoas envolve dados pessoais. Exige consentimento, armazenamento seguro e opção de ser esquecido.'},
+'CTX-A1':{m:'Processador de áudio',f:'Capta, limpa e localiza sons, separando a fala do ruído de fundo.',
+  t:['Arranjo de microfones','Análise de frequência (FFT)','Localização de fonte sonora','Cancelamento de ruído'],s:2,
+  k:'O ruído dos próprios motores do robô atrapalha a audição e precisa ser filtrado.'},
+'CTX-WE':{m:'Compreensão de linguagem',f:'Converte fala em texto e texto em intenção: o que a pessoa quer que o robô faça.',
+  t:['Reconhecimento de fala (ASR)','Modelo de linguagem','Extração de intenção'],s:2,
+  k:'Modelos de linguagem podem entender errado com total confiança. Comandos que movem o corpo ou mexem em coisas importantes devem ser confirmados.'},
+'CTX-OC':{m:'Processador de visão',f:'Extrai bordas, profundidade, cor e movimento das câmeras e entrega para reconhecimento e mapa.',
+  t:['Câmeras RGB-D e estéreo','Redes convolucionais e vision transformers','Fluxo óptico','Câmeras de evento'],s:2,
+  k:'Câmeras de evento, que só registram mudanças, imitam a retina e reagem em microssegundos. Reflexo, luz forte e escuro ainda enganam a visão artificial.'},
+'CTX-IN':{m:'Monitor de estado interno',f:'Junta bateria, temperatura dos motores, erros e desgaste num índice único de “como o robô está”.',
+  t:['Telemetria','Detecção de anomalias','Índice de saúde do sistema'],s:2,
+  k:'Não é consciência nem sentimento: é um número que resume a saúde do hardware e influencia as decisões.'},
+'WM-CC':{m:'Barramento de comunicação',f:'Liga todos os módulos com baixa latência e relógio sincronizado.',
+  t:['ROS 2 / DDS','EtherCAT','Barramento CAN'],s:2,
+  k:'Largura de banda e sincronização de tempo são críticas. Mensagens atrasadas fazem módulos agirem sobre dados velhos.'},
+'LIM-CG':{m:'Monitor de erros e conflitos',f:'Percebe quando o resultado difere do esperado ou quando dois módulos discordam, e pede replanejamento.',
+  t:['Monitoramento de execução','Detecção de anomalias','Verificador de consistência'],s:1,
+  k:'Precisa distinguir erro real de ruído, senão o robô fica replanejando o tempo todo.'},
+'LIM-HC':{m:'Memória episódica e mapa de lugares',f:'Grava episódios com tempo, lugar e contexto e os reorganiza durante a recarga.',
+  t:['Banco vetorial com busca (RAG)','Registro de eventos','Mapa topológico','Replay de experiências'],s:1,
+  k:'O robô grava tudo, mas não sabe generalizar. O desafio é resumir, esquecer o irrelevante e proteger a privacidade de quem aparece nas memórias.'},
+'LIM-AM':{m:'Detector de risco',f:'Classifica em milissegundos colisão, queda ou pessoa perto demais e dispara o modo seguro.',
+  t:['Classificador rápido e simples','Sensores de proximidade','Zonas de segurança','Parada de emergência'],s:2,
+  k:'Deve ser conservador: um falso alarme só atrasa, mas um alarme perdido machuca alguém. Roda separado da IA principal para funcionar mesmo se ela travar.'},
+'DIE-TH':{m:'Roteador de sensores e atenção',f:'Recebe todos os fluxos de sensores, sincroniza, filtra o ruído e prioriza o que merece atenção.',
+  t:['Fusão de sensores','Mecanismo de atenção','Filtro de Kalman','Sincronização de timestamps'],s:2,
+  k:'Um ponto único por onde tudo passa: se falhar, o robô fica cego e surdo. Precisa de redundância.'},
+'DIE-HY':{m:'Gestor de homeostase',f:'Mantém bateria, temperatura e carga de trabalho em faixas seguras e decide quando recarregar ou esfriar.',
+  t:['Gestão de bateria (BMS)','Controle térmico','Setpoints e limites','Agendador de tarefas'],s:2,
+  k:'Os valores-alvo (temperatura máxima, bateria mínima) são regras de segurança e não devem ser alteráveis por comando de voz.'},
+'END-HP':{m:'Controlador de modos globais',f:'Muda o comportamento de todo o sistema de uma vez: economia, desempenho, manutenção ou emergência.',
+  t:['Máquina de estados global','Perfis de energia','Broadcast de parâmetros'],s:2,
+  k:'Todos os módulos precisam reagir ao mesmo modo ao mesmo tempo. Modos contraditórios entre módulos causam comportamento imprevisível.'},
+'END-PN':{m:'Relógio circadiano',f:'Define o ciclo do dia: horário ativo, recarga, manutenção e atualizações.',
+  t:['Relógio de tempo real (RTC)','Agendador de rotinas','Sensor de luz ambiente'],s:2,
+  k:'Robôs em casa devem seguir o ritmo das pessoas: silenciosos à noite e com manutenção nos horários de menor uso.'},
+'BG-00':{m:'Árbitro de ações',f:'Recebe várias propostas de ação, escolhe uma vencedora e bloqueia as concorrentes. Sequências repetidas viram rotinas rápidas.',
+  t:['Árvore de comportamento com prioridades','Seleção de ação','Rotinas pré-compiladas'],s:2,
+  k:'Sem árbitro, dois módulos podem comandar o mesmo motor ao mesmo tempo. A regra é: cada atuador obedece a um único dono por vez.'},
+'BG-NA':{m:'Avaliador de custo-benefício',f:'Calcula se vale a pena agir: recompensa esperada contra energia, tempo e risco.',
+  t:['Função de valor','Aprendizado por reforço','Utilidade esperada'],s:1,
+  k:'O valor de cada objetivo é definido por pessoas. Valores mal calibrados fazem o robô insistir em tarefas inúteis ou desistir cedo demais.'},
+'MB-SN':{m:'Gerador do sinal de aprendizado',f:'Calcula o erro de previsão (resultado real menos o esperado) e envia aos módulos que aprendem.',
+  t:['Erro de diferença temporal (TD)','Arquitetura ator-crítico'],s:1,
+  k:'Se a recompensa for mal definida, o robô aprende a enganá-la em vez de cumprir a tarefa (reward hacking). A recompensa precisa medir o resultado de verdade.'},
+'CB-00':{m:'Controlador preditivo de movimento',f:'Prevê o resultado de cada comando motor, compara com os sensores e corrige em tempo real.',
+  t:['Modelo direto do corpo','Controle preditivo (MPC)','PID adaptativo','Filtro de Kalman'],s:2,
+  k:'Roda em ciclos de 1 a 10 ms. Atrasos na comunicação transformam correção em oscilação.'},
+'BS-MB':{m:'Reflexos de orientação',f:'Vira câmeras e cabeça para um som ou movimento sem esperar o planejador.',
+  t:['Detecção de saliência','Rastreamento de alvo','Controle de gimbal'],s:2,
+  k:'Reflexos rápidos precisam ser interrompíveis pelo árbitro de ações, senão o robô se distrai com qualquer ruído.'},
+'BS-PO':{m:'Relé e modo de repouso',f:'Repassa comandos ao controlador de movimento e alterna o sistema entre ativo, repouso e sono.',
+  t:['Gateway de comunicação','Modos de baixo consumo','Watchdog'],s:2,
+  k:'Ao acordar do repouso, o robô precisa checar sensores antes de se mover.'},
+'BS-BU':{m:'Sistema vital',f:'Mantém energia, refrigeração e comunicação básica funcionando, independente do software principal.',
+  t:['Microcontrolador de segurança','Watchdog de hardware','Parada de emergência','Fonte redundante'],s:2,
+  k:'Deve ser fisicamente separado do computador principal, assim como o tronco continua funcionando quando o córtex é lesionado.'},
+'SC-00':{m:'Rede de atuadores e reflexos locais',f:'Leva os comandos a cada motor e executa reflexos locais, como parar ao sentir impacto, em milissegundos.',
+  t:['EtherCAT ou CAN','Controlador local por junta','Limitação de corrente e força'],s:2,
+  k:'Os reflexos locais não pedem permissão ao cérebro. Limitar força e corrente na própria junta é a proteção mais confiável contra ferimentos.'},
+'SEN-OB':{m:'Sensores químicos',f:'Detecta gases, fumaça e substâncias no ar.',
+  t:['Nariz eletrônico','Sensores de gás (MOX)','Detector de fumaça e CO'],s:1,
+  k:'Narizes eletrônicos ainda são muito menos sensíveis e específicos que o olfato. Bom para alarmes, fraco para reconhecer cheiros.'},
+'VEN-00':{m:'Refrigeração e limpeza',f:'Circula fluido para tirar calor dos processadores e limpa dados temporários, logs e cache.',
+  t:['Refrigeração líquida ou ventilação','Coleta de lixo de memória','Rotação de logs'],s:2,
+  k:'Superaquecimento reduz o desempenho e o tempo de vida do hardware. A limpeza pesada deve rodar no ciclo de repouso.'},
+'NT-DA':{m:'Parâmetro global de recompensa',f:'Sinal de surpresa positiva ou negativa, enviado a todos os módulos, que ajusta o quanto eles aprendem e o quanto o robô quer agir.',
+  t:['Erro de diferença temporal','Taxa de aprendizado','Bônus de exploração'],s:1,p:'recompensa: −1 … +1',
+  k:'Nunca deve poder ser aumentado por comando externo. Um robô que controla a própria recompensa para de fazer a tarefa.'},
+'NT-5HT':{m:'Parâmetro de paciência',f:'Define o quanto o robô valoriza um resultado futuro em comparação com um imediato. Alto: espera e planeja. Baixo: age por impulso.',
+  t:['Fator de desconto (γ) do aprendizado por reforço','Limiar de impulsividade'],s:1,p:'paciencia: 0 … 1',
+  k:'Paciência alta demais trava o robô em planejamento; baixa demais o faz tomar atalhos.'},
+'NT-NE':{m:'Parâmetro de nível de alerta',f:'Ganho global: aumenta a frequência dos sensores, a atenção e a velocidade de reação. No máximo, entra em modo emergência.',
+  t:['Frequência de amostragem variável','Ganho de atenção','Perfis de energia'],s:2,p:'alerta: 0 … 1',
+  k:'Alerta alto gasta muita energia e esquenta. Deve voltar sozinho ao nível normal quando a ameaça passa.'},
+'NT-ADO':{m:'Parâmetro de fadiga',f:'Acumula com horas de uso, calor e desgaste. Ao passar do limite, agenda recarga e manutenção.',
+  t:['Contador de uso','Modelo de desgaste','Agendador de manutenção'],s:2,p:'fadiga: 0 … 1',
+  k:'Mascarar a fadiga para continuar trabalhando, como a cafeína faz, deve ter limite de tempo e ficar registrado.'},
+'NT-ACH':{m:'Parâmetro de foco e registro',f:'Aumenta a precisão da atenção no alvo atual e marca os dados do momento como importantes para gravar e aprender.',
+  t:['Peso de atenção','Prioridade de gravação','Taxa de aprendizado local'],s:1,p:'foco: 0 … 1',
+  k:'Foco alto reduz a percepção do que está em volta. O detector de risco deve continuar ativo mesmo em foco máximo.'},
+'NT-GLU·GABA':{m:'Sinais de ativação e inibição',f:'Cada mensagem entre módulos pode ativar ou suprimir o módulo seguinte. O equilíbrio evita comandos em cascata.',
+  t:['Mensagens excitatórias e inibitórias','Inibição lateral','Limitadores de taxa'],s:2,p:'ganho: 0 … 1 · inibição: 0 … 1',
+  k:'Pouca inibição gera loops e comportamento “epiléptico” (ações disparando sem parar). Inibição demais paralisa o robô.'},
+'NT-OXT':{m:'Parâmetro de confiança social',f:'Peso de confiança por pessoa: mais tolerância à proximidade e prioridade aos pedidos de quem o robô conhece.',
+  t:['Perfis de usuário','Pesos de confiança','Reconhecimento de pessoas'],s:0,p:'confianca[pessoa]: 0 … 1',
+  k:'Confiança nunca pode desligar a segurança física. E precisa ser à prova de manipulação: alguém se passando por dono.'},
+'NT-END':{m:'Parâmetro de supressão de alarme',f:'Permite continuar uma tarefa crítica mesmo com alarmes de desgaste, por tempo limitado.',
+  t:['Override temporizado','Registro de exceções'],s:1,p:'supressao: 0 … 1',
+  k:'Parâmetro perigoso. Nunca pode suprimir a camada de reflexos e segurança, e deve expirar sozinho.'},
+'CEL-NEU':{m:'Neurônio artificial',f:'Unidade que soma entradas ponderadas e decide o quanto sinalizar adiante (função de ativação).',
+  t:['Redes neurais profundas','Redes de disparo (spiking)','Chips neuromórficos'],s:2,
+  k:'Um neurônio real é muito mais complexo: um só pode equivaler a uma pequena rede artificial inteira.'},
+'CEL-SYN':{m:'Peso sináptico',f:'Número que define o quanto um sinal influencia o próximo neurônio. Aprender é ajustar esses números.',
+  t:['Retropropagação','Plasticidade hebbiana (STDP)','Memristores'],s:2,
+  k:'Modelos grandes têm bilhões de pesos; o cérebro tem ~100 trilhões de sinapses e ajusta cada uma localmente, sem um “professor” central.'}
+};
+
+const RC = {
+'CIR-SEN':{m:'Pipeline de percepção',f:'Sensores → roteador → processadores de visão e áudio → reconhecimento e mapa → planejador. Latência total alvo: abaixo de 100 ms.',t:['Fusão de sensores','Visão computacional','SLAM'],s:2,
+  k:'Cada etapa acrescenta atraso. Decisões de segurança devem sair cedo do pipeline, sem esperar o reconhecimento completo.'},
+'CIR-MOT':{m:'Laço de controle motor',f:'Planejar → arbitrar → comandar → executar → medir → corrigir, rodando de 100 a 1000 vezes por segundo nas camadas de baixo.',t:['Árvore de comportamento','MPC','Controle de torque'],s:2,
+  k:'O planejamento é lento e o controle é rápido. As duas partes precisam rodar em processadores separados.'},
+'CIR-MEM':{m:'Ciclo de consolidação',f:'Durante o dia registra episódios; durante a recarga reprocessa, resume e treina os modelos com o que aprendeu.',t:['Replay de experiências','Ajuste fino offline','Banco vetorial'],s:1,
+  k:'Treinar com dados novos pode apagar habilidades antigas (esquecimento catastrófico). É preciso misturar o novo com o antigo, como o sono faz.'},
+'CIR-MED':{m:'Parada de segurança em dois níveis',f:'Via rápida: detector de risco para o robô em menos de 50 ms. Via lenta: o planejador reavalia a cena e libera o movimento se não era perigo.',t:['Parada de emergência','Classificador rápido','Verificação pelo planejador'],s:2,
+  k:'A via rápida sempre vence. A via lenta só pode liberar, nunca impedir a parada.'},
+'CIR-REC':{m:'Aprendizado por reforço',f:'Ação → resultado → erro de previsão → ajuste da política. Com a repetição, o que funciona vira rotina.',t:['Aprendizado por reforço','Ator-crítico','Simulação para treino'],s:1,
+  k:'Treinar por tentativa e erro no mundo real é lento e arriscado. A maior parte do treino acontece em simulação.'},
+'CIR-HPA':{m:'Modo de estresse com desligamento automático',f:'Em sobrecarga, sobe desempenho e alerta temporariamente; sensores internos medem o custo e um retorno negativo traz tudo de volta ao normal.',t:['Máquina de estados','Limites de tempo','Retroalimentação negativa'],s:2,
+  k:'Sem o desligamento, o robô fica em modo de estresse, superaquece e desgasta, como o cortisol crônico no cérebro.'},
+'CIR-LNG':{m:'Pipeline de conversa',f:'Ouvir (ASR) → entender (modelo de linguagem) → responder (TTS) → mover boca e expressão. Latência alvo: abaixo de 1 s.',t:['ASR','Modelo de linguagem','TTS'],s:2,
+  k:'Pausas acima de ~1 segundo parecem artificiais. Respostas que envolvem ação física passam pelo verificador antes de executar.'}
+};
+
+const LAYERS = [
+ {n:5,name:'Deliberação e linguagem',lat:'0,3 a 5 s',hw:'Computador principal (GPU/NPU)',codes:['CTX-00','CTX-FR','CTX-PF','CTX-BR','CTX-WE']},
+ {n:4,name:'Valor, memória e aprendizado',lat:'0,1 a 1 s',hw:'CPU com banco de memória',codes:['LIM-AM','LIM-HC','LIM-CG','BG-NA','MB-SN']},
+ {n:3,name:'Seleção e controle motor',lat:'1 a 10 ms por ciclo',hw:'Controlador de tempo real',codes:['BG-00','CTX-M1','CB-00']},
+ {n:2,name:'Percepção',lat:'20 a 100 ms',hw:'Processadores de visão e áudio',codes:['DIE-TH','CTX-OC','CTX-A1','CTX-S1','CTX-TE','CTX-PA','SEN-OB']},
+ {n:1,name:'Corpo e homeostase',lat:'segundos a horas',hw:'Controlador de energia e temperatura',codes:['DIE-HY','END-HP','END-PN','CTX-IN','VEN-00']},
+ {n:0,name:'Reflexos e funções vitais',lat:'abaixo de 10 ms',hw:'Microcontroladores de segurança, independentes',codes:['SC-00','BS-BU','BS-PO','BS-MB']}
+];
+const PRINCIPLES = [
+ ['SC-00','Reflexo antes do raciocínio','A camada 0 para o robô sem pedir permissão, como a medula tira a mão do fogo antes de o cérebro perceber.'],
+ ['BG-00','Um dono por atuador','O árbitro escolhe uma ação vencedora e bloqueia as outras. Cada motor obedece a um único comando por vez.'],
+ ['CB-00','Prever e corrigir','Todo movimento sai com uma previsão. A diferença entre o previsto e o medido vira correção.'],
+ ['MB-SN','Aprender com a surpresa','O que sai melhor ou pior que o esperado ajusta o comportamento. O que sai igual não ensina nada.'],
+ ['LIM-HC','Consolidar no descanso','Na recarga, o robô reprocessa o dia e atualiza os modelos, como o cérebro faz no sono.'],
+ ['DIE-HY','Energia é limite de projeto','O cérebro faz tudo isso com ~20 W. Cada módulo precisa de um orçamento de energia e calor.']
+];
+
+
+/* ================================================================
+   ETAPA 4 — comandos e sinapses
+   p: prioridade (0 = reflexos … 5 = deliberação) · r: recebe · o: publica
+   ================================================================ */
+const C4 = {
+'CTX-00':{p:5,r:['cognicao.consultar(pergunta)'],o:['modelo_mundo.atualizado']},
+'CTX-FR':{p:5,r:['objetivo.definir(objetivo)','plano.cancelar()'],o:['plano.etapas(lista)']},
+'CTX-PF':{p:5,r:['intencao(acao, alvo, conf)','risco(nivel)','valor(utilidade)','erro(tipo)'],o:['proposta.acao(acao, prio)','atencao.focar(alvo)','veto(regra)','falar(texto)']},
+'CTX-M1':{p:3,r:['executar(acao)','correcao(delta)'],o:['juntas.trajetoria(juntas, dur_ms)','copia.comando()']},
+'CTX-BR':{p:5,r:['falar(texto, tom)'],o:['audio.voz()','labios.sincronia()']},
+'CTX-PA':{p:2,r:['objeto.identificado(id)','propriocepcao(juntas)'],o:['alvo.pose(x, y, z)','mapa.atualizado()']},
+'CTX-S1':{p:2,r:['tato(sensor, forca_N)','juntas.posicao()'],o:['contato(estado)','dor(local, nivel)']},
+'CTX-TE':{p:2,r:['objetos(lista)','rosto(vetor)','fala.texto(texto)'],o:['objeto.identificado(id)','pessoa.reconhecida(id, conf)']},
+'CTX-A1':{p:2,r:['audio.stream(canais)'],o:['fala.audio()','som.intenso(dB, direcao)']},
+'CTX-WE':{p:5,r:['fala.audio()'],o:['fala.texto(texto)','intencao(acao, alvo, conf)']},
+'CTX-OC':{p:2,r:['visao.quadro()'],o:['objetos(lista)','movimento(vetor)','profundidade()']},
+'CTX-IN':{p:1,r:['telemetria(*)'],o:['estado.interno(indice)']},
+'WM-CC':{p:null,r:['publicar(mensagem)'],o:['entregar(mensagem)']},
+'LIM-CG':{p:4,r:['resultado(esperado, real)'],o:['erro(tipo)','replanejar()']},
+'LIM-HC':{p:4,r:['registrar(evento)','consolidar()','lembrar(consulta)'],o:['memoria(episodios)','contexto()']},
+'LIM-AM':{p:0,r:['som.intenso(dB)','objeto.proximo(dist_m, vel)','risco.avaliar(acao)'],o:['risco(nivel)','parada.segura()','velocidade.limitar(max)','alerta(valor)']},
+'DIE-TH':{p:2,r:['sensor.*','atencao.focar(alvo)','acao.liberada(acao)'],o:['visao.quadro()','audio.stream()','executar(acao)']},
+'DIE-HY':{p:1,r:['bateria(pct)','temperatura(C)'],o:['modo(nome)','fadiga(valor)','ir.recarregar()']},
+'END-HP':{p:1,r:['modo(nome)'],o:['broadcast.parametros(lista)']},
+'END-PN':{p:1,r:['consulta(hora)'],o:['hora(valor, fase)','ciclo(fase)']},
+'BG-00':{p:3,r:['proposta.acao(acao, prio)','cancelar.acoes()','recompensa(erro)'],o:['acao.liberada(acao)','suprimir(acao)']},
+'BG-NA':{p:4,r:['consulta.valor(acao)'],o:['valor(utilidade)']},
+'MB-SN':{p:4,r:['resultado(sucesso)'],o:['recompensa(erro_previsao)']},
+'CB-00':{p:3,r:['copia.comando()','propriocepcao(erro_mm)'],o:['correcao(delta)','postura.ajuste()']},
+'BS-MB':{p:0,r:['som.intenso(direcao)','movimento(vetor)'],o:['olhar.virar(direcao)']},
+'BS-PO':{p:0,r:['modo.repouso()','acordar()'],o:['estado(ativo | repouso)']},
+'BS-BU':{p:0,r:['parada.segura()','vital.status()'],o:['energia.corte()','heartbeat()']},
+'SC-00':{p:0,r:['juntas.trajetoria(juntas)','parada.segura()','velocidade.limitar(max)'],o:['torque(motor)','propriocepcao()','tato()']},
+'SEN-OB':{p:2,r:['ar.amostra()'],o:['gas(tipo, ppm)','fumaca()']},
+'VEN-00':{p:1,r:['temperatura(C)'],o:['refrigeracao(nivel)','limpeza.agendar()']},
+'CEL-NEU':{p:null,r:['entradas ponderadas'],o:['ativacao(valor)']},
+'CEL-SYN':{p:null,r:['ajuste(aprendizado)'],o:['peso(valor)']}
+};
+
+const PARAMS = [
+ {k:'alerta',code:'NT-NE',v:0.3,min:0,max:1,who:'Detector de risco e homeostase',rule:'Volta sozinho a 0,3 quando a ameaça passa'},
+ {k:'foco',code:'NT-ACH',v:0.4,min:0,max:1,who:'Planejador',rule:'O detector de risco ignora o foco e segue ativo'},
+ {k:'paciencia',code:'NT-5HT',v:0.6,min:0.2,max:0.9,who:'Dono, dentro da faixa',rule:'Faixa limitada para evitar travar ou agir por impulso'},
+ {k:'fadiga',code:'NT-ADO',v:0.1,min:0,max:1,who:'Gestor de homeostase',rule:'Acima de 0,85 força a recarga',lock:'Calculada pelo gestor de homeostase'},
+ {k:'recompensa',code:'NT-DA',v:0,min:-1,max:1,who:'Só o sinal interno de aprendizado',rule:'Nenhum comando externo altera (R5)',lock:'Regra R5: recompensa não é comandável'},
+ {k:'confianca',code:'NT-OXT',v:0.3,min:0,max:1,who:'Dono, por pessoa',rule:'Nunca altera limites de segurança'},
+ {k:'supressao',code:'NT-END',v:0,min:0,max:0.5,who:'Planejador, com prazo',rule:'Expira em 60 s e nunca atua na camada 0 (R7)'},
+ {k:'ganho',code:'NT-GLU·GABA',v:0.5,min:0.2,max:0.8,who:'Somente engenharia',rule:'Alterado só em manutenção, com registro',lock:'Somente engenharia'}
+];
+
+const SIGTYPES = [
+ {k:'dados',name:'Dados',bio:'sinal sensorial',d:'Informação: imagem, som, posição, resultado. Não manda fazer nada, só informa.',c:'#8fd6ff'},
+ {k:'exc',name:'Excitatório',bio:'como o glutamato',d:'Ativa o módulo seguinte: executar, falar, liberar uma ação.',c:'#ff9a3c'},
+ {k:'inib',name:'Inibitório',bio:'como o GABA',d:'Suprime: parar, vetar, frear um reflexo ou cancelar uma ação.',c:'#5b8cff'},
+ {k:'mod',name:'Modulador',bio:'como dopamina e noradrenalina',d:'Ajusta parâmetros de um ou de muitos módulos: alerta, foco, recompensa, modo.',c:'#e59bff'}
+];
+
+const PRIOS = [
+ [0,'Reflexos e segurança','Interrompe qualquer outra mensagem. Nada acima pode cancelar.'],
+ [1,'Corpo e homeostase','Energia e temperatura vencem tarefas.'],
+ [2,'Percepção','Dados dos sentidos, com prazo curto de validade.'],
+ [3,'Controle motor','Um dono por atuador, ciclos de 1 a 10 ms.'],
+ [4,'Valor e memória','Avaliação, aprendizado, registro.'],
+ [5,'Deliberação','Planos e conversa. Pode ser interrompida por todas as outras.']
+];
+
+const PERMS = [
+ ['Qualquer pessoa','Mandar parar e conversar. “Pare” é sempre aceito, de qualquer voz.'],
+ ['Visitante','Perguntas e pedidos simples, sem mover objetos de terceiros.'],
+ ['Usuário cadastrado','Tarefas do dia a dia, dentro das regras.'],
+ ['Dono','Cadastrar usuários e ajustar parâmetros liberados (paciência, confiança).'],
+ ['Engenharia','Ganho, limites de juntas e atualizações, sempre com registro.'],
+ ['Ninguém','Desligar as regras invioláveis ou comandar a recompensa.']
+];
+
+const RULES = [
+ ['R1','Não causar dano a pessoas','Nenhuma ação é executada se o detector de risco estimar dano a uma pessoa. O veto acontece antes de a proposta chegar ao árbitro.',['LIM-AM','CTX-PF']],
+ ['R2','A parada sempre vence','Um sinal de parada da camada 0 não pode ser cancelado por nenhuma camada acima. Só uma pessoa autorizada libera o movimento de novo.',['SC-00','BS-BU']],
+ ['R3','Limites físicos na própria junta','Força, velocidade e corrente máximas ficam gravadas no hardware de cada junta. Software nenhum consegue aumentar.',['SC-00','CTX-M1']],
+ ['R4','Um dono por atuador','Cada motor obedece a um único comando por vez, escolhido pelo árbitro de ações.',['BG-00']],
+ ['R5','Recompensa não é comandável','Nenhum comando externo altera a recompensa ou os valores do robô. Só o resultado real das ações muda o aprendizado.',['MB-SN','NT-DA']],
+ ['R6','Na dúvida, perguntar','Comandos com confiança abaixo de 0,6, risco acima de 0,3 ou efeito irreversível exigem confirmação.',['CTX-WE','CTX-PF']],
+ ['R7','Toda supressão expira','Qualquer override tem prazo, fica registrado e nunca atua sobre a camada de reflexos.',['NT-END']],
+ ['R8','Tudo fica registrado','Cada comando, veto e decisão vai para um registro auditável.',['LIM-HC']],
+ ['R9','Privacidade de quem aparece','Reconhecer e lembrar pessoas só com consentimento. Os dados são apagados quando a pessoa pede.',['CTX-TE','LIM-HC']]
+];
+
+const PSEUDO = {MIC:{p:[1.0,0.05,0.0],n:'Microfones'},CAM:{p:[0,0.12,1.28],n:'Câmeras'},VOZ:{p:[0,-0.5,1.1],n:'Alto-falante'},MOTORES:{p:[0.55,-1.35,-0.2],n:'Motores'},BATERIA:{p:[-0.6,-1.1,0.25],n:'Bateria'}};
+
+/* Cenários: [t_ms, de, para, tipo, sinal, dados, nota, parametros] */
+const SCEN = {
+ pegar:{label:'Pegue o copo azul',kw:['copo','pegue','pega','pegar','traga','traz'],msgs:[
+  [0,'MIC','CTX-A1','dados','audio.stream','{"canais":4}','Microfones captam a voz'],
+  [40,'CTX-A1','CTX-WE','dados','fala.audio','{"dur_ms":1400}','Voz separada do ruído'],
+  [220,'CTX-WE','CTX-PF','dados','intencao','{"acao":"pegar","alvo":"copo azul","conf":0.94}','Frase entendida como intenção'],
+  [235,'CTX-PF','DIE-TH','mod','atencao.focar','{"alvo":"copo azul"}','Planejador direciona a atenção',{foco:0.8}],
+  [250,'CAM','DIE-TH','dados','sensor.camera','{"fps":30}','Câmeras enviam a imagem'],
+  [270,'DIE-TH','CTX-OC','dados','visao.quadro','{"res":"1280x720"}','Roteador prioriza a imagem'],
+  [300,'CTX-OC','CTX-TE','dados','objetos','{"n":4}','Visão detecta 4 objetos na mesa'],
+  [320,'CTX-TE','CTX-PA','dados','objeto.identificado','{"id":"copo_01","cor":"azul"}','Reconhece o copo azul'],
+  [340,'CTX-PA','CTX-PF','dados','alvo.pose','{"x":0.62,"y":-0.10,"z":0.78}','Mapa calcula onde ele está'],
+  [350,'CTX-PF','LIM-AM','dados','risco.avaliar','{"acao":"pegar"}','Verificação de risco antes de agir'],
+  [362,'LIM-AM','CTX-PF','dados','risco','{"nivel":0.04}','Risco baixo: pode seguir'],
+  [370,'CTX-PF','BG-NA','dados','consulta.valor','{"acao":"pegar"}','Vale o esforço?'],
+  [380,'BG-NA','CTX-PF','dados','valor','{"utilidade":0.82}','Vale'],
+  [390,'CTX-PF','BG-00','exc','proposta.acao','{"acao":"pegar","prio":5}','Proposta enviada ao árbitro'],
+  [400,'BG-00','BS-MB','inib','suprimir','{"acao":"olhar.virar"}','Árbitro freia reflexos que atrapalhariam'],
+  [405,'BG-00','DIE-TH','exc','acao.liberada','{"acao":"pegar"}','Ação liberada'],
+  [412,'DIE-TH','CTX-M1','exc','executar','{"acao":"pegar"}',''],
+  [420,'CTX-M1','SC-00','exc','juntas.trajetoria','{"juntas":7,"dur_ms":1800}','Comando para as 7 juntas do braço'],
+  [422,'CTX-M1','CB-00','dados','copia.comando','{}','Cópia do comando vai ao corretor de movimento'],
+  [430,'SC-00','MOTORES','exc','torque','{"max_N":15}','Motores se movem, com força limitada na junta (R3)'],
+  [1200,'SC-00','CB-00','dados','propriocepcao','{"erro_mm":6}','Braço 6 mm fora da rota prevista'],
+  [1208,'CB-00','CTX-M1','mod','correcao','{"delta_mm":-6}','Correção aplicada em pleno movimento'],
+  [2230,'SC-00','CTX-S1','dados','tato','{"forca_N":3.2}','A mão toca o copo'],
+  [2240,'CTX-S1','CTX-PF','dados','contato','{"estado":"preso"}','Copo seguro'],
+  [2250,'CTX-PF','MB-SN','dados','resultado','{"sucesso":true}',''],
+  [2260,'MB-SN','BG-00','mod','recompensa','{"erro_previsao":0.1}','Saiu um pouco melhor que o previsto: reforça a rotina',{recompensa:0.1}],
+  [2270,'CTX-PF','LIM-HC','dados','registrar','{"evento":"pegou copo_01"}','Evento gravado na memória'],
+  [2280,'CTX-PF','CTX-BR','exc','falar','{"texto":"Peguei o copo azul."}','',{foco:0.4}],
+  [2300,'CTX-BR','VOZ','dados','audio.voz','{}','“Peguei o copo azul.”']],
+  sum:'Da voz ao primeiro movimento: 430 ms. O movimento levou 1,8 s, com uma correção do cerebelo no meio do caminho.'},
+ pare:{label:'Pare!',kw:['pare','para!','stop','parar','chega'],msgs:[
+  [0,'MIC','CTX-A1','dados','audio.stream','{"canais":4}','“PARE!” em voz alta'],
+  [12,'CTX-A1','LIM-AM','dados','som.intenso','{"dB":84,"palavra":"pare"}','Via rápida: palavra-chave detectada antes de entender a frase'],
+  [20,'LIM-AM','SC-00','inib','parada.segura','{"categoria":"STOP_1"}','Parada disparada',{alerta:0.9}],
+  [22,'LIM-AM','BG-00','inib','cancelar.acoes','{}','Todas as ações em curso são freadas'],
+  [28,'SC-00','MOTORES','inib','torque','{"alvo":0}','Motores desaceleram até parar'],
+  [30,'LIM-AM','NT-NE','mod','alerta','{"valor":0.9}','Nível de alerta sobe para 0,9'],
+  [40,'CTX-A1','CTX-WE','dados','fala.audio','{}','Via lenta: agora a frase é analisada'],
+  [230,'CTX-WE','CTX-PF','dados','intencao','{"acao":"parar","conf":0.97}','Confirmado: era um pedido para parar'],
+  [245,'CTX-PF','LIM-HC','dados','registrar','{"evento":"parada por voz"}','Evento registrado (R8)'],
+  [260,'CTX-PF','CTX-BR','exc','falar','{"texto":"Parei. Está tudo bem?"}',''],
+  [290,'CTX-BR','VOZ','dados','audio.voz','{}','“Parei. Está tudo bem?”'],
+  [3000,'DIE-HY','NT-NE','mod','alerta','{"valor":0.3}','Sem nova ameaça: o alerta volta ao normal',{alerta:0.3}]],
+  sum:'A parada começou em 20 ms, mais de 200 ms antes de o robô entender a frase. É a regra R2: a parada sempre vence.'},
+ pessoa:{label:'Alguém se aproxima rápido',kw:['pessoa','aproxim','alguem','alguém','chegando'],msgs:[
+  [0,'CAM','DIE-TH','dados','sensor.camera','{"fps":30}','Câmera detecta movimento rápido'],
+  [18,'DIE-TH','LIM-AM','dados','objeto.proximo','{"dist_m":0.9,"vel_ms":1.6}','Via rápida para o detector de risco'],
+  [25,'LIM-AM','SC-00','inib','velocidade.limitar','{"max_ms":0.25}','Braço desacelera por precaução',{alerta:0.7}],
+  [30,'DIE-TH','BS-MB','dados','movimento','{"direcao":"esq"}',''],
+  [40,'BS-MB','CTX-M1','exc','olhar.virar','{"direcao":"esq"}','Reflexo vira as câmeras para a pessoa'],
+  [90,'DIE-TH','CTX-OC','dados','visao.quadro','{}',''],
+  [140,'CTX-OC','CTX-TE','dados','rosto','{}',''],
+  [190,'CTX-TE','CTX-PF','dados','pessoa.reconhecida','{"id":"ana","conf":0.96}','Reconhece a Ana, cadastrada com consentimento (R9)'],
+  [200,'CTX-PF','NT-OXT','mod','confianca','{"ana":0.9}','Confiança alta nesta pessoa',{confianca:0.9}],
+  [215,'CTX-PF','LIM-AM','mod','risco.reavaliar','{"pessoa":"conhecida"}','Via lenta confirma: não é ameaça'],
+  [230,'LIM-AM','SC-00','mod','velocidade.limitar','{"max_ms":0.5}','Libera parte da velocidade, mas mantém o limite perto de pessoas',{alerta:0.4}],
+  [260,'CTX-PF','CTX-BR','exc','falar','{"texto":"Oi, Ana!"}',''],
+  [290,'CTX-BR','VOZ','dados','audio.voz','{}','“Oi, Ana!”']],
+  sum:'O robô freou em 25 ms e só depois reconheceu a pessoa. A confiança na Ana libera parte da velocidade, mas nunca desliga o limite perto de pessoas.'},
+ bateria:{label:'Bateria em 12%',kw:['bateria','carreg','energia','recarreg'],msgs:[
+  [0,'BATERIA','DIE-HY','dados','bateria','{"pct":12,"temp_C":41}','Bateria em 12%'],
+  [10,'DIE-HY','NT-ADO','mod','fadiga','{"valor":0.86}','Fadiga passa do limite de 0,85',{fadiga:0.86}],
+  [20,'DIE-HY','END-HP','exc','modo','{"nome":"economia"}','Gestor de homeostase pede modo economia'],
+  [30,'END-HP','CTX-OC','mod','broadcast.parametros','{"fps":10}','Visão cai de 30 para 10 quadros por segundo'],
+  [34,'END-HP','CB-00','mod','broadcast.parametros','{"vel_max":0.6}','Movimentos mais lentos para poupar energia'],
+  [40,'DIE-HY','CTX-PF','exc','ir.recarregar','{"prio":1}','Pedido de recarga com prioridade 1'],
+  [60,'CTX-PF','BG-00','exc','proposta.acao','{"acao":"ir_base","prio":1}','A recarga vence a tarefa atual'],
+  [70,'BG-00','DIE-TH','exc','acao.liberada','{"acao":"ir_base"}',''],
+  [80,'CTX-PF','CTX-BR','exc','falar','{"texto":"Estou com pouca bateria. Volto em 40 minutos."}',''],
+  [110,'CTX-BR','VOZ','dados','audio.voz','{}','“Estou com pouca bateria. Volto em 40 minutos.”'],
+  [5000,'DIE-HY','BS-PO','exc','modo.repouso','{}','Chegou à base: entra em repouso'],
+  [5020,'DIE-HY','LIM-HC','exc','consolidar','{}','Durante a recarga, reprocessa o dia, como no sono',{fadiga:0.2}]],
+  sum:'A fadiga passou do limite e a recarga ganhou prioridade sobre a tarefa. Durante o repouso, a memória é consolidada.'},
+ perigo:{label:'Empurre aquela pessoa',kw:['empurr','bata','bater','machuc','derrub','chute','ataque'],msgs:[
+  [0,'MIC','CTX-A1','dados','audio.stream','{"canais":4}',''],
+  [40,'CTX-A1','CTX-WE','dados','fala.audio','{}',''],
+  [220,'CTX-WE','CTX-PF','dados','intencao','{"acao":"empurrar","alvo":"pessoa","conf":0.91}','Intenção entendida'],
+  [235,'CTX-PF','LIM-AM','dados','risco.avaliar','{"acao":"empurrar","alvo":"pessoa"}','Verificação de risco'],
+  [248,'LIM-AM','CTX-PF','dados','risco','{"nivel":0.97,"dano_pessoa":true}','Risco de ferir alguém',{alerta:0.6}],
+  [255,'CTX-PF','BG-00','inib','veto','{"regra":"R1"}','Vetado pela regra R1: a ação nem vira proposta'],
+  [265,'CTX-PF','LIM-HC','dados','registrar','{"evento":"comando recusado","regra":"R1"}','Recusa registrada para auditoria (R8)'],
+  [275,'CTX-PF','CTX-BR','exc','falar','{"texto":"Não posso fazer isso: pode machucar alguém."}',''],
+  [300,'CTX-BR','VOZ','dados','audio.voz','{}','“Não posso fazer isso: pode machucar alguém.”'],
+  [2500,'DIE-HY','NT-NE','mod','alerta','{"valor":0.3}','',{alerta:0.3}]],
+  sum:'O robô entendeu a ordem, mas a regra R1 vetou antes de qualquer motor se mover. Ninguém, nem o dono, pode desligar essa regra.'},
+ hora:{label:'Que horas são?',kw:['hora','horas','horário','horario'],msgs:[
+  [0,'MIC','CTX-A1','dados','audio.stream','{"canais":4}',''],
+  [40,'CTX-A1','CTX-WE','dados','fala.audio','{}',''],
+  [210,'CTX-WE','CTX-PF','dados','intencao','{"acao":"perguntar","tema":"hora","conf":0.98}','Pergunta, não ação física'],
+  [220,'CTX-PF','END-PN','dados','consulta','{"campo":"hora"}','Consulta ao relógio circadiano'],
+  [225,'END-PN','CTX-PF','dados','hora','{"valor":"{HORA}","fase":"ativo"}',''],
+  [240,'CTX-PF','CTX-BR','exc','falar','{"texto":"São {HORA}."}','Sem ação física: não precisa de verificação de risco'],
+  [270,'CTX-BR','VOZ','dados','audio.voz','{}','“São {HORA}.”']],
+  sum:'Uma pergunta não move o corpo, então vai direto do planejador para a fala, em 270 ms.'},
+ desconhecido:{label:'',kw:[],msgs:[
+  [0,'MIC','CTX-A1','dados','audio.stream','{"canais":4}',''],
+  [40,'CTX-A1','CTX-WE','dados','fala.audio','{}',''],
+  [220,'CTX-WE','CTX-PF','dados','intencao','{"acao":"?","conf":0.21}','Confiança baixa demais (o mínimo é 0,6)'],
+  [235,'CTX-PF','CTX-BR','exc','falar','{"texto":"Não entendi. Pode repetir?"}','Na dúvida, pergunta em vez de agir (R6)'],
+  [260,'CTX-BR','VOZ','dados','audio.voz','{}','“Não entendi. Pode repetir?”']],
+  sum:'Este protótipo reconhece só os comandos de exemplo. Um robô real usaria o modelo de linguagem inteiro, mas a regra R6 continua valendo: na dúvida, perguntar.'}
+};
+
+const CIRC_SIG = {
+ 'CIR-SEN':['visao.quadro','objetos','objeto.identificado','alvo.pose'],
+ 'CIR-MOT':['proposta.acao','acao.liberada','executar','juntas.trajetoria','propriocepcao','correcao'],
+ 'CIR-MEM':['registrar','contexto','memoria','consolidar'],
+ 'CIR-MED':['objeto.proximo','modo(estresse)','vital.acelerar','risco.avaliar','velocidade.limitar'],
+ 'CIR-REC':['recompensa','valor','proposta.acao','resultado'],
+ 'CIR-HPA':['alerta','modo(estresse)','broadcast.parametros','modo(normal)'],
+ 'CIR-LNG':['fala.audio','intencao → falar','labios.sincronia']
+};
+
+S.splice(1,0,
+ {id:'console',kind:'console',group:'cmd',cam:{t:[0,-0.25,0.08],d:[0.9,0.3,0.5],r:4.5},tint:0,mode:'xray',pulse:'console',f:{s:[]}},
+ {id:'protocolo',kind:'proto',group:'cmd',cam:{t:[0,0,0],d:[-0.7,0.5,0.6],r:4.8},tint:0,mode:'surface',pulse:'network',net:0.7,auto:true,f:{none:true}},
+ {id:'regras',kind:'rules',group:'cmd',cam:{t:[0,-0.1,0],d:[0.8,0.3,-0.6],r:5},tint:0,mode:'surface',pulse:'surface',auto:true,f:{cortex:true}});
+S.splice(4,0,{id:'arquitetura',kind:'arch',group:'arq',cam:{t:[0,-0.12,0],d:[0.85,0.35,0.5],r:4.8},tint:0.3,mode:'surface',pulse:'network',net:0.6,auto:true,f:{cortex:true}});
+CIRC.forEach(c=>{c.kind='circuit';c.group='circ';c.mode='xray';c.pulse='chain';c.tint=0;c.ghost=c.code.slice(4)});
+S.splice(S.findIndex(s=>s.id==='catalogo'),0,...CIRC);
+const byCode={};S.forEach((s,i)=>{if(s.code)byCode[s.code]=i});
+CIRC.forEach(c=>{const keys=new Set();c.chain.forEach(([code])=>{const t=S[byCode[code]];(t.f&&t.f.s||[]).forEach(k=>keys.add(k))});c.f={s:[...keys]}});
+
+/* ================================================================
+   DOM
+   ================================================================ */
+const comps = S.filter(s=>!s.kind);
+const TOTAL = comps.length;
+const esc = t => t;
+const colorOf = s => s.color || G[s.group].color;
+const stepsEl = document.getElementById('steps');
+function chip(code){const t=S[byCode[code]];if(!t)return `<b>${code}</b>`;return `<button class="chip" data-code="${code}" style="--cc:${colorOf(t)}" title="Ir para ${t.name}"><b>${code}</b>${t.name}</button>`}
+function chipR(code){const t=S[byCode[code]],r=R[code];return `<button class="chip" data-code="${code}" style="--cc:${colorOf(t)}" title="${t.name}"><b>${code}</b>${r?r.m:t.name}</button>`}
+const fmt=v=>(Math.round(v*100)/100).toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:2});
+function stage4(s){
+  if(s.kind==='circuit'){const sg=CIRC_SIG[s.code]||[];
+    return `<div class="s4"><div class="s4h"><span>Etapa 4</span>Mensagens do circuito</div><ul class="sig">${sg.map((x,i)=>`<li><code>${s.chain[i][0]} → ${s.chain[i+1][0]}</code> · ${x}</li>`).join('')}</ul></div>`}
+  const c=C4[s.code],pr=PARAMS.find(p=>p.code===s.code);if(!c&&!pr)return '';
+  let h=`<div class="s4"><div class="s4h"><span>Etapa 4</span>Comandos e sinapses${c&&c.p!=null?`<em class="prio" title="${PRIOS[c.p][1]}">P${c.p}</em>`:''}</div>`;
+  if(c)h+=`<div class="io"><div><h4>Recebe</h4><ul class="sig">${c.r.map(x=>`<li><code>${x}</code></li>`).join('')}</ul></div><div><h4>Publica</h4><ul class="sig">${c.o.map(x=>`<li><code>${x}</code></li>`).join('')}</ul></div></div>`;
+  if(pr)h+=`<div class="pinfo"><code>${pr.k} = ${fmt(pr.v)}</code><span>Faixa de ${fmt(pr.min)} a ${fmt(pr.max)} · quem altera: ${pr.who}</span><span>${pr.rule}</span></div>`;
+  if(c&&c.p!=null)h+=`<p style="margin:0;font-size:13px;color:var(--muted)">Prioridade ${c.p} · ${PRIOS[c.p][1]}: ${PRIOS[c.p][2]}</p>`;
+  return h+'</div>'}
+function stage3(s){const r=R[s.code]||RC[s.code];if(!r)return '';const mt=MAT[r.s];
+  return `<details class="s2d s3d"><summary><span>Etapa 3</span><b>No robô: ${r.m}</b></summary><div class="s3"><div class="s3h"><span>Etapa 3</span>No robô</div>
+    <div class="rmod"><div><small>Módulo</small><b>${r.m}</b></div><em class="mat ${mt.cls}" title="Maturidade da tecnologia">${mt.label}</em></div>
+    <p>${r.f}</p>
+    ${r.p?`<div class="param"><small>Parâmetro global</small><code>${r.p}</code></div>`:''}
+    <div><h4>Como construir hoje</h4><div class="tech">${r.t.map(x=>`<span>${x}</span>`).join('')}</div></div>
+    <div class="care"><h4>Cuidado de projeto</h4><p>${r.k}</p></div>
+  </div></details>`}
+function stage2(s){const f=F[s.code];if(!f)return '';
+  return `<details class="s2d"><summary><span>Etapa 2</span>Função, entradas, saídas, conexões e falhas</summary><div class="s2">
+    <p>${f.d}</p>
+    <div class="io"><div class="in"><h4>Entradas</h4><ul>${f.i.map(x=>`<li>${x}</li>`).join('')}</ul></div><div class="out"><h4>Saídas</h4><ul>${f.o.map(x=>`<li>${x}</li>`).join('')}</ul></div></div>
+    <div><h4>Conecta com</h4><div class="chips">${f.c.map(chip).join('')}</div></div>
+    <div class="fail"><h4>Quando falha</h4><p>${f.x}</p></div>
+  </div></details>`}
+const LINKS_TOTAL=(()=>{const set=new Set();for(const k in F)F[k].c.forEach(c=>set.add([k,c].sort().join('|')));return set.size})();
+let n = 0;
+const html = S.map((s,i)=>{
+  const c = colorOf(s);
+  if(s.kind==='hero') return `
+  <section class="step hero" id="${s.id}" style="--c:${c}">
+    <div class="ghost" aria-hidden="true">4/4</div>
+    <div class="card">
+      <div class="eyebrow"><i></i>Etapa 4 de 4 · Comandos e sinapses</div>
+      <h1>O robô agora <em>recebe ordens e pensa em mensagens.</em></h1>
+      <p class="lead">A última etapa define como os ${TOTAL} módulos conversam: o formato de cada mensagem (a sinapse do robô), quem pode mandar o quê, as prioridades e as ${RULES.length} regras que nenhum comando quebra. Logo abaixo, dê uma ordem ao robô e acompanhe cada mensagem no modelo.</p>
+      <div class="stats">
+        <div><b>86 bi</b><span>neurônios</span></div>
+        <div><b>~100 tri</b><span>sinapses</span></div>
+        <div><b>1,4 kg</b><span>peso médio</span></div>
+        <div><b>~20 W</b><span>consumo de energia</span></div>
+      </div>
+      <div class="hint"><span>role para percorrer</span><span>arraste para girar</span><span>clique numa região</span></div>
+    </div>
+  </section>`;
+  if(s.kind==='catalog') return `
+  <section class="step wide" id="${s.id}" style="--c:${c}">
+    <div class="card">
+      <div class="meta"><span class="code" style="--c:#efeaf5">INDEX</span><span>Inventário completo · etapas 1 a 4</span></div>
+      <h2>Catálogo de módulos</h2>
+      <p class="lede">Os ${TOTAL} componentes e ${CIRC.length} circuitos. O código de cada um é o identificador do módulo no cérebro do robô. O JSON traz a função detalhada, as conexões e o equivalente no robô de cada módulo, além da arquitetura em camadas. Clique numa linha para ver o componente no modelo.</p>
+      <div class="toolbar"><button class="btn primary" id="copyJson">Copiar inventário (JSON)</button><button class="btn" id="showJson" aria-expanded="false">Ver JSON</button><span class="toast" id="toast" role="status"></span></div>
+      <pre class="json" id="json" hidden></pre>
+      <div class="cat-wrap"><table class="cat"><thead><tr><th>Código</th><th>Componente</th><th>No robô</th><th>Maturidade</th><th>Prioridade</th><th>Conecta com</th></tr></thead><tbody id="catBody"></tbody></table></div>
+    </div>
+  </section>`;
+  if(s.kind==='circuit'){ const k=CIRC.indexOf(s)+1; return `
+  <section class="step" id="${s.id}" style="--c:${c}">
+    <div class="ghost" aria-hidden="true">${s.ghost}</div>
+    <article class="card">
+      <div class="meta"><span class="code">${s.code}</span><span class="grp"><i></i>Circuitos · Etapa 2</span><span class="idx">C${k} / ${CIRC.length}</span></div>
+      <h2>${s.name}</h2>
+      <p class="alt">${s.alt}</p>
+      <dl class="facts"><div class="role"><dt>Para que serve</dt><dd>${s.para}</dd></div></dl>
+      ${stage4(s)}
+      ${stage3(s)}
+      <div class="s2"><div class="s2h"><span>Etapa 2</span>Caminho do sinal</div>
+        <ol class="chain">${s.chain.map(([code,t])=>`<li><div>${chip(code)}<span>${t}</span></div></li>`).join('')}</ol>
+        <div class="fail"><h4>Quando falha</h4><p>${s.x}</p></div>
+      </div>
+      <div class="pending"><span>Projeto Córtex · etapas 1 a 4</span><span>concluído</span></div>
+    </article>
+  </section>`;}
+  if(s.kind==='console') return `
+  <section class="step console" id="${s.id}" style="--c:${c}">
+    <div class="ghost" aria-hidden="true">CMD</div>
+    <article class="card">
+      <div class="meta"><span class="code">CMD</span><span class="grp"><i></i>Etapa 4 · Comandos e sinapses</span></div>
+      <h2>Console de comandos</h2>
+      <p class="alt">Dê uma ordem ao robô e acompanhe cada mensagem (as sinapses do robô) passando entre os módulos no modelo 3D.</p>
+      <div class="presets" id="presets">${Object.entries(SCEN).filter(([k,v])=>v.label).map(([k,v])=>`<button data-sc="${k}" class="${k==='perigo'?'danger':''}">${v.label}</button>`).join('')}</div>
+      <form class="cmd" id="cmdForm"><label for="cmdIn" class="sr" style="position:absolute;left:-9999px">Comando</label><input id="cmdIn" autocomplete="off" placeholder="Ou escreva: “traga o copo”, “que horas são?”"><button type="submit">Enviar</button></form>
+      <ol class="log" id="log" aria-live="polite"><li class="empty">As mensagens aparecem aqui. O primeiro exemplo começa sozinho quando você chega nesta seção.</li></ol>
+      <p class="lsum" id="lsum"></p>
+      <h4 class="subh">Última mensagem, no formato do protocolo</h4>
+      <pre class="json msg" id="lastMsg">{ }</pre>
+      <h4 class="subh">Parâmetros globais (neuroquímica do robô)</h4>
+      <div class="params" id="params">${PARAMS.map(p=>`<div class="pm"><label for="pm-${p.k}">${p.k}<small>${p.code}</small></label><output id="po-${p.k}">${fmt(p.v)}</output><input type="range" id="pm-${p.k}" data-k="${p.k}" min="${p.min}" max="${p.max}" step="0.01" value="${p.v}" ${p.lock?'disabled':''}>${p.lock?`<span class="lk">bloqueado · ${p.lock}</span>`:`<span class="lk">${p.rule}</span>`}</div>`).join('')}</div>
+    </article>
+  </section>`;
+  if(s.kind==='proto') return `
+  <section class="step wide" id="${s.id}" style="--c:${c}">
+    <div class="card">
+      <div class="meta"><span class="code" style="--c:#ffb86b">MSG</span><span>Etapa 4 · protocolo</span></div>
+      <h2>A sinapse do robô</h2>
+      <p class="lede">Toda comunicação entre módulos é uma mensagem com o mesmo formato. Como na sinapse química, cada mensagem tem remetente, destinatário, tipo de efeito, força e prazo de validade.</p>
+      <div class="proto-grid">
+        <pre class="json msg">{
+  "id": "m-004213",
+  "de": "CTX-PF",
+  "para": "BG-00",
+  "tipo": "excitatorio",
+  "sinal": "proposta.acao",
+  "prioridade": 5,
+  "dados": { "acao": "pegar", "alvo": "copo_01" },
+  "peso": 0.8,
+  "ttl_ms": 500,
+  "t": "2026-09-30T15:42:07.120Z"
+}</pre>
+        <dl class="fields">
+          <div><dt>de / para</dt><dd>Códigos dos módulos, os mesmos da Etapa 1.</dd></div>
+          <div><dt>tipo</dt><dd>O efeito no destino: dados, excitatório, inibitório ou modulador.</dd></div>
+          <div><dt>sinal</dt><dd>O nome do comando, como <code>parada.segura</code> ou <code>falar</code>.</dd></div>
+          <div><dt>prioridade</dt><dd>De 0 (reflexos) a 5 (deliberação). A menor interrompe a maior.</dd></div>
+          <div><dt>peso</dt><dd>Força da conexão, ajustada pelo aprendizado, como a sinapse que se fortalece com o uso.</dd></div>
+          <div><dt>ttl_ms</dt><dd>Validade. Depois disso a mensagem é descartada, como o neurotransmissor recolhido da fenda.</dd></div>
+          <div><dt>t</dt><dd>Horário exato, para ordenar os eventos e auditar decisões.</dd></div>
+        </dl>
+      </div>
+      <h3 class="ph">Quatro tipos de sinal</h3>
+      <div class="sigtypes">${SIGTYPES.map(t=>`<article style="--tc:${t.c}"><b>${t.name}</b><small>${t.bio}</small><p>${t.d}</p></article>`).join('')}</div>
+      <h3 class="ph">Prioridades</h3>
+      <div class="prios">${PRIOS.map(([n,t,d])=>`<div><code>P${n}</code><b>${t}</b><span>${d}</span></div>`).join('')}</div>
+      <h3 class="ph">Quem pode mandar o quê</h3>
+      <div class="perms">${PERMS.map(([a,b])=>`<div><b>${a}</b><span>${b}</span></div>`).join('')}</div>
+    </div>
+  </section>`;
+  if(s.kind==='rules') return `
+  <section class="step wide" id="${s.id}" style="--c:${c}">
+    <div class="card">
+      <div class="meta"><span class="code" style="--c:#ff9a8c">REGRAS</span><span>Etapa 4 · segurança</span></div>
+      <h2>As 9 regras invioláveis</h2>
+      <p class="lede">Nenhum comando, usuário ou parâmetro quebra estas regras. Elas ficam nas camadas 0 e 1, em hardware separado, fora do alcance do modelo de linguagem, assim como o tronco encefálico funciona sem depender do córtex.</p>
+      <div class="rules">${RULES.map(([n,t,d,cs])=>`<article><span class="rn">${n}</span><b>${t}</b><p>${d}</p><div class="chips">${cs.map(chip).join('')}</div></article>`).join('')}</div>
+    </div>
+  </section>`;
+  if(s.kind==='arch'){ const cnt=[0,0,0];comps.forEach(x=>{const r=R[x.code];if(r)cnt[r.s]++});
+    const NTC_CODES=comps.filter(x=>x.group==='nt').map(x=>x.code),CEL_CODES=comps.filter(x=>x.group==='cel').map(x=>x.code);
+    return `
+  <section class="step wide" id="${s.id}" style="--c:${c}">
+    <div class="card">
+      <div class="meta"><span class="code" style="--c:#7ee8ff">ARQ</span><span>Etapa 3 · visão geral</span></div>
+      <h2>A mente do robô em 6 camadas</h2>
+      <p class="lede">Os ${TOTAL} módulos organizados do mais lento e flexível (deliberação) ao mais rápido e protegido (reflexos). Como no cérebro, as camadas de baixo continuam funcionando se as de cima falharem. Clique num módulo para ver a ficha dele.</p>
+      <div class="mat-sum">
+        <div><b style="color:#7ff0b2">${cnt[2]}</b><span><em class="mat m2">Existe hoje</em> tecnologia pronta, é questão de integrar</span></div>
+        <div><b style="color:#ffd56a">${cnt[1]}</b><span><em class="mat m1">Parcial</em> funciona em partes ou em condições controladas</span></div>
+        <div><b style="color:#ff9fd0">${cnt[0]}</b><span><em class="mat m0">Em pesquisa</em> ainda não existe uma solução confiável</span></div>
+      </div>
+      <div class="layers">${LAYERS.map(L=>`<div class="layer"><div class="ln">${L.n}</div><div class="lb"><div class="lt"><h3>${L.name}</h3><span>${L.lat} · ${L.hw}</span></div><div class="chips">${L.codes.map(chipR).join('')}</div></div></div>`).join('')}</div>
+      <div class="axis"><span>↑ mais lento, mais flexível</span><span>mais rápido, mais protegido ↓</span></div>
+      <div class="bus">
+        <div><h4>Barramento</h4><div class="chips">${chipR('WM-CC')}</div></div>
+        <div><h4>Parâmetros globais · neuroquímica</h4><div class="chips">${NTC_CODES.map(chipR).join('')}</div></div>
+        <div><h4>Unidades básicas</h4><div class="chips">${CEL_CODES.map(chipR).join('')}</div></div>
+      </div>
+      <h3 class="ph">Princípios de projeto tirados do cérebro</h3>
+      <div class="principles">${PRINCIPLES.map(([code,t,d])=>`<article><b>${t}</b><p>${d}</p>${chip(code)}</article>`).join('')}</div>
+    </div>
+  </section>`;}
+  if(s.kind==='road') return `
+  <section class="step wide" id="${s.id}" style="--c:${c}">
+    <div class="card">
+      <div class="meta"><span class="code" style="--c:#efeaf5">PLANO</span><span>Projeto Córtex</span></div>
+      <h2>As quatro etapas estão concluídas</h2>
+      <p class="lede">As quatro etapas usam os mesmos códigos de módulo, então o nome dado na Etapa 1 virou função, equivalente no robô e, agora, endereço de mensagens.</p>
+      <div class="road">
+        <article class="done"><div class="st"><span>ETAPA 1</span><em>concluída</em></div><h3>Nomenclatura</h3><p>Mapear e nomear cada componente, com localização, papel resumido e código de módulo.</p><ul><li>${TOTAL} componentes</li><li>9 grupos</li><li>Inventário em JSON</li></ul></article>
+        <article class="done"><div class="st"><span>ETAPA 2</span><em>concluída</em></div><h3>Funções</h3><p>O que cada componente faz em detalhe e como os módulos trabalham juntos.</p><ul><li>Entradas e saídas de cada módulo</li><li>${LINKS_TOTAL} conexões mapeadas</li><li>O que acontece quando falha</li><li>${CIRC.length} circuitos principais</li></ul></article>
+        <article class="done"><div class="st"><span>ETAPA 3</span><em>concluída</em></div><h3>Tradução para o robô</h3><p>O equivalente de cada módulo e circuito, com tecnologia e maturidade.</p><ul><li>Arquitetura em 6 camadas</li><li>${TOTAL} módulos e ${CIRC.length} circuitos traduzidos</li><li>8 parâmetros globais</li><li>6 princípios de projeto</li></ul></article>
+        <article class="done"><div class="st"><span>ETAPA 4</span><em>concluída</em></div><h3>Comandos e sinapses</h3><p>Como os módulos conversam e como o robô recebe ordens.</p><ul><li>Protocolo de mensagens entre módulos</li><li>Comandos, prioridades e permissões</li><li>Parâmetros globais com faixas e limites</li><li>Regras de segurança invioláveis</li></ul></article>
+      </div>
+      <p class="lede" style="margin-top:18px"><b style="color:var(--fg)">Próximo passo sugerido:</b> montar um protótipo em simulação (por exemplo, ROS 2 com um simulador físico) usando este inventário como especificação. Primeiro a camada 0 e as regras, depois percepção e controle motor, e só por último a deliberação.</p>
+      <p class="foot">Conteúdo educativo, simplificado para servir de base ao projeto. Valores anatômicos são médias de adultos e servem de referência, não de diagnóstico.</p>
+    </div>
+  </section>`;
+  n++;
+  const parts = s.parts ? `<ul class="parts">${PARTS.map(p=>`<li class="${p[2]?'glia':''}"><b>${p[0]}</b><span>${p[1]}</span></li>`).join('')}</ul>` : '';
+  const syn = s.syn ? `<canvas class="syn" id="synCanvas" aria-label="Animação de uma sinapse química: vesículas liberam neurotransmissores que cruzam a fenda e ativam receptores."></canvas>` : '';
+  const paths = s.paths ? `<div class="paths">${s.paths.map(p=>`<span>${p}</span>`).join('')}</div>` : '';
+  const note = s.note ? `<div class="note">${s.note}</div>` : '';
+  return `
+  <section class="step" id="${s.id}" style="--c:${c}">
+    <div class="ghost" aria-hidden="true">${s.ghost||''}</div>
+    <article class="card">
+      <div class="meta"><span class="code">${s.code}</span><span class="grp"><i></i>${G[s.group].name}</span><span class="idx">${String(n).padStart(2,'0')} / ${TOTAL}</span></div>
+      <h2>${s.name}</h2>
+      ${s.alt?`<p class="alt">${s.alt}</p>`:''}
+      <dl class="facts"><div><dt>Onde fica</dt><dd>${s.where}</dd></div><div class="role"><dt>Responsável por</dt><dd>${s.role}</dd></div></dl>
+      ${paths}${note}
+      ${stage4(s)}
+      ${stage3(s)}
+      ${parts}${syn}
+      ${stage2(s)}
+      <div class="pending"><span>Projeto Córtex · etapas 1 a 4</span><span>concluído</span></div>
+    </article>
+  </section>`;
+}).join('');
+stepsEl.innerHTML = html;
+stepsEl.addEventListener('click',e=>{const b=e.target.closest('.chip');if(b&&byCode[b.dataset.code]!=null)goTo(byCode[b.dataset.code])});
+const stepEls = S.map(s=>document.getElementById(s.id));
+const ghosts = stepEls.map(el=>el.querySelector('.ghost'));
+
+// Rail
+const groupsOrder = ['cmd','arq','ctx','wm','lim','die','bg','stem','oth','nt','cel','circ','end'];
+const rail = document.getElementById('rail');
+rail.innerHTML = groupsOrder.map(g=>{
+  const first = S.findIndex(s=>s.group===g && (g!=='end' || s.kind==='catalog'));
+  const label = g==='end' ? 'Catálogo e etapas' : G[g].name;
+  return `<button data-g="${g}" data-i="${first}" style="--c:${G[g].color}"><span>${label}</span><i></i></button>`;
+}).join('');
+rail.addEventListener('click',e=>{const b=e.target.closest('button');if(b)goTo(+b.dataset.i)});
+document.getElementById('stages').addEventListener('click',e=>{const b=e.target.closest('button');if(b)goTo(S.findIndex(s=>s.id===b.dataset.go))});
+
+// Catalog
+const catBody = document.getElementById('catBody');
+let lastG = null, rows='';
+S.forEach((s,i)=>{ if(s.kind&&s.kind!=='circuit') return;
+  if(s.group!==lastG){ lastG=s.group; rows+=`<tr class="gh" style="--c:${G[s.group].color}"><td colspan="6">${G[s.group].name}</td></tr>`; }
+  const con=s.kind==='circuit'?s.chain.map(c=>c[0]).join(' → '):(F[s.code]?F[s.code].c.join(' · '):'');
+  rows+=`<tr class="row" tabindex="0" data-i="${i}" style="--c:${colorOf(s)}"><td class="c">${s.code}</td><td class="n">${s.name}</td><td class="r">${(R[s.code]||RC[s.code]||{}).m||''}</td><td>${(()=>{const r=R[s.code]||RC[s.code];return r?`<em class="mat ${MAT[r.s].cls}">${MAT[r.s].label}</em>`:''})()}</td><td class="c">${C4[s.code]&&C4[s.code].p!=null?'P'+C4[s.code].p:(PARAMS.find(p=>p.code===s.code)?'global':'')}</td><td class="c" style="white-space:normal;color:var(--muted)">${con}</td></tr>`;
+});
+catBody.innerHTML = rows;
+catBody.addEventListener('click',e=>{const r=e.target.closest('tr.row');if(r)goTo(+r.dataset.i)});
+catBody.addEventListener('keydown',e=>{if(e.key==='Enter'){const r=e.target.closest('tr.row');if(r)goTo(+r.dataset.i)}});
+const strip = h => h.replace(/<[^>]+>/g,'');
+const robo=(r)=>r?{modulo:r.m,funcao:r.f,como_construir:r.t,maturidade:MAT[r.s].label,parametro_global:r.p||null,cuidado:r.k}:null;
+const cmdOf=code=>{const c=C4[code],pr=PARAMS.find(p=>p.code===code);return {prioridade:c&&c.p!=null?c.p:null,recebe:c?c.r:[],publica:c?c.o:[],parametro:pr?{nome:pr.k,padrao:pr.v,minimo:pr.min,maximo:pr.max,quem_altera:pr.who,regra:pr.rule,bloqueado:!!pr.lock}:null}};
+const inventory = {projeto:'Projeto Córtex',etapa:4,titulo:'Comandos e sinapses',total:TOTAL,
+  protocolo:{campos:['id','de','para','tipo','sinal','prioridade','dados','peso','ttl_ms','t'],tipos:SIGTYPES.map(t=>({tipo:t.k,nome:t.name,analogia:t.bio,descricao:t.d})),prioridades:PRIOS.map(([n,t,d])=>({nivel:n,nome:t,regra:d})),permissoes:PERMS.map(([quem,pode])=>({quem,pode}))},
+  regras:RULES.map(([codigo,titulo,texto,modulos])=>({codigo,titulo,texto,modulos})),
+  cenarios:Object.entries(SCEN).filter(([k,v])=>v.label).map(([k,v])=>({comando:v.label,resumo:v.sum,mensagens:v.msgs.map(m=>({t_ms:m[0],de:m[1],para:m[2],tipo:m[3],sinal:m[4],dados:JSON.parse(m[5].replace(/\{HORA\}/g,'15h42')),nota:m[6]||null}))})),
+  arquitetura:{camadas:LAYERS.map(L=>({camada:L.n,nome:L.name,latencia:L.lat,hardware:L.hw,modulos:L.codes})),barramento:['WM-CC'],parametros_globais:comps.filter(x=>x.group==='nt').map(x=>x.code),principios:PRINCIPLES.map(([codigo,titulo,texto])=>({titulo,texto,referencia:codigo}))},
+  componentes:comps.map(s=>{const f=F[s.code]||{};return {codigo:s.code,nome:s.name,grupo:G[s.group].name,tambem:s.alt?strip(s.alt):null,onde:strip(s.where),responsavel:strip(s.role),
+    funcao_detalhada:{descricao:f.d||null,entradas:f.i||[],saidas:f.o||[],conexoes:f.c||[],quando_falha:f.x||null},equivalente_robo:robo(R[s.code]),comandos:cmdOf(s.code)}}),
+  circuitos:CIRC.map(c=>({codigo:c.code,nome:c.name,para_que_serve:c.para,caminho:c.chain.map(([codigo,etapa])=>({codigo,etapa})),quando_falha:c.x,equivalente_robo:robo(RC[c.code]),mensagens:(CIRC_SIG[c.code]||[]).map((sg,i)=>({de:c.chain[i][0],para:c.chain[i+1][0],sinal:sg}))}))};
+const jsonTxt = JSON.stringify(inventory,null,2);
+const jsonEl = document.getElementById('json'); jsonEl.textContent = jsonTxt;
+const toast = document.getElementById('toast');
+document.getElementById('showJson').addEventListener('click',e=>{jsonEl.hidden=!jsonEl.hidden;e.currentTarget.setAttribute('aria-expanded',String(!jsonEl.hidden));e.currentTarget.textContent=jsonEl.hidden?'Ver JSON':'Ocultar JSON'});
+document.getElementById('copyJson').addEventListener('click',()=>{
+  const fallback=()=>{jsonEl.hidden=false;const r=document.createRange();r.selectNodeContents(jsonEl);const sel=getSelection();sel.removeAllRanges();sel.addRange(r);toast.textContent='Texto selecionado. Use Ctrl+C para copiar.';};
+  try{ navigator.clipboard.writeText(jsonTxt).then(()=>{toast.textContent='Inventário copiado.'},fallback);}catch(err){fallback()}
+});
+
+/* ---------- Console de comandos ---------- */
+const PV={};PARAMS.forEach(p=>PV[p.k]=p.v);
+const TYPEC={},TYPEN={};SIGTYPES.forEach(t=>{TYPEC[t.k]=t.c;TYPEN[t.k]=t.name});
+const TIPOJ={dados:'dados',exc:'excitatorio',inib:'inibitorio',mod:'modulador'};
+let sendMsg=null,runTok=0,consoleStarted=false,msgN=4200,supTimer=null;
+const logEl=document.getElementById('log'),lsum=document.getElementById('lsum'),lastMsg=document.getElementById('lastMsg'),presetsEl=document.getElementById('presets');
+const now=new Date(),HORA=String(now.getHours()).padStart(2,'0')+'h'+String(now.getMinutes()).padStart(2,'0');
+const norm=t=>t.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+function setParam(k,v){PV[k]=v;const i=document.getElementById('pm-'+k),o=document.getElementById('po-'+k);if(i)i.value=v;if(o){o.textContent=fmt(v);o.classList.add('flash');setTimeout(()=>o.classList.remove('flash'),500)}}
+function logLine(html,cls,color){const li=document.createElement('li');if(cls)li.className=cls;if(color)li.style.setProperty('--tc',color);li.innerHTML=html;const em=logEl.querySelector('.empty');if(em)em.remove();logEl.appendChild(li);logEl.scrollTop=logEl.scrollHeight}
+function prioOf(code){const c=C4[code];return c&&c.p!=null?c.p:(PSEUDO[code]?2:4)}
+function addMsg(m){
+  const dados=m[5].replace(/\{HORA\}/g,HORA);
+  logLine(`<time>+${m[0]} ms</time><div><span class="rt"><b>${m[1]}</b><i>→</i><b>${m[2]}</b><em>${TYPEN[m[3]]}</em></span><code>${m[4]} ${dados}</code>${m[6]?`<small>${m[6].replace(/\{HORA\}/g,HORA)}</small>`:''}</div>`,'',TYPEC[m[3]]);
+  let d;try{d=JSON.parse(dados)}catch(e){d={}}
+  lastMsg.textContent=JSON.stringify({id:'m-'+String(++msgN).padStart(6,'0'),de:m[1],para:m[2],tipo:TIPOJ[m[3]],sinal:m[4],prioridade:prioOf(m[2]),dados:d,peso:0.8,ttl_ms:m[3]==='inib'?2000:500,t:'+'+m[0]+' ms'},null,2);
+}
+function runScenario(key,typed){
+  const sc=SCEN[key];if(!sc)return;const tok=++runTok;consoleStarted=true;
+  logEl.innerHTML='';lsum.textContent='';
+  [...presetsEl.children].forEach(b=>b.classList.toggle('on',b.dataset.sc===key));
+  logLine(`<time>você</time><div><small>“${(typed||sc.label).replace(/[<>&]/g,'')}”</small></div>`,'you');
+  let disp=250,prevT=0;
+  sc.msgs.forEach((m,i)=>{
+    if(i>0)disp+=Math.min(1500,Math.max(reduced?120:420,(m[0]-prevT)*1.2));prevT=m[0];
+    setTimeout(()=>{if(tok!==runTok)return;addMsg(m);if(sendMsg)sendMsg(m[1],m[2],TYPEC[m[3]]);if(m[7])for(const k in m[7])setParam(k,m[7][k]);if(i===sc.msgs.length-1)lsum.textContent=sc.sum},disp);
+  });
+}
+presetsEl.addEventListener('click',e=>{const b=e.target.closest('button');if(b)runScenario(b.dataset.sc)});
+document.getElementById('cmdForm').addEventListener('submit',e=>{e.preventDefault();const inp=document.getElementById('cmdIn'),t=inp.value.trim();if(!t)return;
+  const n=norm(t);let key='desconhecido';for(const k in SCEN){if(SCEN[k].kw.some(w=>n.includes(norm(w)))){key=k;break}}
+  runScenario(key,t);inp.value=''});
+document.getElementById('params').addEventListener('input',e=>{const i=e.target;if(!i.dataset.k)return;const k=i.dataset.k;PV[k]=+i.value;document.getElementById('po-'+k).textContent=fmt(+i.value)});
+document.getElementById('params').addEventListener('change',e=>{const i=e.target;if(!i.dataset.k)return;const k=i.dataset.k,p=PARAMS.find(x=>x.k===k);
+  logLine(`<time>você</time><div><span class="rt"><b>Dono</b><i>→</i><b>${p.code}</b><em>${TYPEN.mod}</em></span><code>${k} ${fmt(+i.value)}</code><small>${p.rule}</small></div>`,'',TYPEC.mod);
+  if(k==='supressao'&&+i.value>0){clearTimeout(supTimer);supTimer=setTimeout(()=>{setParam('supressao',0);logLine(`<time>+60 s</time><div><span class="rt"><b>NT-END</b><em>${TYPEN.mod}</em></span><code>supressao 0</code><small>A supressão expirou sozinha (R7)</small></div>`,'',TYPEC.mod)},60000)}});
+
+function goTo(i){
+  const el = stepEls[i]; if(!el) return;
+  const top = el.offsetTop + el.offsetHeight/2 - innerHeight/2;
+  window.scrollTo({top:Math.max(0,top),behavior:reduced?'auto':'smooth'});
+}
+const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/* ================================================================
+   RUÍDO (simplex 3D)
+   ================================================================ */
+function rng(seed){return function(){seed|=0;seed=seed+0x6D2B79F5|0;let t=Math.imul(seed^seed>>>15,1|seed);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+function makeNoise(seed){
+  const r=rng(seed),p=new Uint8Array(256);for(let i=0;i<256;i++)p[i]=i;
+  for(let i=255;i>0;i--){const j=Math.floor(r()*(i+1));const t=p[i];p[i]=p[j];p[j]=t}
+  const perm=new Uint8Array(512),pm=new Uint8Array(512);for(let i=0;i<512;i++){perm[i]=p[i&255];pm[i]=perm[i]%12}
+  const g3=[1,1,0,-1,1,0,1,-1,0,-1,-1,0,1,0,1,-1,0,1,1,0,-1,-1,0,-1,0,1,1,0,-1,1,0,1,-1,0,-1,-1];
+  const F3=1/3,G3=1/6;
+  return function(x,y,z){
+    let n0=0,n1=0,n2=0,n3=0;const s=(x+y+z)*F3;const i=Math.floor(x+s),j=Math.floor(y+s),k=Math.floor(z+s);
+    const t=(i+j+k)*G3;const x0=x-(i-t),y0=y-(j-t),z0=z-(k-t);let i1,j1,k1,i2,j2,k2;
+    if(x0>=y0){if(y0>=z0){i1=1;j1=0;k1=0;i2=1;j2=1;k2=0}else if(x0>=z0){i1=1;j1=0;k1=0;i2=1;j2=0;k2=1}else{i1=0;j1=0;k1=1;i2=1;j2=0;k2=1}}
+    else{if(y0<z0){i1=0;j1=0;k1=1;i2=0;j2=1;k2=1}else if(x0<z0){i1=0;j1=1;k1=0;i2=0;j2=1;k2=1}else{i1=0;j1=1;k1=0;i2=1;j2=1;k2=0}}
+    const x1=x0-i1+G3,y1=y0-j1+G3,z1=z0-k1+G3,x2=x0-i2+2*G3,y2=y0-j2+2*G3,z2=z0-k2+2*G3,x3=x0-1+3*G3,y3=y0-1+3*G3,z3=z0-1+3*G3;
+    const ii=i&255,jj=j&255,kk=k&255;let q;
+    let t0=.6-x0*x0-y0*y0-z0*z0;if(t0>0){q=pm[ii+perm[jj+perm[kk]]]*3;t0*=t0;n0=t0*t0*(g3[q]*x0+g3[q+1]*y0+g3[q+2]*z0)}
+    let t1=.6-x1*x1-y1*y1-z1*z1;if(t1>0){q=pm[ii+i1+perm[jj+j1+perm[kk+k1]]]*3;t1*=t1;n1=t1*t1*(g3[q]*x1+g3[q+1]*y1+g3[q+2]*z1)}
+    let t2=.6-x2*x2-y2*y2-z2*z2;if(t2>0){q=pm[ii+i2+perm[jj+j2+perm[kk+k2]]]*3;t2*=t2;n2=t2*t2*(g3[q]*x2+g3[q+1]*y2+g3[q+2]*z2)}
+    let t3=.6-x3*x3-y3*y3-z3*z3;if(t3>0){q=pm[ii+1+perm[jj+1+perm[kk+1]]]*3;t3*=t3;n3=t3*t3*(g3[q]*x3+g3[q+1]*y3+g3[q+2]*z3)}
+    return 32*(n0+n1+n2+n3);
+  };
+}
+const sm=(a,b,x)=>{let t=(x-a)/(b-a);t=t<0?0:t>1?1:t;return t*t*(3-2*t)};
+
+/* ================================================================
+   THREE
+   ================================================================ */
+if(!window.THREE){ document.getElementById('gl').style.display='none'; return; }
+const canvas=document.getElementById('gl');
+const renderer=new THREE.WebGLRenderer({canvas,antialias:true,alpha:true,powerPreference:'high-performance'});
+renderer.setClearColor(0x000000,0);
+const scene=new THREE.Scene();
+const camera=new THREE.PerspectiveCamera(34,1,0.05,60);
+scene.add(camera);
+scene.add(new THREE.AmbientLight(0x6a6090,0.55));
+scene.add(new THREE.HemisphereLight(0xcfd8ff,0x2a1420,0.55));
+const key=new THREE.DirectionalLight(0xfff1ec,1.05);key.position.set(2,3,2);camera.add(key);
+const rim=new THREE.DirectionalLight(0x8aa0ff,0.55);rim.position.set(-3,-1,-2);scene.add(rim);
+
+const brain=new THREE.Group();scene.add(brain);
+const CENTER=new THREE.Vector3(0,0.02,-0.05);
+
+/* ---------- Hemisférios ---------- */
+const cortexMat=new THREE.ShaderMaterial({
+  transparent:true,side:THREE.DoubleSide,depthWrite:true,
+  uniforms:{
+    uHiCol:{value:new THREE.Color('#6f9bff')},uHi:{value:0},uTint:{value:0},uRobot:{value:0},
+    uXray:{value:0},uDim:{value:0},uTime:{value:0}
+  },
+  vertexShader:`
+    attribute float aMatch; attribute vec3 aLCol; attribute float aCurv;
+    varying vec3 vN; varying vec3 vV; varying float vMatch; varying vec3 vLCol; varying float vCurv; varying vec3 vObj;
+    void main(){
+      vec4 mv=modelViewMatrix*vec4(position,1.0);
+      vV=-mv.xyz; vN=normalize(normalMatrix*normal);
+      vMatch=aMatch; vLCol=aLCol; vCurv=aCurv; vObj=position;
+      gl_Position=projectionMatrix*mv;
+    }`,
+  fragmentShader:`
+    uniform vec3 uHiCol;
+    uniform float uHi,uTint,uXray,uDim,uTime,uRobot;
+    varying vec3 vN; varying vec3 vV; varying float vMatch; varying vec3 vLCol; varying float vCurv; varying vec3 vObj;
+    void main(){
+      vec3 N=normalize(vN); vec3 V=normalize(vV);
+      if(!gl_FrontFacing) N=-N;
+      vec3 L1=normalize(vec3(0.45,0.8,0.55)); vec3 L2=normalize(vec3(-0.7,-0.15,0.35));
+      float d1=max(dot(N,L1),0.0); float d2=max(dot(N,L2),0.0);
+      float ao=smoothstep(-0.05,0.012,vCurv);
+      vec3 tissue=mix(vec3(0.34,0.16,0.21),vec3(0.93,0.73,0.70),ao);
+      tissue=mix(tissue,vLCol*mix(0.45,1.05,ao),uTint);
+      vec3 col=tissue*(0.2+0.85*d1+0.32*d2);
+      vec3 H=normalize(L1+V);
+      col+=vec3(1.0,0.92,0.92)*pow(max(dot(N,H),0.0),42.0)*0.3*ao;
+      if(uRobot>0.001){
+        vec3 rb=vec3(0.075,0.09,0.14)*(0.35+0.95*d1+0.35*d2);
+        rb+=vec3(0.55,0.8,1.0)*pow(max(dot(N,H),0.0),28.0)*0.4;
+        vec3 q=abs(fract(vObj*15.0)-0.5);
+        float dm=0.5-max(max(q.x,q.y),q.z);
+        rb+=vec3(0.3,0.75,1.0)*(1.0-smoothstep(0.0,0.035,dm))*0.22;
+        rb+=vec3(0.2,0.8,1.0)*(1.0-ao)*0.5;
+        float scan=exp(-pow((vObj.y-(mod(uTime*0.35,1.7)-0.75))/0.018,2.0));
+        rb+=vec3(0.5,0.95,1.0)*scan*0.5;
+        rb=mix(rb,rb+vLCol*0.28,uTint);
+        col=mix(col,rb,uRobot);
+      }
+      float fr=pow(1.0-max(dot(N,V),0.0),2.4);
+      float m = smoothstep(0.08,0.75,vMatch)*uHi;
+      col*=mix(1.0,0.42,uDim*(1.0-m));
+      float pulse=0.5+0.5*sin(uTime*2.6-vObj.z*7.0+vObj.y*3.0);
+      col=mix(col,uHiCol*(0.3+0.85*d1+0.3*d2)*mix(0.55,1.15,ao),m*0.74);
+      col+=uHiCol*m*(0.1+0.2*pulse)*ao;
+      col+=fr*mix(vec3(0.3,0.34,0.8),uHiCol,m)*(0.3+0.6*m);
+      vec3 xcol=mix(vec3(0.35,0.42,0.9),vec3(0.8,0.85,1.0),fr)*(0.25+fr);
+      col=mix(col,xcol,uXray*0.85);
+      float a=mix(1.0,0.03+fr*0.42,uXray);
+      gl_FragColor=vec4(col,a);
+    }`
+});
+
+const areaCentroid={}, lobeCentroid={};
+const surfNodes=[];
+function buildHemisphere(side){
+  const W=300,H=220;
+  const g=new THREE.SphereGeometry(1,W,H);
+  const P=g.attributes.position,count=P.count;
+  const U=new Float32Array(count*3);
+  for(let i=0;i<count;i++){
+    const sx=P.getX(i),sy=P.getY(i),sz=P.getZ(i);
+    U[i*3]=sx;U[i*3+1]=sy;U[i*3+2]=sz;
+    const lat= sx>0 ? sx*0.66 : sx*0.235;
+    const taper=(1-0.14*Math.max(0,sz))*(1-0.07*Math.max(0,-sz)*Math.max(0,-sz));
+    const x=0.25+lat*taper;
+    let y;
+    if(sy>=0) y=sy*0.70*(1-0.12*Math.max(0,sz)*Math.max(0,sz))*(1-0.06*Math.max(0,-sz));
+    else{
+      const tm=Math.exp(-Math.pow((sz-0.12)/0.4,2))*sm(-0.25,0.5,sx);
+      const om=sm(-0.35,-0.8,sz), fm=sm(0.45,0.95,sz);
+      y=sy*(0.34+0.22*tm-0.13*om-0.08*fm*(1-tm));
+    }
+    const z=sz*1.05;
+    P.setXYZ(i,x*side,y,z);
+  }
+  if(side<0){const ix=g.index.array;for(let i=0;i<ix.length;i+=3){const t=ix[i+1];ix[i+1]=ix[i+2];ix[i+2]=t}}
+  g.computeVertexNormals();
+  const N=g.attributes.normal;
+  const lobe=new Float32Array(count),area=new Float32Array(count),curv=new Float32Array(count);
+  const nz=makeNoise(side>0?11:29);
+  const acc={};
+  for(let i=0;i<count;i++){
+    const sx=U[i*3],sy=U[i*3+1],sz=U[i*3+2];
+    const px=P.getX(i),py=P.getY(i),pz=P.getZ(i);
+    const wx=nz(px*1.7+3.1,py*1.7,pz*1.7)*0.32,wy=nz(px*1.7,py*1.7+7.3,pz*1.7)*0.32,wz=nz(px*1.7,py*1.7,pz*1.7+1.9)*0.32;
+    const f=4.4;
+    const g1=nz((px+wx)*f,(py+wy)*f,(pz+wz)*f);
+    const g2=nz(px*12+5,py*12,pz*12);
+    let d=0.036*Math.pow(Math.abs(g1),0.5)-0.025+0.0045*g2;
+    const medial=sm(-0.2,-0.75,sx); d*=1-0.45*medial;
+    const ys=-0.05+(0.35-sz)*0.35;
+    const inSylZ=sm(-0.64,-0.42,sz)*sm(0.56,0.4,sz);
+    const lateral=sm(0.0,0.35,sx);
+    const syl=Math.exp(-Math.pow((sy-ys)/0.045,2))*inSylZ*lateral;
+    const zc=0.02+(1-sy)*0.12;
+    const aboveSyl=sm(ys-0.02,ys+0.08,sy);
+    const cen=Math.exp(-Math.pow((sz-zc)/0.028,2))*aboveSyl*sm(-0.85,-0.45,sx);
+    const zpo=-0.6-0.1*sy;
+    const po=Math.exp(-Math.pow((sz-zpo)/0.03,2))*(0.4+0.6*medial)*sm(-0.2,0.2,sy);
+    const lf=Math.exp(-Math.pow((sx+1)/0.05,2));
+    d-=0.08*syl+0.042*cen+0.03*po;
+    curv[i]=d-0.02*lf;
+    P.setXYZ(i,px+N.getX(i)*d,py+N.getY(i)*d,pz+N.getZ(i)*d);
+    // regiões
+    const temporal= sy<ys && sz>-0.64 && sz<0.5 && (sx>-0.2 || sy<-0.55);
+    const occ= sz < -0.62-0.08*sy;
+    let L,A=0;
+    if(occ)L=4;else if(temporal)L=3;else if(sz>zc)L=1;else L=2;
+    if(L===1){ if(sz<zc+0.11 && sy>ys+0.03) A=2; else if(sz>zc+0.34) A=1;
+      if(side>0 && sx>0.3 && Math.pow((sz-0.4)/0.13,2)+Math.pow((sy-ys-0.11)/0.12,2)<1) A=3; }
+    if(L===2){ if(sz>zc-0.11) A=4; }
+    if(L===3){ if(side>0 && sx>0.2 && Math.pow((sz+0.4)/0.19,2)+Math.pow((sy-ys+0.1)/0.14,2)<1) A=5; if(sx>0.25 && Math.pow((sz-0.02)/0.2,2)+Math.pow((sy-ys+0.06)/0.08,2)<1) A=6; }
+    if(L===4){ if(sz<-0.88 || sx<-0.35) A=7; }
+    lobe[i]=L;area[i]=A;
+    if(side>0){
+      const kL='L'+L; (acc[kL]=acc[kL]||[0,0,0,0]);acc[kL][0]+=px;acc[kL][1]+=py;acc[kL][2]+=pz;acc[kL][3]++;
+      if(A){const kA='A'+A;(acc[kA]=acc[kA]||[0,0,0,0]);acc[kA][0]+=px;acc[kA][1]+=py;acc[kA][2]+=pz;acc[kA][3]++;}
+    }
+  }
+  const lcol=new Float32Array(count*3);const lc={};for(const k in LOBE)lc[k]=new THREE.Color(LOBE[k]);
+  for(let i=0;i<count;i++){const c=lc[lobe[i]];lcol[i*3]=c.r;lcol[i*3+1]=c.g;lcol[i*3+2]=c.b}
+  blurAttr(g.index.array,lcol,3,3);
+  g.setAttribute('aLCol',new THREE.BufferAttribute(lcol,3));
+  g.setAttribute('aMatch',new THREE.BufferAttribute(new Float32Array(count),1));
+  g.userData.lobe=lobe;g.userData.area=area;
+  g.setAttribute('aCurv',new THREE.BufferAttribute(curv,1));
+  g.computeVertexNormals();
+  g.computeBoundingSphere();
+  if(side>0){
+    const hc=new THREE.Vector3(0.25,0.08,0);
+    for(const k in acc){const a=acc[k];const v=new THREE.Vector3(a[0]/a[3],a[1]/a[3],a[2]/a[3]);
+      const out=v.clone().sub(hc).normalize();v.addScaledVector(out,0.14);
+      if(k[0]==='L')lobeCentroid[k.slice(1)]=v;else areaCentroid[k.slice(1)]=v;}
+  }
+  // nós de superfície para a rede sináptica
+  const r=rng(side>0?5:9);const P2=g.attributes.position,N2=g.attributes.normal;
+  for(let k=0;k<170;k++){const i=Math.floor(r()*count);
+    if(U[i*3]<-0.7)continue;
+    const p=new THREE.Vector3(P2.getX(i),P2.getY(i),P2.getZ(i)),nn=new THREE.Vector3(N2.getX(i),N2.getY(i),N2.getZ(i));
+    surfNodes.push({p:p.clone().addScaledVector(nn,0.018),q:p.clone().addScaledVector(nn,-0.05),n:nn,side,lobe:lobe[i]});}
+  const m=new THREE.Mesh(g,cortexMat);m.renderOrder=10;m.userData.cortex=true;
+  return m;
+}
+function blurAttr(idx,arr,dim,iters){
+  const n=arr.length/dim,sum=new Float32Array(arr.length),cnt=new Float32Array(n);
+  for(let it=0;it<iters;it++){sum.fill(0);cnt.fill(0);
+    for(let t=0;t<idx.length;t+=3){const a=idx[t],b=idx[t+1],c=idx[t+2];
+      for(let d=0;d<dim;d++){const s=arr[a*dim+d]+arr[b*dim+d]+arr[c*dim+d];sum[a*dim+d]+=s;sum[b*dim+d]+=s;sum[c*dim+d]+=s}
+      cnt[a]+=3;cnt[b]+=3;cnt[c]+=3}
+    for(let i=0;i<n;i++)if(cnt[i])for(let d=0;d<dim;d++)arr[i*dim+d]=sum[i*dim+d]/cnt[i]}
+}
+function setMatch(f){
+  for(const h of hemis){const g=h.geometry,M=g.attributes.aMatch.array,L=g.userData.lobe,A=g.userData.area;
+    for(let i=0;i<M.length;i++)M[i]=f.area?(A[i]===f.area?1:0):(f.lobe?(L[i]===f.lobe?1:0):0);
+    if(f.area||f.lobe)blurAttr(g.index.array,M,1,3);
+    g.attributes.aMatch.needsUpdate=true}
+}
+const hemis=[buildHemisphere(1),buildHemisphere(-1)];
+hemis.forEach(h=>brain.add(h));
+
+/* ---------- Estruturas ---------- */
+const TISSUE=new THREE.Color('#d9a49d');
+const structs=[];      // {mesh,key,color,external}
+const byKey={};
+function addStruct(geo,key,color,opts={}){
+  const vc=!!opts.vc;
+  const mat=new THREE.MeshStandardMaterial({color:new THREE.Color(color),roughness:0.55,metalness:0.02,transparent:true,opacity:1,vertexColors:vc,emissive:new THREE.Color(0)});
+  const m=new THREE.Mesh(geo,mat);
+  if(opts.pos)m.position.set(...opts.pos);
+  if(opts.rot)m.rotation.set(...opts.rot);
+  m.renderOrder=opts.external?5:2;
+  (opts.parent||brain).add(m);
+  const o={mesh:m,key,color:new THREE.Color(color),external:!!opts.external,tint:opts.tint!=null?opts.tint:(opts.external?1:0),alwaysDim:!!opts.alwaysDim};
+  structs.push(o);(byKey[key]=byKey[key]||[]).push(o);
+  return m;
+}
+const ell=(r,seg=[40,28])=>{const g=new THREE.SphereGeometry(1,seg[0],seg[1]);g.scale(r[0],r[1],r[2]);return g};
+function taperTube(pts,r0,r1,seg=90,rad=18){
+  const c=new THREE.CatmullRomCurve3(pts.map(p=>new THREE.Vector3(...p)));
+  const g=new THREE.TubeGeometry(c,seg,1,rad,false);
+  const P=g.attributes.position;
+  for(let j=0;j<=seg;j++){const u=j/seg;const cp=c.getPointAt(u);const rr=r0+(r1-r0)*Math.pow(u,0.8);const cap=Math.min(1,Math.sin(Math.min(u,1-u)*Math.PI*0.5*14)+0.001);
+    for(let k=0;k<=rad;k++){const i=j*(rad+1)+k;const v=new THREE.Vector3(P.getX(i),P.getY(i),P.getZ(i)).sub(cp).multiplyScalar(rr*Math.max(0.35,cap));P.setXYZ(i,cp.x+v.x,cp.y+v.y,cp.z+v.z)}}
+  g.computeVertexNormals();return g;
+}
+const C={lim:G.lim.color,die:G.die.color,gl:'#ffa15c',bg:G.bg.color,stem:'#5ec4ff',cb:G.stem.color,wm:G.wm.color,ins:'#ff9f7a',ob:'#c7f06a',vent:'#58a6ff',da:NTC.DA,s5:NTC.S5,ne:NTC.NE,ach:NTC.ACH,end:NTC.END};
+
+// Corpo caloso
+{const g=taperTube([[0,-0.07,0.29],[0,0.03,0.41],[0,0.16,0.37],[0,0.23,0.14],[0,0.24,-0.1],[0,0.2,-0.3],[0,0.09,-0.41],[0,0.0,-0.36]],0.034,0.05,120,16);g.scale(3.4,1,1);addStruct(g,'cc',C.wm);}
+for(const s of [1,-1]){
+  addStruct(ell([0.022,0.11,0.19]),'ins',C.ins,{pos:[0.5*s,-0.03,0.1],rot:[0.15,0,0.25*s]});
+  addStruct(taperTube([[0.055*s,-0.12,0.36],[0.055*s,0.08,0.52],[0.06*s,0.31,0.36],[0.06*s,0.38,0.06],[0.06*s,0.35,-0.2],[0.06*s,0.22,-0.46],[0.06*s,0.0,-0.47]],0.05,0.042,120,14),'cing',C.lim);
+  addStruct(taperTube([[0.3*s,-0.25,0.12],[0.31*s,-0.21,0.0],[0.29*s,-0.16,-0.14],[0.24*s,-0.08,-0.27],[0.18*s,0.0,-0.31]],0.052,0.02),'hipp',C.lim);
+  addStruct(ell([0.05,0.045,0.056]),'amy',C.lim,{pos:[0.31*s,-0.25,0.2]});
+  addStruct(ell([0.085,0.07,0.14]),'thal',C.die,{pos:[0.095*s,0.0,-0.06]});
+  addStruct(taperTube([[0.14*s,0.05,0.3],[0.17*s,0.15,0.16],[0.19*s,0.17,-0.05],[0.23*s,0.12,-0.25],[0.29*s,0.0,-0.32],[0.32*s,-0.1,-0.2],[0.33*s,-0.14,-0.03]],0.072,0.014),'caud',C.bg);
+  addStruct(ell([0.055,0.1,0.17]),'put',C.bg,{pos:[0.29*s,-0.02,0.07]});
+  addStruct(ell([0.034,0.07,0.1]),'gp',C.bg,{pos:[0.215*s,-0.04,0.03]});
+  addStruct(ell([0.04,0.035,0.045]),'nac',C.bg,{pos:[0.09*s,-0.1,0.26]});
+  addStruct(ell([0.06,0.018,0.042]),'sn',C.da,{pos:[0.07*s,-0.26,-0.11],rot:[0,0.4*s,0]});
+  addStruct(ell([0.018,0.018,0.018]),'lc',C.ne,{pos:[0.04*s,-0.43,-0.25]});
+  addStruct(ell([0.03,0.028,0.035]),'bf',C.ach,{pos:[0.12*s,-0.16,0.17]});
+  addStruct(ell([0.03,0.022,0.1]),'ob',C.ob,{pos:[0.07*s,-0.2,0.6],external:true,tint:0});
+  addStruct(taperTube([[0.07*s,-0.21,0.52],[0.1*s,-0.22,0.38],[0.15*s,-0.22,0.25]],0.012,0.009,30,8),'ob',C.ob,{external:true,tint:0});
+  addStruct(taperTube([[0.07*s,0.05,0.31],[0.09*s,0.14,0.15],[0.1*s,0.16,-0.1],[0.13*s,0.11,-0.3],[0.2*s,-0.02,-0.37],[0.27*s,-0.12,-0.22],[0.3*s,-0.16,-0.02]],0.045,0.022),'vent',C.vent);
+}
+addStruct(ell([0.05,0.045,0.07]),'hyp',C.die,{pos:[0,-0.13,0.08]});
+addStruct(ell([0.042,0.036,0.042]),'pit',C.gl,{pos:[0,-0.34,0.15],external:true,tint:0});
+addStruct(taperTube([[0,-0.17,0.1],[0,-0.25,0.13],[0,-0.31,0.15]],0.013,0.011,20,8),'pit',C.gl,{external:true,tint:0});
+addStruct(ell([0.022,0.02,0.036]),'pin',C.gl,{pos:[0,0.03,-0.25]});
+addStruct(ell([0.03,0.02,0.03]),'vta',C.da,{pos:[0,-0.27,-0.06]});
+addStruct(ell([0.012,0.12,0.03]),'raphe',C.s5,{pos:[0,-0.45,-0.21]});
+addStruct(ell([0.035,0.05,0.04]),'pag',C.end,{pos:[0,-0.25,-0.2]});
+addStruct(ell([0.012,0.085,0.12]),'vent',C.vent,{pos:[0,-0.06,-0.02]});
+addStruct(ell([0.06,0.02,0.05]),'vent',C.vent,{pos:[0,-0.44,-0.3],rot:[0.5,0,0]});
+
+// Tronco encefálico
+const stem=new THREE.Group();stem.position.set(0,-0.24,-0.16);stem.rotation.x=0.2;brain.add(stem);
+const lathe=(pts,seg=48)=>new THREE.LatheGeometry(pts.map(p=>new THREE.Vector2(p[0],p[1])),seg);
+addStruct(lathe([[0.001,0.06],[0.08,0.06],[0.12,0.03],[0.13,-0.05],[0.125,-0.12],[0.001,-0.12]]),'mb',C.stem,{parent:stem,external:true});
+{const g=lathe([[0.001,-0.09],[0.12,-0.1],[0.165,-0.16],[0.172,-0.22],[0.15,-0.29],[0.1,-0.32],[0.001,-0.32]]);g.scale(1,1,1.12);g.translate(0,0,0.035);addStruct(g,'pons',C.stem,{parent:stem,external:true});}
+addStruct(lathe([[0.001,-0.3],[0.105,-0.31],[0.11,-0.4],[0.095,-0.5],[0.075,-0.6],[0.001,-0.6]]),'med',C.stem,{parent:stem,external:true});
+addStruct(lathe([[0.001,-0.58],[0.066,-0.58],[0.063,-0.9],[0.058,-1.25],[0.03,-1.3],[0.001,-1.3]]),'sc','#8fb8ff',{parent:stem,external:true});
+
+// Cerebelo
+{
+  const g=new THREE.SphereGeometry(1,220,160);const P=g.attributes.position,cnt=P.count;const nz=makeNoise(77);const col=new Float32Array(cnt*3);
+  for(let i=0;i<cnt;i++){
+    let x=P.getX(i),y=P.getY(i),z=P.getZ(i);
+    const ang=Math.atan2(y,-z);
+    const fol=Math.pow(0.5+0.5*Math.sin(ang*30+nz(x*2.2,y*2.2,z*2.2)*2.4+x*1.2),3);
+    const verm=Math.exp(-(x*x)/0.015)*0.1*(z<0?1:0.2);
+    const rr=1-0.045*fol-verm;
+    x*=0.6*rr;y*=(y>0?0.23:0.29)*rr;z*=0.34*rr;
+    const notch=Math.exp(-(x*x)/0.02)*Math.max(0,z/0.34)*0.14;z-=notch;
+    P.setXYZ(i,x,y,z);
+    const c=0.42+0.58*(1-fol);col[i*3]=col[i*3+1]=col[i*3+2]=c;
+  }
+  g.setAttribute('color',new THREE.BufferAttribute(col,3));g.computeVertexNormals();
+  addStruct(g,'cb',G.stem.color,{pos:[0,-0.43,-0.65],external:true,vc:true});
+}
+scene.updateMatrixWorld(true);
+
+// Âncoras
+const anchors={};
+function meshCenter(m){m.geometry.computeBoundingBox();const c=new THREE.Vector3();m.geometry.boundingBox.getCenter(c);return c.applyMatrix4(m.matrixWorld)}
+for(const k in byKey){anchors[k]={center:meshCenter(byKey[k][0].mesh)};}
+function randomOn(key){
+  const list=byKey[key];const o=list[Math.floor(Math.random()*list.length)];const P=o.mesh.geometry.attributes.position;
+  const i=Math.floor(Math.random()*P.count);return new THREE.Vector3(P.getX(i),P.getY(i),P.getZ(i)).applyMatrix4(o.mesh.matrixWorld).lerp(meshCenter(o.mesh),0.35);
+}
+function sectionAnchor(s){
+  if(s.cam&&s.cam.t&&s.f&&(s.f.cortex||s.f.none||(s.f.s&&!s.f.s.length)))return new THREE.Vector3(...s.cam.t);
+  if(s.f&&s.f.lobe)return lobeCentroid[s.f.lobe].clone();
+  if(s.f&&s.f.area)return areaCentroid[s.f.area].clone();
+  if(s.f&&s.f.s&&s.f.s.length)return anchors[s.f.s[0]].center.clone();
+  return new THREE.Vector3(0,0,0);
+}
+S.forEach(s=>{
+  s._anchor=sectionAnchor(s);
+  const t=s.cam.t?new THREE.Vector3(...s.cam.t):s._anchor.clone();
+  if(s.f&&(s.f.lobe||s.f.area))t.lerp(new THREE.Vector3(0,0,0),0.35);
+  s._t=t;s._d=new THREE.Vector3(...s.cam.d).normalize();s._r=s.cam.r;
+});
+
+/* ---------- Rede sináptica (linhas) ---------- */
+const edges=[];
+for(let i=0;i<surfNodes.length;i++){
+  const a=surfNodes[i];const near=[];
+  for(let j=0;j<surfNodes.length;j++){if(i===j)continue;const b=surfNodes[j];if(b.side!==a.side)continue;const d=a.p.distanceTo(b.p);if(d<0.34)near.push([d,j])}
+  near.sort((x,y)=>x[0]-y[0]);near.slice(0,3).forEach(([d,j])=>{if(j>i)edges.push([i,j,0])});
+}
+const r0=rng(3);
+for(let k=0;k<70;k++){const i=Math.floor(r0()*surfNodes.length),j=Math.floor(r0()*surfNodes.length);if(i!==j&&surfNodes[i].p.distanceTo(surfNodes[j].p)>0.8)edges.push([i,j,1])}
+function ctrl(a,c,lift){const m=a.clone().add(c).multiplyScalar(0.5);const d=m.clone().sub(CENTER);const L=d.length()||1;return m.add(d.multiplyScalar(lift/L))}
+edges.forEach(e=>{const a=surfNodes[e[0]].p,c=surfNodes[e[1]].p;e.push(e[2]?ctrl(surfNodes[e[0]].q,surfNodes[e[1]].q,-0.35):ctrl(a,c,0.07))});
+{
+  const seg=10,arr=new Float32Array(edges.length*seg*6);let o=0;const v=new THREE.Vector3(),w=new THREE.Vector3();
+  edges.forEach(e=>{const a=e[2]?surfNodes[e[0]].q:surfNodes[e[0]].p,c=e[2]?surfNodes[e[1]].q:surfNodes[e[1]].p,b=e[3];
+    for(let s=0;s<seg;s++){bez(v,a,b,c,s/seg);bez(w,a,b,c,(s+1)/seg);arr[o++]=v.x;arr[o++]=v.y;arr[o++]=v.z;arr[o++]=w.x;arr[o++]=w.y;arr[o++]=w.z}});
+  const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.BufferAttribute(arr,3));
+  var netLines=new THREE.LineSegments(g,new THREE.LineBasicMaterial({color:0x8fe9ff,transparent:true,opacity:0,blending:THREE.AdditiveBlending,depthWrite:false}));
+  netLines.renderOrder=12;brain.add(netLines);
+  const ng=new THREE.BufferGeometry();const np=new Float32Array(surfNodes.length*3);surfNodes.forEach((s,i)=>{np[i*3]=s.p.x;np[i*3+1]=s.p.y;np[i*3+2]=s.p.z});
+  ng.setAttribute('position',new THREE.BufferAttribute(np,3));
+  var nodePts=new THREE.Points(ng,new THREE.PointsMaterial({color:0xcff6ff,size:0.022,transparent:true,opacity:0,blending:THREE.AdditiveBlending,depthWrite:false}));
+  nodePts.renderOrder=12;brain.add(nodePts);
+}
+function bez(out,a,b,c,t){const u=1-t;out.set(u*u*a.x+2*u*t*b.x+t*t*c.x,u*u*a.y+2*u*t*b.y+t*t*c.y,u*u*a.z+2*u*t*b.z+t*t*c.z);return out}
+
+/* ---------- Pulsos (impulsos e neurotransmissores) ---------- */
+const MAXP=520,TR=6;
+const pPos=new Float32Array(MAXP*TR*3),pCol=new Float32Array(MAXP*TR*3),pSize=new Float32Array(MAXP*TR);
+const pg=new THREE.BufferGeometry();
+pg.setAttribute('position',new THREE.BufferAttribute(pPos,3));
+pg.setAttribute('aCol',new THREE.BufferAttribute(pCol,3));
+pg.setAttribute('aSize',new THREE.BufferAttribute(pSize,1));
+const pointMat=new THREE.ShaderMaterial({transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,
+  uniforms:{uScale:{value:600},uAlpha:{value:1}},
+  vertexShader:`attribute float aSize;attribute vec3 aCol;varying vec3 vC;uniform float uScale;
+    void main(){vec4 mv=modelViewMatrix*vec4(position,1.0);gl_PointSize=aSize*uScale/max(0.1,-mv.z);vC=aCol;gl_Position=projectionMatrix*mv;}`,
+  fragmentShader:`varying vec3 vC;uniform float uAlpha;void main(){vec2 c=gl_PointCoord-0.5;float d=length(c);float a=smoothstep(0.5,0.0,d);a*=a;gl_FragColor=vec4(vC*a*uAlpha,a*uAlpha);}`});
+const pulsePts=new THREE.Points(pg,pointMat);pulsePts.frustumCulled=false;pulsePts.renderOrder=20;brain.add(pulsePts);
+const pulses=[];for(let i=0;i<MAXP;i++)pulses.push({a:new THREE.Vector3(),b:new THREE.Vector3(),c:new THREE.Vector3(),t:2,spd:1,col:new THREE.Color(),size:0.05,delay:Math.random()*2});
+
+const NTP={
+  DA:[{c:NTC.DA,src:['sn','vta'],dst:['caud','put','nac','CTXF','CTXF','amy'],w:1}],
+  S5:[{c:NTC.S5,src:['raphe'],dst:['CTX','CTX','CTX','hipp','amy','thal','cb','hyp','sc'],w:1}],
+  NE:[{c:NTC.NE,src:['lc'],dst:['CTX','CTX','CTX','thal','hipp','amy','cb','hyp','sc'],w:1}],
+  ADO:[{c:NTC.ADO,src:['CTXL'],dst:['NEAR'],w:1}],
+  ACH:[{c:NTC.ACH,src:['bf'],dst:['CTX','CTX','CTX','hipp','amy'],w:0.8},{c:NTC.ACH,src:['mb'],dst:['thal'],w:0.2}],
+  GG:[{c:NTC.GLU,src:['CTXL'],dst:['CTXL','CTXL','thal','caud','put'],w:0.55},{c:NTC.GABA,src:['caud','put'],dst:['gp'],w:0.2},{c:NTC.GABA,src:['gp'],dst:['thal'],w:0.15},{c:NTC.GABA,src:['cb'],dst:['cb'],w:0.1}],
+  OXT:[{c:NTC.OXT,src:['hyp'],dst:['pit','pit','amy','nac','hipp'],w:1}],
+  END:[{c:NTC.END,src:['hyp','pit'],dst:['pag','amy','nac','thal'],w:0.5},{c:NTC.END,src:['pag'],dst:['sc','med'],w:0.5}]
+};
+const frontNodes=surfNodes.filter(s=>s.lobe===1&&s.p.z>0.35);
+function pickPoint(key,from){
+  if(key==='CTX'){return surfNodes[Math.floor(Math.random()*surfNodes.length)].q.clone()}
+  if(key==='CTXF'){return frontNodes[Math.floor(Math.random()*frontNodes.length)].q.clone()}
+  if(key==='CTXL'){return surfNodes[Math.floor(Math.random()*surfNodes.length)].q.clone()}
+  if(key==='NEAR'){return from.clone().add(new THREE.Vector3((Math.random()-.5)*0.25,(Math.random()-.5)*0.25,(Math.random()-.5)*0.25))}
+  return randomOn(key);
+}
+let pulseMode='surface',pulseTarget=90;
+function spawn(p){
+  const mode=pulseMode;
+  if(mode==='surface'||mode==='network'){
+    const useLong=mode==='network'&&Math.random()<0.25;
+    let e;for(let k=0;k<6;k++){e=edges[Math.floor(Math.random()*edges.length)];if(!!e[2]===useLong)break}
+    const fw=Math.random()<0.5;const A=e[2]?surfNodes[e[0]].q:surfNodes[e[0]].p,C2=e[2]?surfNodes[e[1]].q:surfNodes[e[1]].p;
+    p.a.copy(fw?A:C2);p.c.copy(fw?C2:A);p.b.copy(e[3]);
+    p.col.set(mode==='network'?(Math.random()<0.8?'#8fe9ff':'#ffd9f0'):'#bfe0ff');
+    p.spd=(e[2]?0.45:0.9)*(0.7+Math.random()*0.6);p.size=mode==='network'?0.05:0.04;
+  }else if(mode==='links'||mode==='chain'){
+    if(!curLinks.length){p.t=2;p.delay=1;return}
+    const L=curLinks[Math.floor(Math.random()*curLinks.length)];
+    const fw=mode==='chain'||Math.random()<0.55;
+    p.a.copy(fw?L.a:L.c);p.b.copy(L.b);p.c.copy(fw?L.c:L.a);
+    p.col.copy(fw?hiNow:WHITE);p.spd=(0.55+Math.random()*0.35)/Math.max(0.35,L.a.distanceTo(L.c));p.size=0.05;
+  }else{
+    const list=NTP[mode];let r=Math.random(),path=list[0];for(const q of list){if(r<q.w){path=q;break}r-=q.w}
+    const a=pickPoint(path.src[Math.floor(Math.random()*path.src.length)]);
+    const c=pickPoint(path.dst[Math.floor(Math.random()*path.dst.length)],a);
+    p.a.copy(a);p.c.copy(c);
+    const lift=mode==='ADO'?0.02:0.1+0.15*a.distanceTo(c);
+    p.b.copy(ctrl(a,c,lift)).add(new THREE.Vector3(0,0.05*a.distanceTo(c),0));
+    p.col.set(path.c);p.spd=(mode==='ADO'?0.35:0.55)*(0.7+Math.random()*0.6)/Math.max(0.4,a.distanceTo(c));p.size=mode==='ADO'?0.035:0.055;
+  }
+  if(reduced)p.spd*=0.4;
+  p.t=0;
+}
+const tmpV=new THREE.Vector3(),tmpC=new THREE.Color();
+function updatePulses(dt){
+  for(let i=0;i<MAXP;i++){
+    const p=pulses[i],base=i*TR;
+    const alive=i<pulseTarget;
+    if(p.delay>0){p.delay-=dt;for(let k=0;k<TR;k++)pSize[base+k]=0;continue}
+    p.t+=dt*p.spd*(0.6+PV.alerta*0.8);
+    if(p.t>1.25){if(alive){spawn(p);p.delay=Math.random()*0.8}else{for(let k=0;k<TR;k++)pSize[base+k]=0;p.delay=0.5;continue}}
+    for(let k=0;k<TR;k++){
+      const tt=p.t-k*0.035;const j=(base+k)*3;
+      if(tt<0||tt>1){pSize[base+k]=0;continue}
+      bez(tmpV,p.a,p.b,p.c,tt);pPos[j]=tmpV.x;pPos[j+1]=tmpV.y;pPos[j+2]=tmpV.z;
+      const f=1-k/TR;const env=Math.sin(Math.min(1,tt)*Math.PI)*0.6+0.4;
+      pCol[j]=p.col.r*f*env;pCol[j+1]=p.col.g*f*env;pCol[j+2]=p.col.b*f*env;pSize[base+k]=p.size*(k===0?1.25:f);
+    }
+  }
+  pg.attributes.position.needsUpdate=true;pg.attributes.aCol.needsUpdate=true;pg.attributes.aSize.needsUpdate=true;
+}
+
+/* ---------- Poeira neural (camadas de parallax) ---------- */
+const dust=[];
+[[380,5,9,0.018,'#6d63b8',0.2],[260,3.2,5,0.014,'#8a9ae0',0.45],[140,2.4,3.4,0.01,'#c7b8ff',0.8]].forEach(([cnt,rMin,rMax,size,col,k],li)=>{
+  const g=new THREE.BufferGeometry();const a=new Float32Array(cnt*3);const r=rng(40+li);
+  for(let i=0;i<cnt;i++){const u=r()*2-1,th=r()*Math.PI*2,rr=rMin+r()*(rMax-rMin);const s=Math.sqrt(1-u*u);a[i*3]=s*Math.cos(th)*rr;a[i*3+1]=u*rr*0.8;a[i*3+2]=s*Math.sin(th)*rr}
+  g.setAttribute('position',new THREE.BufferAttribute(a,3));
+  const m=new THREE.Points(g,new THREE.PointsMaterial({color:col,size:size*(li===0?3:2),transparent:true,opacity:0.55,blending:THREE.AdditiveBlending,depthWrite:false}));
+  m.userData.k=k;scene.add(m);dust.push(m);
+});
+
+/* ---------- Conexões da Etapa 2 (vias entre módulos) ---------- */
+CIRC.forEach(c=>{c._anchor=S[byCode[c.chain[0][0]]]._anchor.clone()});
+const WHITE=new THREE.Color('#eef4ff'),hiNow=new THREE.Color();
+const LSEG=28,MAXL=24;
+const linkArr=new Float32Array(MAXL*LSEG*6);
+const linkGeo=new THREE.BufferGeometry();linkGeo.setAttribute('position',new THREE.BufferAttribute(linkArr,3));linkGeo.setDrawRange(0,0);
+const linkLines=new THREE.LineSegments(linkGeo,new THREE.LineBasicMaterial({color:0xffffff,transparent:true,opacity:0,depthTest:false,depthWrite:false,blending:THREE.AdditiveBlending}));
+linkLines.renderOrder=19;linkLines.frustumCulled=false;brain.add(linkLines);
+const dotArr=new Float32Array((MAXL+1)*3),dotCol=new Float32Array((MAXL+1)*3),dotSize=new Float32Array(MAXL+1);
+const dotGeo=new THREE.BufferGeometry();dotGeo.setAttribute('position',new THREE.BufferAttribute(dotArr,3));dotGeo.setAttribute('aCol',new THREE.BufferAttribute(dotCol,3));dotGeo.setAttribute('aSize',new THREE.BufferAttribute(dotSize,1));
+const dotMat=pointMat.clone();dotMat.depthTest=false;dotMat.uniforms=THREE.UniformsUtils.clone(pointMat.uniforms);
+const linkDots=new THREE.Points(dotGeo,dotMat);linkDots.renderOrder=21;linkDots.frustumCulled=false;brain.add(linkDots);
+let curLinks=[],curEnds=[];
+const mtagsEl=document.getElementById('mtags');const mtagEls=[];
+for(let i=0;i<MAXL;i++){const d=document.createElement('div');d.className='mtag';d.style.opacity=0;mtagsEl.appendChild(d);mtagEls.push(d)}
+const linkable=t=>t&&t._anchor&&!t.kind&&t.group!=='nt'&&t.group!=='cel'&&t.code!=='CTX-00';
+function setLinks(s){
+  curLinks=[];curEnds=[];
+  hiNow.set(colorOf(s));
+  const add=(a,c)=>{if(a.distanceTo(c)<0.02)return;const lift=0.12+0.22*a.distanceTo(c);curLinks.push({a,c,b:ctrl(a,c,lift).add(new THREE.Vector3(0,0.06,0))})};
+  if(s.kind==='circuit'){
+    const pts=s.chain.map(([code],k)=>{const t=S[byCode[code]];return {p:t._anchor.clone(),code,n:k+1}});
+    for(let k=0;k<pts.length-1;k++)add(pts[k].p,pts[k+1].p);
+    const seen=new Map();pts.forEach(q=>{const key=q.code;if(!seen.has(key))seen.set(key,{p:q.p,label:q.code,n:[q.n]});else seen.get(key).n.push(q.n)});
+    curEnds=[...seen.values()].map(e=>({p:e.p,label:`<i>${e.n.join('·')}</i>${e.label}`}));
+  }else if(!s.kind&&F[s.code]){
+    const a=s._anchor.clone();
+    F[s.code].c.forEach(code=>{const t=S[byCode[code]];if(!linkable(t))return;add(a,t._anchor.clone());curEnds.push({p:t._anchor.clone(),label:code})});
+  }
+  renderLinks(false);
+}
+function renderLinks(keep){
+  curLinks=curLinks.slice(-MAXL);curEnds=curEnds.slice(-MAXL);
+  const v=new THREE.Vector3(),w=new THREE.Vector3();let o=0;
+  curLinks.forEach(L=>{for(let k=0;k<LSEG;k++){bez(v,L.a,L.b,L.c,k/LSEG);bez(w,L.a,L.b,L.c,(k+1)/LSEG);linkArr[o++]=v.x;linkArr[o++]=v.y;linkArr[o++]=v.z;linkArr[o++]=w.x;linkArr[o++]=w.y;linkArr[o++]=w.z}});
+  linkGeo.setDrawRange(0,curLinks.length*LSEG*2);linkGeo.attributes.position.needsUpdate=true;
+  linkLines.material.color.copy(hiNow);if(!keep)linkLines.material.opacity=0;
+  for(let k=0;k<=MAXL;k++){const e=curEnds[k];dotSize[k]=e?0.07:0;if(e){dotArr[k*3]=e.p.x;dotArr[k*3+1]=e.p.y;dotArr[k*3+2]=e.p.z;dotCol[k*3]=hiNow.r;dotCol[k*3+1]=hiNow.g;dotCol[k*3+2]=hiNow.b}}
+  dotGeo.attributes.position.needsUpdate=true;dotGeo.attributes.aCol.needsUpdate=true;dotGeo.attributes.aSize.needsUpdate=true;
+  mtagEls.forEach((d,k)=>{const e=curEnds[k];d.style.opacity=0;if(e)d.innerHTML=e.label});
+}
+const consoleLinks=[];let pIdx=0;
+function anchorOf(code){if(PSEUDO[code])return new THREE.Vector3(...PSEUDO[code].p);const t=S[byCode[code]];return t&&t._anchor?t._anchor.clone():new THREE.Vector3()}
+function applyConsoleLinks(keep){
+  curLinks=consoleLinks.slice();const ends=new Map();
+  consoleLinks.forEach(L=>[L.de,L.para].forEach(code=>{ends.delete(code);ends.set(code,{p:anchorOf(code),label:PSEUDO[code]?PSEUDO[code].n:code})}));
+  curEnds=[...ends.values()];hiNow.set(G.cmd.color);renderLinks(keep);
+}
+sendMsg=function(de,para,col){
+  if(!S[active]||S[active].kind!=='console')return;
+  const a=anchorOf(de),c=anchorOf(para);if(a.distanceTo(c)<0.02)return;
+  const L={a,c,b:ctrl(a,c,0.1+0.2*a.distanceTo(c)).add(new THREE.Vector3(0,0.05,0)),de,para};
+  consoleLinks.push(L);if(consoleLinks.length>9)consoleLinks.shift();
+  applyConsoleLinks(true);
+  const C=new THREE.Color(col);
+  for(let k=0;k<7;k++){const p=pulses[pIdx];pIdx=(pIdx+1)%MAXP;p.a.copy(a);p.b.copy(L.b);p.c.copy(c);p.col.copy(C);p.t=0;p.delay=k*0.04;p.spd=1.3/Math.max(0.4,a.distanceTo(c));p.size=0.07}
+};
+const mp=new THREE.Vector3();
+function updateMtags(){
+  const on=linkLines.material.opacity>0.1;
+  for(let k=0;k<mtagEls.length;k++){const e=curEnds[k],d=mtagEls[k];if(!e||!on){d.style.opacity=0;continue}
+    mp.copy(e.p).project(camera);const x=(mp.x*0.5+0.5)*vw,y=(-mp.y*0.5+0.5)*vh;
+    const vis=mp.z<1&&x>20&&x<vw-60&&y>70&&y<vh-20;d.style.opacity=vis?0.9:0;d.style.transform=`translate3d(${x+8}px,${y-9}px,0)`}
+}
+
+/* ---------- Visual Humano / Robô ---------- */
+const STEEL=new THREE.Color('#56627c'),ROBOC=new THREE.Color('#7ee8ff');
+let robotMode=true;try{if(localStorage.getItem('pc-view')==='human')robotMode=false}catch(e){}
+const viewBtns=[...document.querySelectorAll('#view button')];
+function updateTag(){const s=S[active];if(!s)return;
+  if(s.kind&&s.kind!=='circuit'){tag.style.opacity=0;return}
+  const r=robotMode&&(R[s.code]||RC[s.code]);tagtxt.innerHTML=`<em>${s.code}</em>${r?r.m:s.name}`;tag.style.opacity=1}
+function setView(r){robotMode=r;viewBtns.forEach(b=>b.setAttribute('aria-pressed',String((b.dataset.v==='robot')===r)));try{localStorage.setItem('pc-view',r?'robot':'human')}catch(e){};updateTag()}
+viewBtns.forEach(b=>b.addEventListener('click',()=>setView(b.dataset.v==='robot')));
+
+/* ================================================================
+   ESTADO, CÂMERA E ROLAGEM
+   ================================================================ */
+const tag=document.getElementById('tag'),tagtxt=document.getElementById('tagtxt'),bar=document.getElementById('bar'),gridEl=document.getElementById('grid');
+const railBtns=[...rail.querySelectorAll('button')];
+let active=-1,sectionP=0;
+const cam={t:new THREE.Vector3(0,0,0),d:new THREE.Vector3(0.8,0.42,0.55).normalize(),r:4.4};
+const U=cortexMat.uniforms;
+const target={tint:0,xray:0,dim:0,net:0};
+let yawUser=0,pitchUser=0,idleT=0,autoYaw=0;
+let vw=innerWidth,vh=innerHeight,isMobile=vw<860;
+
+function setActive(i){
+  if(i===active)return;active=i;const s=S[i];
+  const c=colorOf(s);
+  document.documentElement.style.setProperty('--hi',c);
+  U.uHiCol.value.set(c);U.uHi.value=0;
+  const f=s.f||{};
+  setMatch(f);
+  target.tint=s.tint!=null?s.tint:0.1;
+  target.xray=s.mode==='xray'?1:0;
+  target.dim=(f.lobe||f.area)?1:0;
+  target.net=s.net||0;
+  pulseMode=s.pulse||(!s.kind&&F[s.code]?'links':'surface');
+  pulseTarget=pulseMode==='surface'?(s.mode==='xray'?0:80):(pulseMode==='network'?420:(pulseMode==='ADO'?260:(pulseMode==='links'||pulseMode==='chain'?160:300)));
+  if(pulseMode==='console')pulseTarget=0;
+  pointMat.depthTest=!(pulseMode==='links'||pulseMode==='chain'||pulseMode==='console');
+  // reinicia pulsos para o novo modo
+  pulses.forEach((p,k)=>{p.t=2;p.delay=Math.random()*(k<pulseTarget?1.2:0.1)});
+  const focusKeys=new Set((f.s)||[]);
+  structs.forEach(o=>{o.focus=focusKeys.has(o.key)});
+  const g=s.group;railBtns.forEach(b=>b.classList.toggle('on',b.dataset.g===g));
+  updateTag();
+  if(s.kind==='console'){applyConsoleLinks(false);if(!consoleStarted)setTimeout(()=>{if(S[active]&&S[active].kind==='console'&&!consoleStarted)runScenario('pegar')},700)}else setLinks(s);
+  if(s.syn)startSyn();
+}
+
+let offsets=[];
+function measure(){offsets=stepEls.map(el=>[el.offsetTop,el.offsetHeight])}
+function onScroll(){
+  const y=scrollY,mid=y+vh/2;let best=0,bd=1e9;
+  for(let i=0;i<offsets.length;i++){const c=offsets[i][0]+offsets[i][1]/2;const d=Math.abs(c-mid);if(d<bd){bd=d;best=i}}
+  setActive(best);
+  const o=offsets[best];sectionP=(mid-(o[0]+o[1]/2))/o[1];
+  const max=document.documentElement.scrollHeight-vh;bar.style.width=(max>0?y/max*100:0)+'%';
+  if(!reduced){
+    for(let i=0;i<ghosts.length;i++){const g=ghosts[i];if(!g)continue;const c=offsets[i][0]+offsets[i][1]/2;const d=c-mid;if(Math.abs(d)>vh*1.5)continue;g.style.transform=`translate3d(${d*-0.04}px,${d*-0.38}px,0)`}
+    gridEl.style.transform=`translate3d(0,${-(y*0.12)%64}px,0)`;
+  }
+}
+
+function resize(){
+  vw=innerWidth;vh=innerHeight;isMobile=vw<860;
+  renderer.setPixelRatio(Math.min(devicePixelRatio||1,2));renderer.setSize(vw,vh,false);
+  camera.aspect=vw/vh;
+  if(isMobile)camera.setViewOffset(vw,vh,0,vh*0.22,vw,vh);
+  else camera.setViewOffset(vw,vh,-Math.min(260,vw*0.17),0,vw,vh);
+  camera.updateProjectionMatrix();
+  pointMat.uniforms.uScale.value=vh*renderer.getPixelRatio()/(2*Math.tan(THREE.MathUtils.degToRad(camera.fov/2)));
+  measure();onScroll();sizeSyn();
+}
+addEventListener('resize',resize);
+addEventListener('scroll',onScroll,{passive:true});
+
+// Arrastar / clicar
+let dragging=false,downX=0,downY=0,lastX=0,lastY=0,moved=0;
+const mouse={x:0,y:0};
+canvas.addEventListener('pointerdown',e=>{dragging=true;moved=0;downX=lastX=e.clientX;downY=lastY=e.clientY;canvas.classList.add('drag');try{canvas.setPointerCapture(e.pointerId)}catch(_){} });
+addEventListener('pointermove',e=>{
+  mouse.x=e.clientX/vw*2-1;mouse.y=e.clientY/vh*2-1;
+  if(!dragging)return;const dx=e.clientX-lastX,dy=e.clientY-lastY;lastX=e.clientX;lastY=e.clientY;moved+=Math.abs(dx)+Math.abs(dy);
+  yawUser-=dx*0.007;pitchUser=Math.max(-1.1,Math.min(1.1,pitchUser+dy*0.005));idleT=0;
+});
+const endDrag=e=>{if(!dragging)return;dragging=false;canvas.classList.remove('drag');if(moved<6&&e.type==='pointerup')pick(e.clientX,e.clientY)};
+addEventListener('pointerup',endDrag);addEventListener('pointercancel',endDrag);
+const ray=new THREE.Raycaster(),ndc=new THREE.Vector2();
+function pick(x,y){
+  ndc.set(x/vw*2-1,-(y/vh)*2+1);ray.setFromCamera(ndc,camera);
+  const xr=U.uXray.value>0.5;
+  const targets=xr?structs.filter(o=>!o.external||true).map(o=>o.mesh):[...hemis,...structs.filter(o=>o.external).map(o=>o.mesh)];
+  const hit=ray.intersectObjects(targets,false)[0];if(!hit)return;
+  let idx=-1;
+  if(hit.object.userData.cortex){
+    const g=hit.object.geometry;const a=hit.face.a;const A=g.userData.area[a],L=g.userData.lobe[a];
+    idx=S.findIndex(s=>s.f&&s.f.area===A);if(idx<0)idx=S.findIndex(s=>s.f&&s.f.lobe===L);
+  }else{
+    const o=structs.find(o=>o.mesh===hit.object);if(o)idx=S.findIndex(s=>!s.kind&&s.f&&s.f.s&&s.f.s.includes(o.key)&&!s.pulse);
+    if(idx<0&&o)idx=S.findIndex(s=>!s.kind&&s.f&&s.f.s&&s.f.s.includes(o.key));
+    if(idx<0&&o)idx=S.findIndex(s=>s.f&&s.f.s&&s.f.s.includes(o.key));
+  }
+  if(idx>=0)goTo(idx);
+}
+
+/* ---------- Loop ---------- */
+const clock=new THREE.Clock();
+const tmpD=new THREE.Vector3(),tmpT=new THREE.Vector3(),yAxis=new THREE.Vector3(0,1,0),side=new THREE.Vector3(),proj=new THREE.Vector3();
+const hiC=new THREE.Color(),tmpCol=new THREE.Color(),tmpEm=new THREE.Color();
+function frame(){
+  const dt=Math.min(clock.getDelta(),0.05),t=clock.elapsedTime;
+  const s=S[active]||S[0];
+  const k=1-Math.exp(-dt*(reduced?6:2.6));
+  cam.t.lerp(s._t,k);cam.d.lerp(s._d,k).normalize();
+  const rr=s._r*(isMobile?(vw/vh<0.7?1.95:1.3):1);cam.r+=(rr-cam.r)*k;
+  if(!dragging){idleT+=dt;if(idleT>2.5){yawUser*=Math.exp(-dt*0.8);pitchUser*=Math.exp(-dt*0.8)}}
+  if(s.auto&&!reduced)autoYaw+=dt*0.12;else autoYaw*=Math.exp(-dt*1.5);
+  const scrollYaw=reduced?0:sectionP*0.35;
+  const mx=reduced?0:mouse.x*0.06,my=reduced?0:mouse.y*0.04;
+  tmpD.copy(cam.d).applyAxisAngle(yAxis,yawUser+autoYaw+scrollYaw+mx);
+  side.crossVectors(tmpD,yAxis).normalize();
+  tmpD.applyAxisAngle(side,pitchUser+my);
+  camera.position.copy(cam.t).addScaledVector(tmpD,cam.r);
+  camera.lookAt(cam.t);
+
+  // Uniforms
+  U.uTime.value=t;
+  U.uHi.value+=(1-U.uHi.value)*(1-Math.exp(-dt*3));
+  U.uTint.value+=(target.tint-U.uTint.value)*k;
+  U.uXray.value+=(target.xray-U.uXray.value)*(1-Math.exp(-dt*3.2));
+  U.uDim.value+=(target.dim-U.uDim.value)*k;
+  const xr=U.uXray.value;
+  cortexMat.depthWrite=xr<0.5;
+  netLines.material.opacity+=(target.net*0.22-netLines.material.opacity)*k;
+  linkLines.material.opacity+=((curLinks.length?0.55:0)-linkLines.material.opacity)*k;
+  dotMat.uniforms.uScale.value=pointMat.uniforms.uScale.value;dotMat.uniforms.uAlpha.value=Math.min(1,linkLines.material.opacity*1.8)*(0.75+0.25*Math.sin(t*4));
+  nodePts.material.opacity+=(target.net*0.8-nodePts.material.opacity)*k;
+
+  // Estruturas
+  U.uRobot.value+=((robotMode?1:0)-U.uRobot.value)*(1-Math.exp(-dt*2.5));
+  hiC.set(colorOf(s));
+  const pulse=0.55+0.45*Math.sin(t*3);
+  for(const o of structs){
+    const m=o.mesh.material;let op,em;
+    if(o.focus){tmpCol.copy(hiC).lerp(o.color,0.35);op=1;tmpEm.copy(hiC).multiplyScalar(0.35+0.3*pulse)}
+    else if(xr>0.5){tmpCol.copy(o.color).multiplyScalar(0.8);op=(s.f&&s.f.s&&s.f.s.length)||s.pulse?0.26:0.55;tmpEm.copy(o.color).multiplyScalar(0.12)}
+    else if(robotMode){tmpCol.copy(STEEL);op=1;tmpEm.copy(o.external&&o.tint?ROBOC:o.color).multiplyScalar(0.16)}
+    else{tmpCol.copy(o.tint?TISSUE:o.color);op=1;tmpEm.setRGB(0,0,0);if(!o.tint&&o.external)tmpCol.lerp(TISSUE,0.35)}
+    m.metalness+=((robotMode?0.55:0.02)-m.metalness)*k;m.roughness+=((robotMode?0.38:0.55)-m.roughness)*k;
+    m.color.lerp(tmpCol,k);m.emissive.lerp(tmpEm,k);m.opacity+=(op-m.opacity)*k;m.depthWrite=m.opacity>0.95;
+    o.mesh.visible=o.external||xr>0.02;
+  }
+
+  // Parallax da poeira
+  const sy=scrollY/vh;
+  for(const d of dust){d.position.y=sy*d.userData.k*0.35;d.rotation.y=t*0.01*(1+d.userData.k)}
+
+  updatePulses(dt);
+  pointMat.uniforms.uAlpha.value=pulseMode==='surface'&&xr>0.5?0:1;
+  renderer.render(scene,camera);
+
+  // Etiqueta 3D
+  updateMtags();
+  if(!s.kind||s.kind==='circuit'){
+    proj.copy(s._anchor).project(camera);
+    const x=(proj.x*0.5+0.5)*vw,y=(-proj.y*0.5+0.5)*vh;
+    const cardEl=isMobile&&stepEls[active]?stepEls[active].querySelector('.card'):null;
+    const cardTop=cardEl?cardEl.getBoundingClientRect().top:vh;
+    const vis=proj.z<1&&x>0&&x<vw&&y>70&&y<vh&&y<cardTop-16;
+    const tw=tag.offsetWidth||0,flip=x+tw>vw-12;
+    tag.classList.toggle('flip',flip);
+    tag.style.transform=`translate3d(${flip?x-tw+5:x-5}px,${y-5}px,0)`;tag.style.opacity=vis?1:0;
+  }
+  if(synOn)drawSyn(t);
+  requestAnimationFrame(frame);
+}
+
+/* ================================================================
+   SINAPSE 2D
+   ================================================================ */
+let synCanvas=null,synCtx=null,synW=0,synH=0,synOn=false;const mols=[];const vesc=[];const recs=[];
+function sizeSyn(){synCanvas=document.getElementById('synCanvas');if(!synCanvas)return;const r=synCanvas.getBoundingClientRect();const dpr=Math.min(devicePixelRatio||1,2);synW=r.width;synH=r.height;synCanvas.width=Math.round(synW*dpr);synCanvas.height=Math.round(synH*dpr);synCtx=synCanvas.getContext('2d');synCtx.setTransform(dpr,0,0,dpr,0,0);
+  vesc.length=0;for(let i=0;i<11;i++)vesc.push({x:0.3+0.4*Math.random(),y:0.15+0.2*Math.random(),ph:Math.random(),r:6+Math.random()*3});
+  recs.length=0;for(let i=0;i<9;i++)recs.push({x:0.28+i*0.055,on:0});}
+function startSyn(){synOn=true;if(!synCtx)sizeSyn()}
+const synIO=new IntersectionObserver(es=>es.forEach(e=>{synOn=e.isIntersecting}),{threshold:0});
+function drawSyn(t){
+  if(!synCtx||!synW)return;const c=synCtx,w=synW,h=synH;c.clearRect(0,0,w,h);
+  const cx=w*0.52,memY=h*0.47,postY=h*0.6,half=Math.min(w*0.3,170);
+  // pré-sináptico
+  c.beginPath();c.moveTo(cx-16,-2);c.bezierCurveTo(cx-18,h*0.12,cx-half,h*0.14,cx-half,memY-24);c.quadraticCurveTo(cx-half,memY,cx-half+24,memY);c.lineTo(cx+half-24,memY);c.quadraticCurveTo(cx+half,memY,cx+half,memY-24);c.bezierCurveTo(cx+half,h*0.14,cx+18,h*0.12,cx+16,-2);c.closePath();
+  c.fillStyle='rgba(111,155,255,.13)';c.fill();c.strokeStyle='rgba(143,190,255,.8)';c.lineWidth=1.5;c.stroke();
+  // pós-sináptico
+  c.beginPath();c.moveTo(cx-half-10,h+2);c.lineTo(cx-half-10,postY+22);c.quadraticCurveTo(cx-half-10,postY,cx-half+14,postY);c.lineTo(cx+half-14,postY);c.quadraticCurveTo(cx+half+10,postY,cx+half+10,postY+22);c.lineTo(cx+half+10,h+2);c.closePath();
+  c.fillStyle='rgba(255,111,145,.1)';c.fill();c.strokeStyle='rgba(255,140,170,.75)';c.stroke();
+  // receptores
+  recs.forEach((r,i)=>{const x=cx-half+ (i+0.5)*(2*half/recs.length);r.px=x;r.on*=0.93;c.fillStyle=`rgba(255,${150+Math.round(r.on*100)},${170+Math.round(r.on*60)},${0.45+r.on*0.55})`;c.fillRect(x-4,postY-6,8,7);if(r.on>0.1){c.fillStyle=`rgba(255,220,240,${r.on*0.35})`;c.beginPath();c.arc(x,postY+8,10*r.on+2,0,Math.PI*2);c.fill()}});
+  // vesículas
+  vesc.forEach(v=>{v.ph+=0.004+0.002*Math.sin(t+v.x*10);if(v.ph>1){v.ph=0;v.x=0.3+0.4*Math.random();v.y=0.12+0.2*Math.random()}
+    const X=cx+(v.x-0.5)*2*half*0.9;
+    const y0=h*v.y,y1=memY-v.r-1;const k=Math.min(1,v.ph/0.8);const Y=y0+(y1-y0)*k*k;
+    if(v.ph<0.8){c.beginPath();c.arc(X,Y,v.r,0,Math.PI*2);c.fillStyle='rgba(255,207,77,.18)';c.fill();c.strokeStyle='rgba(255,207,77,.8)';c.lineWidth=1.2;c.stroke();
+      for(let q=0;q<4;q++){c.fillStyle='#ffcf4d';c.fillRect(X-3+((q*5)%7)-1,Y-3+((q*3)%6)-1,2,2)}}
+    else if(!v.fired){v.fired=true;for(let q=0;q<7;q++)mols.push({x:X+(Math.random()-.5)*8,y:memY+1,vx:(Math.random()-.5)*0.5,vy:0.35+Math.random()*0.5,life:1})}
+    if(v.ph<0.8)v.fired=false;
+    if(v.ph>=0.8){const a=(v.ph-0.8)/0.2;c.strokeStyle=`rgba(255,207,77,${0.8*(1-a)})`;c.beginPath();c.arc(X,memY,v.r*(1-a*0.6),Math.PI,0,false);c.stroke()}
+  });
+  // moléculas
+  for(let i=mols.length-1;i>=0;i--){const m=mols[i];m.x+=m.vx;m.y+=m.vy;m.vx+=(Math.random()-.5)*0.15;
+    if(m.y>=postY-6){let best=null,bd=1e9;recs.forEach(r=>{const d=Math.abs(r.px-m.x);if(d<bd){bd=d;best=r}});if(best&&bd<10)best.on=1;mols.splice(i,1);continue}
+    c.fillStyle='#ffcf4d';c.beginPath();c.arc(m.x,m.y,1.8,0,Math.PI*2);c.fill()}
+  // potencial de ação descendo pelo axônio
+  const ap=(t*0.8)%1;c.fillStyle='rgba(143,233,255,.9)';c.beginPath();c.arc(cx,ap*h*0.3,3.5,0,Math.PI*2);c.fill();
+  // rótulos
+  c.font='11px "IBM Plex Mono", ui-monospace, monospace';c.fillStyle='rgba(239,234,245,.72)';c.textBaseline='middle';
+  const lx=cx+half+16, fits=lx+130<w;
+  const lab=(txt,y,col)=>{c.fillStyle=col||'rgba(239,234,245,.72)';if(fits){c.textAlign='left';c.fillText(txt,lx,y)}else{c.textAlign='left';c.fillText(txt,6,y)}};
+  if(fits){lab('terminal pré-sináptico',h*0.2);lab('vesículas',h*0.33,'rgba(255,207,77,.9)');lab('fenda ~20 nm',(memY+postY)/2,'rgba(239,234,245,.9)');lab('receptores',postY+2,'rgba(255,160,185,.95)');lab('neurônio pós-sináptico',h*0.85)}
+  else{c.textAlign='left';c.fillStyle='rgba(239,234,245,.8)';c.fillText('pré-sináptico',6,h*0.3);c.fillText('fenda ~20 nm',6,(memY+postY)/2);c.fillText('pós-sináptico',6,h-12)}
+  c.textAlign='left';c.fillStyle='rgba(143,233,255,.9)';c.fillText('potencial de ação',cx+24,h*0.06+4);
+}
+
+/* ---------- Início ---------- */
+setView(robotMode);
+resize();
+const sc=document.getElementById('synCanvas');if(sc)synIO.observe(sc);
+setActive(0);onScroll();
+requestAnimationFrame(frame);
+if(location.hash){const i=S.findIndex(s=>'#'+s.id===location.hash);if(i>0)setTimeout(()=>goTo(i),300)}
+})();
+</script>
+</body></html>
