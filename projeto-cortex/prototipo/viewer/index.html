@@ -1,0 +1,291 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Simulador Córtex</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* Layout: sala vista de cima à esquerda (canvas), painel de estado e registro de mensagens à direita; linha do tempo embaixo da sala. */
+:root{
+  --bg:#07080f; --panel:#0e0f1c; --panel2:#131427; --fg:#efeaf5; --muted:#a8a1b9; --faint:#6f6984; --line:rgba(239,234,245,.12);
+  --accent:#ffb86b; --robot:#7ee8ff; --danger:#ff6b5a; --ok:#7ff0b2;
+  --t-dados:#8fd6ff; --t-exc:#ff9a3c; --t-inib:#5b8cff; --t-mod:#e59bff;
+  --display:'Bricolage Grotesque','Avenir Next',system-ui,sans-serif;
+  --body:'IBM Plex Sans',system-ui,-apple-system,'Segoe UI',sans-serif;
+  --mono:'IBM Plex Mono',ui-monospace,Menlo,monospace;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--fg);font-family:var(--body);font-size:14px;line-height:1.5;padding:calc(env(safe-area-inset-top,0px) + 18px) max(16px,3vw) calc(env(safe-area-inset-bottom,0px) + 24px)}
+header{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:12px 24px;margin-bottom:14px}
+.eyebrow{font-family:var(--mono);font-size:11.5px;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);display:flex;gap:8px;align-items:center}
+.eyebrow i{width:22px;height:1px;background:var(--accent)}
+h1{font-family:var(--display);font-weight:800;font-size:clamp(28px,4vw,44px);letter-spacing:-.03em;line-height:1;margin:6px 0 0}
+h1 em{font-style:normal;color:var(--accent)}
+.tests{font-family:var(--mono);font-size:12px;color:var(--ok);border:1px solid rgba(127,240,178,.35);padding:5px 10px;border-radius:999px;white-space:nowrap}
+.tabs{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px}
+.tabs button{all:unset;cursor:pointer;font-size:13px;padding:7px 12px;border-radius:8px;border:1px solid var(--line);color:var(--fg);background:rgba(239,234,245,.03)}
+.tabs button[aria-pressed="true"]{background:var(--accent);color:#1a0f04;border-color:var(--accent);font-weight:600}
+.tabs button:focus-visible,.ctl button:focus-visible,.log li:focus-visible{outline:2px solid var(--robot);outline-offset:2px}
+.layout{display:grid;grid-template-columns:minmax(0,1.45fr) minmax(0,1fr);gap:16px;align-items:start}
+.stage{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:12px;min-width:0}
+.resumo{margin:0 0 10px;color:var(--muted);max-width:75ch}
+.room{position:relative;width:100%;aspect-ratio:8/6;max-width:100%;border-radius:10px;overflow:hidden;background:#0a0b16}
+canvas{display:block;width:100%;height:100%}
+.flash{position:absolute;left:10px;top:10px;right:10px;display:flex;flex-direction:column;gap:4px;pointer-events:none}
+.flash div{align-self:flex-start;font-family:var(--mono);font-size:11.5px;padding:3px 8px;border-radius:6px;background:rgba(8,8,16,.85);border-left:3px solid var(--tc);color:var(--fg);transition:opacity .3s}
+.ctl{display:flex;align-items:center;gap:10px;margin-top:10px;flex-wrap:wrap}
+.ctl button{all:unset;cursor:pointer;font-family:var(--mono);font-size:12.5px;padding:7px 12px;border-radius:8px;border:1px solid var(--line);background:rgba(239,234,245,.05)}
+.ctl button.primary{background:var(--fg);color:var(--bg);border-color:var(--fg);min-width:74px;text-align:center}
+.ctl input[type=range]{flex:1;min-width:140px;accent-color:var(--accent)}
+.ctl output{font-family:var(--mono);font-size:12.5px;font-variant-numeric:tabular-nums;color:var(--muted);min-width:84px;text-align:right}
+.speed{display:flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.speed button{border:0;border-radius:0;padding:7px 9px;background:none}
+.speed button[aria-pressed="true"]{background:rgba(255,184,107,.2);color:var(--accent)}
+.side{display:grid;gap:12px;min-width:0}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:12px 14px;min-width:0}
+.card h2{margin:0 0 10px;font-family:var(--mono);font-weight:400;font-size:11px;letter-spacing:.09em;text-transform:uppercase;color:var(--faint);display:flex;justify-content:space-between;gap:8px}
+.tele{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.tele div{display:grid;gap:1px;min-width:0}
+.tele b{font-family:var(--display);font-weight:600;font-size:20px;font-variant-numeric:tabular-nums;letter-spacing:-.01em;white-space:nowrap}
+.tele span{font-size:11.5px;color:var(--muted)}
+.state{margin-top:10px;display:flex;flex-wrap:wrap;gap:6px}
+.pill{font-family:var(--mono);font-size:11px;padding:3px 8px;border-radius:999px;border:1px solid var(--line);color:var(--muted)}
+.pill.on{border-color:var(--c);color:var(--c);background:color-mix(in srgb,var(--c) 12%,transparent)}
+.meters{display:grid;gap:7px}
+.meter{display:grid;grid-template-columns:124px 1fr 44px;align-items:center;gap:8px;font-family:var(--mono);font-size:11.5px}
+.meter .bar{height:6px;border-radius:3px;background:rgba(239,234,245,.08);position:relative;overflow:hidden}
+.meter .bar i{position:absolute;top:0;bottom:0;left:0;background:var(--c);border-radius:3px;transition:width .15s}
+.meter .bar.center i{left:50%}
+.meter output{text-align:right;color:var(--fg);font-variant-numeric:tabular-nums}
+.meter span small{color:var(--faint)}
+.log{list-style:none;margin:0;padding:0;max-height:420px;overflow:auto;display:grid;gap:2px}
+.log li{display:grid;grid-template-columns:58px 1fr;gap:8px;padding:5px 6px 5px 8px;border-left:2px solid var(--tc);border-radius:0 6px 6px 0;cursor:pointer;opacity:.28;transition:opacity .2s,background .2s}
+.log li.past{opacity:1}
+.log li.now{background:rgba(255,184,107,.1)}
+.log time{font-family:var(--mono);font-size:10.5px;color:var(--faint);font-variant-numeric:tabular-nums;padding-top:2px}
+.log .rt{display:flex;flex-wrap:wrap;align-items:center;gap:5px;font-family:var(--mono);font-size:11.5px}
+.log .rt b{font-weight:500}
+.log .rt i{font-style:normal;color:var(--tc)}
+.log .rt em{font-style:normal;font-size:9.5px;padding:0 4px;border-radius:3px;color:#0b0b14;background:var(--tc)}
+.log .rt small{color:var(--faint);font-size:10px}
+.log code{display:block;font-family:var(--mono);font-size:10.5px;color:var(--muted);word-break:break-word}
+.legend{display:flex;flex-wrap:wrap;gap:10px;font-family:var(--mono);font-size:10.5px;color:var(--muted);margin-bottom:8px}
+.legend span::before{content:"";display:inline-block;width:8px;height:8px;border-radius:2px;background:var(--tc);margin-right:5px;vertical-align:-1px}
+.falas{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+.falas li{font-size:13.5px;opacity:.3;transition:opacity .2s}
+.falas li.past{opacity:1}
+.falas time{font-family:var(--mono);font-size:11px;color:var(--faint);margin-right:8px}
+footer{margin-top:18px;color:var(--faint);font-size:12.5px;max-width:90ch}
+footer code{font-family:var(--mono);color:var(--muted)}
+@media (max-width:900px){.layout{grid-template-columns:1fr}.log{max-height:320px}}
+@media (max-width:480px){.tele{grid-template-columns:repeat(2,minmax(0,1fr))}.meter{grid-template-columns:78px 1fr 40px}}
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <div class="eyebrow"><i></i>Projeto Córtex · protótipo em simulação</div>
+    <h1>O cérebro do robô <em>rodando de verdade</em></h1>
+  </div>
+  <span class="tests" id="tests">20 testes automáticos passando</span>
+</header>
+
+<nav class="tabs" id="tabs" aria-label="Cenários"></nav>
+
+<div class="layout">
+  <section class="stage">
+    <p class="resumo" id="resumo"></p>
+    <div class="room"><canvas id="room" aria-label="Sala vista de cima com o robô, copos, a base de recarga e pessoas"></canvas><div class="flash" id="flash"></div></div>
+    <div class="ctl">
+      <button class="primary" id="play">Pausar</button>
+      <button id="restart" title="Voltar ao início">↺ Início</button>
+      <div class="speed" id="speed" role="group" aria-label="Velocidade">
+        <button data-s="0.25">¼×</button><button data-s="0.5">½×</button><button data-s="1" aria-pressed="true">1×</button><button data-s="2">2×</button>
+      </div>
+      <label for="scrub" style="position:absolute;left:-9999px">Tempo</label>
+      <input type="range" id="scrub" min="0" max="1000" value="0">
+      <output id="clock">0,00 s</output>
+    </div>
+  </section>
+
+  <aside class="side">
+    <section class="card">
+      <h2><span>Estado do robô</span><span id="modo"></span></h2>
+      <div class="tele">
+        <div><b id="tv">0,00</b><span>velocidade (m/s)</span></div>
+        <div><b id="tteto">1,0</b><span>teto de velocidade</span></div>
+        <div><b id="tbat">80%</b><span>bateria</span></div>
+        <div><b id="tcb">0,000</b><span>desvio aprendido (rad)</span></div>
+        <div><b id="treal">0,120</b><span>desvio real das rodas</span></div>
+        <div><b id="tgarra">vazia</b><span>garra</span></div>
+      </div>
+      <div class="state" id="state"></div>
+    </section>
+    <section class="card">
+      <h2><span>Neuroquímica · parâmetros globais</span></h2>
+      <div class="meters" id="meters"></div>
+    </section>
+    <section class="card">
+      <h2><span>Sinapses · mensagens entre módulos</span><span id="nmsg"></span></h2>
+      <div class="legend"><span style="--tc:var(--t-dados)">dados</span><span style="--tc:var(--t-exc)">excitatório</span><span style="--tc:var(--t-inib)">inibitório</span><span style="--tc:var(--t-mod)">modulador</span></div>
+      <ol class="log" id="log"></ol>
+    </section>
+    <section class="card">
+      <h2><span>O que o robô falou</span></h2>
+      <ul class="falas" id="falas"></ul>
+    </section>
+  </aside>
+</div>
+
+<footer>Cada cenário foi gerado pelo simulador em Python (<code>projeto-cortex/prototipo</code>): 40 módulos com os códigos do atlas, 21 com comportamento real, trocando mensagens no formato do protocolo da Etapa 4. O registro mostra só as mensagens de decisão; o fluxo contínuo dos sensores (câmera a 30 quadros por segundo, propriocepção a 100 Hz) fica de fora e aparece apenas como contagem.</footer>
+
+<script src="trilhas.js"></script>
+<script>
+(function(){
+'use strict';
+const T = window.TRILHAS || [];
+const TC = {dados:'--t-dados',excitatorio:'--t-exc',inibitorio:'--t-inib',modulador:'--t-mod'};
+const TN = {dados:'dados',excitatorio:'excit.',inibitorio:'inib.',modulador:'modul.'};
+const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const fmt = (v,d=2) => v.toLocaleString('pt-BR',{minimumFractionDigits:d,maximumFractionDigits:d});
+const $ = id => document.getElementById(id);
+const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+let cur = null, t = 0, playing = !reduced, speed = 1, last = performance.now(), trail = [];
+const PARAMS = [['alerta','NT-NE','#ff6b5a',0,1],['foco','NT-ACH','#a4f07a',0,1],['fadiga','NT-ADO','#e0d2b8',0,1],['recompensa','NT-DA','#ffcf4d',-1,1],['confianca','NT-OXT','#ff8fd0',0,1]];
+
+$('tabs').innerHTML = T.map((s,i)=>`<button data-i="${i}">${s.titulo}</button>`).join('');
+$('tabs').addEventListener('click',e=>{const b=e.target.closest('button');if(b)load(+b.dataset.i)});
+$('meters').innerHTML = PARAMS.map(([k,code,c,lo])=>`<div class="meter" style="--c:${c}"><span>${k} <small>${code}</small></span><div class="bar ${lo<0?'center':''}"><i id="mb-${k}"></i></div><output id="mv-${k}">0</output></div>`).join('');
+
+function load(i){
+  cur = T[i]; t = 0; trail = [];
+  [...$('tabs').children].forEach((b,k)=>b.setAttribute('aria-pressed',String(k===i)));
+  $('resumo').textContent = cur.resumo;
+  $('treal').textContent = fmt(cur.desvio_real,3);
+  $('nmsg').textContent = `${cur.mensagens.length} de decisão · ${cur.fluxo.toLocaleString('pt-BR')} de sensores`;
+  $('log').innerHTML = cur.mensagens.map((m,k)=>`<li tabindex="0" data-t="${m.t}" style="--tc:var(${TC[m.tipo]})"><time>${fmt(m.t/1000,3)} s</time><div><span class="rt"><b>${m.de}</b><i>→</i><b>${m.para}</b><em>${TN[m.tipo]}</em><small>P${m.prioridade}</small></span><code>${m.sinal} ${esc(JSON.stringify(m.dados))}</code></div></li>`).join('');
+  $('falas').innerHTML = cur.falas.length ? cur.falas.map(([ts,txt])=>`<li data-t="${ts}"><time>${fmt(ts,2)} s</time>“${esc(txt)}”</li>`).join('') : '<li class="past">Nenhuma fala neste cenário.</li>';
+  playing = !reduced; $('play').textContent = playing?'Pausar':'Tocar';
+  render(true);
+}
+const esc = s => s.replace(/[<>&]/g,c=>({'<':'&lt;','>':'&gt;','&':'&amp;'})[c]);
+$('log').addEventListener('click',e=>{const li=e.target.closest('li');if(li){t=+li.dataset.t/1000;render(true)}});
+$('log').addEventListener('keydown',e=>{if(e.key==='Enter'){const li=e.target.closest('li');if(li){t=+li.dataset.t/1000;render(true)}}});
+$('play').addEventListener('click',()=>{if(t>=cur.duracao)t=0;playing=!playing;$('play').textContent=playing?'Pausar':'Tocar'});
+$('restart').addEventListener('click',()=>{t=0;trail=[];render(true)});
+$('speed').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;speed=+b.dataset.s;[...$('speed').children].forEach(x=>x.setAttribute('aria-pressed',String(x===b)))});
+$('scrub').addEventListener('input',e=>{t=e.target.value/1000*cur.duracao;playing=false;$('play').textContent='Tocar';render(true)});
+
+function frameAt(t){
+  const q = cur.quadros, i = Math.min(q.length-2, Math.max(0, Math.floor(t/0.05)));
+  const a = q[i], b = q[i+1] || a, f = Math.max(0, Math.min(1, (t - a.t)/0.05));
+  const lerp = (x,y)=>x+(y-x)*f;
+  let dth = b.robo.theta - a.robo.theta; if(dth>Math.PI)dth-=2*Math.PI; if(dth<-Math.PI)dth+=2*Math.PI;
+  return {a, robo:{...a.robo, x:lerp(a.robo.x,b.robo.x), y:lerp(a.robo.y,b.robo.y), theta:a.robo.theta+dth*f},
+    objetos:a.objetos.map((o,k)=>({...o,x:lerp(o.x,(b.objetos[k]||o).x),y:lerp(o.y,(b.objetos[k]||o).y)})),
+    pessoas:b.pessoas.map(p=>{const pa=a.pessoas.find(x=>x.id===p.id)||p;return {...p,x:lerp(pa.x,p.x),y:lerp(pa.y,p.y),vx:(p.x-pa.x)/0.05,vy:(p.y-pa.y)/0.05}})};
+}
+
+// ---------------- sala ----------------
+const cv = $('room'), ctx = cv.getContext('2d');
+function size(){const r=cv.getBoundingClientRect(),d=Math.min(devicePixelRatio||1,2);cv.width=Math.round(r.width*d);cv.height=Math.round(r.height*d);ctx.setTransform(d,0,0,d,0,0);render(true)}
+addEventListener('resize',size);
+function draw(F){
+  const W=cv.clientWidth,H=cv.clientHeight,s=W/8,X=x=>x*s,Y=y=>H-y*s;
+  ctx.clearRect(0,0,W,H);
+  ctx.strokeStyle='rgba(239,234,245,.06)';ctx.lineWidth=1;
+  for(let i=1;i<8;i++){ctx.beginPath();ctx.moveTo(X(i),0);ctx.lineTo(X(i),H);ctx.stroke()}
+  for(let j=1;j<6;j++){ctx.beginPath();ctx.moveTo(0,Y(j));ctx.lineTo(W,Y(j));ctx.stroke()}
+  ctx.fillStyle='rgba(239,234,245,.35)';ctx.font='10px "IBM Plex Mono", monospace';ctx.fillText('1 m',X(1)+4,Y(0)-4);
+  // porta
+  ctx.strokeStyle='rgba(239,234,245,.35)';ctx.setLineDash([4,4]);ctx.beginPath();ctx.moveTo(X(7.2),Y(6)+1);ctx.lineTo(X(8),Y(6)+1);ctx.stroke();ctx.setLineDash([]);
+  ctx.fillText('porta',X(7.25),Y(5.8));
+  // base
+  const bx=cur.base[0],by=cur.base[1];
+  ctx.fillStyle='rgba(127,240,178,.12)';ctx.strokeStyle='rgba(127,240,178,.7)';ctx.lineWidth=1.5;
+  ctx.fillRect(X(bx-0.35),Y(by+0.35),0.7*s,0.7*s);ctx.strokeRect(X(bx-0.35),Y(by+0.35),0.7*s,0.7*s);
+  ctx.fillStyle='rgba(127,240,178,.9)';ctx.fillText('base de recarga',X(bx-0.35),Y(by+0.35)-5);
+  // trilha
+  if(trail.length>1){ctx.strokeStyle='rgba(126,232,255,.35)';ctx.lineWidth=2;ctx.beginPath();trail.forEach((p,i)=>i?ctx.lineTo(X(p[0]),Y(p[1])):ctx.moveTo(X(p[0]),Y(p[1])));ctx.stroke()}
+  // objetos
+  const COR={azul:'#5b8cff',vermelho:'#ff6b5a',verde:'#7ff0b2'};
+  F.objetos.forEach(o=>{
+    ctx.fillStyle=COR[o.cor]||'#ccc';
+    if(o.tipo==='copo'){ctx.beginPath();ctx.arc(X(o.x),Y(o.y),0.08*s,0,Math.PI*2);ctx.fill();ctx.strokeStyle='rgba(255,255,255,.6)';ctx.lineWidth=1;ctx.stroke()}
+    else ctx.fillRect(X(o.x)-0.12*s,Y(o.y)-0.12*s,0.24*s,0.24*s);
+    if(F.robo.segurando!==o.id){ctx.fillStyle='rgba(239,234,245,.6)';ctx.fillText(`${o.tipo} ${o.cor}`,X(o.x)+0.12*s,Y(o.y)+4)}
+  });
+  // pessoas
+  F.pessoas.forEach(p=>{
+    const d=Math.hypot(p.x-F.robo.x,p.y-F.robo.y);
+    if(d<1.8){ctx.strokeStyle='rgba(255,184,107,.35)';ctx.setLineDash([3,5]);ctx.beginPath();ctx.arc(X(F.robo.x),Y(F.robo.y),1.8*s,0,Math.PI*2);ctx.stroke();ctx.setLineDash([])}
+    ctx.fillStyle='#ffd6a8';ctx.beginPath();ctx.arc(X(p.x),Y(p.y),0.2*s,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='#1a0f04';ctx.font='600 11px "IBM Plex Sans", sans-serif';ctx.textAlign='center';ctx.fillText(p.nome[0],X(p.x),Y(p.y)+4);ctx.textAlign='left';
+    ctx.font='10px "IBM Plex Mono", monospace';ctx.fillStyle='rgba(255,214,168,.9)';ctx.fillText(p.nome,X(p.x)+0.24*s,Y(p.y)-0.12*s);
+    const sp=Math.hypot(p.vx,p.vy);
+    if(sp>0.2){ctx.strokeStyle='#ffd6a8';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(X(p.x),Y(p.y));ctx.lineTo(X(p.x+p.vx*0.35),Y(p.y+p.vy*0.35));ctx.stroke()}
+  });
+  // robô
+  const r=F.robo,rx=X(r.x),ry=Y(r.y),R=0.25*s,pa=F.a.parada;
+  ctx.strokeStyle='rgba(126,232,255,.25)';ctx.setLineDash([2,4]);ctx.beginPath();ctx.arc(rx,ry,0.45*s,0,Math.PI*2);ctx.stroke();ctx.setLineDash([]);
+  if(pa){const k=0.5+0.5*Math.sin(performance.now()/180);ctx.strokeStyle=`rgba(255,107,90,${0.5+0.5*k})`;ctx.lineWidth=3;ctx.beginPath();ctx.arc(rx,ry,R+8+4*k,0,Math.PI*2);ctx.stroke()}
+  ctx.fillStyle=r.carregando?'#2c5b47':'#16324a';ctx.strokeStyle=pa?'#ff6b5a':'#7ee8ff';ctx.lineWidth=2;
+  ctx.beginPath();ctx.arc(rx,ry,R,0,Math.PI*2);ctx.fill();ctx.stroke();
+  ctx.save();ctx.translate(rx,ry);ctx.rotate(-r.theta);
+  ctx.fillStyle='#7ee8ff';ctx.beginPath();ctx.moveTo(R*0.95,0);ctx.lineTo(R*0.2,-R*0.45);ctx.lineTo(R*0.2,R*0.45);ctx.closePath();ctx.globalAlpha=.8;ctx.fill();ctx.globalAlpha=1;
+  ctx.strokeStyle='#b8f3ff';ctx.lineWidth=2.5;ctx.beginPath();ctx.moveTo(R*0.9,-R*0.35);ctx.lineTo(R*1.35,-R*0.35);ctx.moveTo(R*0.9,R*0.35);ctx.lineTo(R*1.35,R*0.35);ctx.stroke();
+  ctx.restore();
+  if(r.segurando){const o=F.objetos.find(x=>x.id===r.segurando);if(o){ctx.fillStyle=COR[o.cor];ctx.beginPath();ctx.arc(X(o.x),Y(o.y),0.08*s,0,Math.PI*2);ctx.fill()}}
+  ctx.font='10px "IBM Plex Mono", monospace';ctx.fillStyle=pa?'#ff6b5a':'rgba(126,232,255,.9)';
+  ctx.fillText(pa?'PARADA TRAVADA':r.carregando?'CARREGANDO':'robô',rx-R,ry+R+14);
+  // fala
+  const fala=cur.falas.filter(f=>f[0]<=t&&t-f[0]<2.8).pop();
+  if(fala){ctx.font='500 13px "IBM Plex Sans", sans-serif';const w=Math.min(ctx.measureText(fala[1]).width+18,W-12);let bx2=Math.min(Math.max(6,rx-w/2),W-w-6),by2=ry-R-44;if(by2<6)by2=ry+R+22;
+    ctx.fillStyle='rgba(239,234,245,.95)';round(bx2,by2,w,26,8);ctx.fill();ctx.fillStyle='#0b0b14';ctx.fillText(fala[1],bx2+9,by2+17,w-18)}
+}
+function round(x,y,w,h,r){ctx.beginPath();ctx.moveTo(x+r,y);ctx.arcTo(x+w,y,x+w,y+h,r);ctx.arcTo(x+w,y+h,x,y+h,r);ctx.arcTo(x,y+h,x,y,r);ctx.arcTo(x,y,x+w,y,r);ctx.closePath()}
+
+// ---------------- painel ----------------
+let lastPast=-1;
+function render(force){
+  if(!cur)return;
+  const F=frameAt(t),a=F.a;
+  if(force){trail=cur.quadros.filter(q=>q.t<=t).map(q=>[q.robo.x,q.robo.y])}
+  else if(!trail.length||Math.hypot(trail[trail.length-1][0]-F.robo.x,trail[trail.length-1][1]-F.robo.y)>0.03)trail.push([F.robo.x,F.robo.y]);
+  draw(F);
+  $('clock').textContent=`${fmt(t,2)} s`;$('scrub').value=Math.round(t/cur.duracao*1000);
+  $('tv').textContent=fmt(Math.abs(a.robo.v),2);$('tteto').textContent=fmt(a.teto,2);$('tbat').textContent=fmt(a.robo.bateria,1)+'%';
+  $('tcb').textContent=fmt(a.cerebelo,3);$('tgarra').textContent=a.robo.segurando?a.robo.segurando.replace('_0',' '):'vazia';
+  const modo=a.parada?'parada travada':a.robo.carregando?'repouso':'ativo';$('modo').textContent=modo;
+  $('state').innerHTML=[['PARADA (R2)',a.parada,'#ff6b5a'],['perto de pessoa',a.teto<=0.5&&!a.parada,'#ffb86b'],['modo economia',a.teto===0.6,'#e0d2b8'],['carregando',a.robo.carregando,'#7ff0b2'],['segurando objeto',!!a.robo.segurando,'#7ee8ff']].map(([l,on,c])=>`<span class="pill ${on?'on':''}" style="--c:${c}">${l}</span>`).join('');
+  PARAMS.forEach(([k,,, lo,hi])=>{const v=a.params[k];const b=$('mb-'+k);if(lo<0){const w=Math.abs(v)/(hi-lo)*100;b.style.width=w+'%';b.style.left=v<0?(50-w)+'%':'50%'}else b.style.width=((v-lo)/(hi-lo)*100)+'%';$('mv-'+k).textContent=fmt(v,2)});
+  // registro
+  const ms=t*1000;let past=-1;
+  const lis=$('log').children;
+  for(let i=0;i<lis.length;i++){const p=cur.mensagens[i].t<=ms+0.01;lis[i].classList.toggle('past',p);if(p)past=i;lis[i].classList.toggle('now',p&&ms-cur.mensagens[i].t<350)}
+  if(past!==lastPast&&past>=0){const li=lis[past],box=$('log');const top=li.offsetTop-box.offsetTop;if(top<box.scrollTop||top>box.scrollTop+box.clientHeight-40)box.scrollTop=top-box.clientHeight/2}
+  lastPast=past;
+  [...$('falas').children].forEach(li=>{if(li.dataset.t)li.classList.toggle('past',+li.dataset.t<=t)});
+  // mensagens recentes sobre a sala
+  const rec=cur.mensagens.filter(m=>m.t<=ms&&ms-m.t<600*Math.max(1,speed)).slice(-3);
+  $('flash').innerHTML=rec.map(m=>`<div style="--tc:var(${TC[m.tipo]})">${m.de} → ${m.para} · ${m.sinal}</div>`).join('');
+}
+
+function loop(now){
+  const dt=Math.min(0.1,(now-last)/1000);last=now;
+  if(playing&&cur){t+=dt*speed;if(t>=cur.duracao){t=cur.duracao;playing=false;$('play').textContent='Tocar de novo'}render(false)}
+  else if(cur&&cur.quadros.length&&frameAt(t).a.parada)render(false);
+  requestAnimationFrame(loop);
+}
+if(!T.length){$('resumo').textContent='Nenhuma trilha encontrada. Rode python -m cortex.simulador para gerar viewer/trilhas.js.'}
+else{load(0);size();requestAnimationFrame(loop)}
+})();
+</script>
+</body>
+</html>

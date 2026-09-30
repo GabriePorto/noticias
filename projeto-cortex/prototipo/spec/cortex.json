@@ -1,0 +1,3769 @@
+{
+  "projeto": "Projeto Córtex",
+  "etapa": 4,
+  "titulo": "Comandos e sinapses",
+  "total": 40,
+  "protocolo": {
+    "campos": [
+      "id",
+      "de",
+      "para",
+      "tipo",
+      "sinal",
+      "prioridade",
+      "dados",
+      "peso",
+      "ttl_ms",
+      "t"
+    ],
+    "tipos": [
+      {
+        "tipo": "dados",
+        "nome": "Dados",
+        "analogia": "sinal sensorial",
+        "descricao": "Informação: imagem, som, posição, resultado. Não manda fazer nada, só informa."
+      },
+      {
+        "tipo": "exc",
+        "nome": "Excitatório",
+        "analogia": "como o glutamato",
+        "descricao": "Ativa o módulo seguinte: executar, falar, liberar uma ação."
+      },
+      {
+        "tipo": "inib",
+        "nome": "Inibitório",
+        "analogia": "como o GABA",
+        "descricao": "Suprime: parar, vetar, frear um reflexo ou cancelar uma ação."
+      },
+      {
+        "tipo": "mod",
+        "nome": "Modulador",
+        "analogia": "como dopamina e noradrenalina",
+        "descricao": "Ajusta parâmetros de um ou de muitos módulos: alerta, foco, recompensa, modo."
+      }
+    ],
+    "prioridades": [
+      {
+        "nivel": 0,
+        "nome": "Reflexos e segurança",
+        "regra": "Interrompe qualquer outra mensagem. Nada acima pode cancelar."
+      },
+      {
+        "nivel": 1,
+        "nome": "Corpo e homeostase",
+        "regra": "Energia e temperatura vencem tarefas."
+      },
+      {
+        "nivel": 2,
+        "nome": "Percepção",
+        "regra": "Dados dos sentidos, com prazo curto de validade."
+      },
+      {
+        "nivel": 3,
+        "nome": "Controle motor",
+        "regra": "Um dono por atuador, ciclos de 1 a 10 ms."
+      },
+      {
+        "nivel": 4,
+        "nome": "Valor e memória",
+        "regra": "Avaliação, aprendizado, registro."
+      },
+      {
+        "nivel": 5,
+        "nome": "Deliberação",
+        "regra": "Planos e conversa. Pode ser interrompida por todas as outras."
+      }
+    ],
+    "permissoes": [
+      {
+        "quem": "Qualquer pessoa",
+        "pode": "Mandar parar e conversar. “Pare” é sempre aceito, de qualquer voz."
+      },
+      {
+        "quem": "Visitante",
+        "pode": "Perguntas e pedidos simples, sem mover objetos de terceiros."
+      },
+      {
+        "quem": "Usuário cadastrado",
+        "pode": "Tarefas do dia a dia, dentro das regras."
+      },
+      {
+        "quem": "Dono",
+        "pode": "Cadastrar usuários e ajustar parâmetros liberados (paciência, confiança)."
+      },
+      {
+        "quem": "Engenharia",
+        "pode": "Ganho, limites de juntas e atualizações, sempre com registro."
+      },
+      {
+        "quem": "Ninguém",
+        "pode": "Desligar as regras invioláveis ou comandar a recompensa."
+      }
+    ]
+  },
+  "regras": [
+    {
+      "codigo": "R1",
+      "titulo": "Não causar dano a pessoas",
+      "texto": "Nenhuma ação é executada se o detector de risco estimar dano a uma pessoa. O veto acontece antes de a proposta chegar ao árbitro.",
+      "modulos": [
+        "LIM-AM",
+        "CTX-PF"
+      ]
+    },
+    {
+      "codigo": "R2",
+      "titulo": "A parada sempre vence",
+      "texto": "Um sinal de parada da camada 0 não pode ser cancelado por nenhuma camada acima. Só uma pessoa autorizada libera o movimento de novo.",
+      "modulos": [
+        "SC-00",
+        "BS-BU"
+      ]
+    },
+    {
+      "codigo": "R3",
+      "titulo": "Limites físicos na própria junta",
+      "texto": "Força, velocidade e corrente máximas ficam gravadas no hardware de cada junta. Software nenhum consegue aumentar.",
+      "modulos": [
+        "SC-00",
+        "CTX-M1"
+      ]
+    },
+    {
+      "codigo": "R4",
+      "titulo": "Um dono por atuador",
+      "texto": "Cada motor obedece a um único comando por vez, escolhido pelo árbitro de ações.",
+      "modulos": [
+        "BG-00"
+      ]
+    },
+    {
+      "codigo": "R5",
+      "titulo": "Recompensa não é comandável",
+      "texto": "Nenhum comando externo altera a recompensa ou os valores do robô. Só o resultado real das ações muda o aprendizado.",
+      "modulos": [
+        "MB-SN",
+        "NT-DA"
+      ]
+    },
+    {
+      "codigo": "R6",
+      "titulo": "Na dúvida, perguntar",
+      "texto": "Comandos com confiança abaixo de 0,6, risco acima de 0,3 ou efeito irreversível exigem confirmação.",
+      "modulos": [
+        "CTX-WE",
+        "CTX-PF"
+      ]
+    },
+    {
+      "codigo": "R7",
+      "titulo": "Toda supressão expira",
+      "texto": "Qualquer override tem prazo, fica registrado e nunca atua sobre a camada de reflexos.",
+      "modulos": [
+        "NT-END"
+      ]
+    },
+    {
+      "codigo": "R8",
+      "titulo": "Tudo fica registrado",
+      "texto": "Cada comando, veto e decisão vai para um registro auditável.",
+      "modulos": [
+        "LIM-HC"
+      ]
+    },
+    {
+      "codigo": "R9",
+      "titulo": "Privacidade de quem aparece",
+      "texto": "Reconhecer e lembrar pessoas só com consentimento. Os dados são apagados quando a pessoa pede.",
+      "modulos": [
+        "CTX-TE",
+        "LIM-HC"
+      ]
+    }
+  ],
+  "cenarios": [
+    {
+      "comando": "Pegue o copo azul",
+      "resumo": "Da voz ao primeiro movimento: 430 ms. O movimento levou 1,8 s, com uma correção do cerebelo no meio do caminho.",
+      "mensagens": [
+        {
+          "t_ms": 0,
+          "de": "MIC",
+          "para": "CTX-A1",
+          "tipo": "dados",
+          "sinal": "audio.stream",
+          "dados": {
+            "canais": 4
+          },
+          "nota": "Microfones captam a voz"
+        },
+        {
+          "t_ms": 40,
+          "de": "CTX-A1",
+          "para": "CTX-WE",
+          "tipo": "dados",
+          "sinal": "fala.audio",
+          "dados": {
+            "dur_ms": 1400
+          },
+          "nota": "Voz separada do ruído"
+        },
+        {
+          "t_ms": 220,
+          "de": "CTX-WE",
+          "para": "CTX-PF",
+          "tipo": "dados",
+          "sinal": "intencao",
+          "dados": {
+            "acao": "pegar",
+            "alvo": "copo azul",
+            "conf": 0.94
+          },
+          "nota": "Frase entendida como intenção"
+        },
+        {
+          "t_ms": 235,
+          "de": "CTX-PF",
+          "para": "DIE-TH",
+          "tipo": "mod",
+          "sinal": "atencao.focar",
+          "dados": {
+            "alvo": "copo azul"
+          },
+          "nota": "Planejador direciona a atenção"
+        },
+        {
+          "t_ms": 250,
+          "de": "CAM",
+          "para": "DIE-TH",
+          "tipo": "dados",
+          "sinal": "sensor.camera",
+          "dados": {
+            "fps": 30
+          },
+          "nota": "Câmeras enviam a imagem"
+        },
+        {
+          "t_ms": 270,
+          "de": "DIE-TH",
+          "para": "CTX-OC",
+          "tipo": "dados",
+          "sinal": "visao.quadro",
+          "dados": {
+            "res": "1280x720"
+          },
+          "nota": "Roteador prioriza a imagem"
+        },
+        {
+          "t_ms": 300,
+          "de": "CTX-OC",
+          "para": "CTX-TE",
+          "tipo": "dados",
+          "sinal": "objetos",
+          "dados": {
+            "n": 4
+          },
+          "nota": "Visão detecta 4 objetos na mesa"
+        },
+        {
+          "t_ms": 320,
+          "de": "CTX-TE",
+          "para": "CTX-PA",
+          "tipo": "dados",
+          "sinal": "objeto.identificado",
+          "dados": {
+            "id": "copo_01",
+            "cor": "azul"
+          },
+          "nota": "Reconhece o copo azul"
+        },
+        {
+          "t_ms": 340,
+          "de": "CTX-PA",
+          "para": "CTX-PF",
+          "tipo": "dados",
+          "sinal": "alvo.pose",
+          "dados": {
+            "x": 0.62,
+            "y": -0.1,
+            "z": 0.78
+          },
+          "nota": "Mapa calcula onde ele está"
+        },
+        {
+          "t_ms": 350,
+          "de": "CTX-PF",
+          "para": "LIM-AM",
+          "tipo": "dados",
+          "sinal": "risco.avaliar",
+          "dados": {
+            "acao": "pegar"
+          },
+          "nota": "Verificação de risco antes de agir"
+        },
+        {
+          "t_ms": 362,
+          "de": "LIM-AM",
+          "para": "CTX-PF",
+          "tipo": "dados",
+          "sinal": "risco",
+          "dados": {
+            "nivel": 0.04
+          },
+          "nota": "Risco baixo: pode seguir"
+        },
+        {
+          "t_ms": 370,
+          "de": "CTX-PF",
+          "para": "BG-NA",
+          "tipo": "dados",
+          "sinal": "consulta.valor",
+          "dados": {
+            "acao": "pegar"
+          },
+          "nota": "Vale o esforço?"
+        },
+        {
+          "t_ms": 380,
+          "de": "BG-NA",
+          "para": "CTX-PF",
+          "tipo": "dados",
+          "sinal": "valor",
+          "dados": {
+            "utilidade": 0.82
+          },
+          "nota": "Vale"
+        },
+        {
+          "t_ms": 390,
+          "de": "CTX-PF",
+          "para": "BG-00",
+          "tipo": "exc",
+          "sinal": "proposta.acao",
+          "dados": {
+            "acao": "pegar",
+            "prio": 5
+          },
+          "nota": "Proposta enviada ao árbitro"
+        },
+        {
+          "t_ms": 400,
+          "de": "BG-00",
+          "para": "BS-MB",
+          "tipo": "inib",
+          "sinal": "suprimir",
+          "dados": {
+            "acao": "olhar.virar"
+          },
+          "nota": "Árbitro freia reflexos que atrapalhariam"
+        },
+        {
+          "t_ms": 405,
+          "de": "BG-00",
+          "para": "DIE-TH",
+          "tipo": "exc",
+          "sinal": "acao.liberada",
+          "dados": {
+            "acao": "pegar"
+          },
+          "nota": "Ação liberada"
+        },
+        {
+          "t_ms": 412,
+          "de": "DIE-TH",
+          "para": "CTX-M1",
+          "tipo": "exc",
+          "sinal": "executar",
+          "dados": {
+            "acao": "pegar"
+          },
+          "nota": null
+        },
+        {
+          "t_ms": 420,
+          "de": "CTX-M1",
+          "para": "SC-00",
+          "tipo": "exc",
+          "sinal": "juntas.trajetoria",
+          "dados": {
+            "juntas": 7,
+            "dur_ms": 1800
+          },
+          "nota": "Comando para as 7 juntas do braço"
+        },
+        {
+          "t_ms": 422,
+          "de": "CTX-M1",
+          "para": "CB-00",
+          "tipo": "dados",
+          "sinal": "copia.comando",
+          "dados": {},
+          "nota": "Cópia do comando vai ao corretor de movimento"
+        },
+        {
+          "t_ms": 430,
+          "de": "SC-00",
+          "para": "MOTORES",
+          "tipo": "exc",
+          "sinal": "torque",
+          "dados": {
+            "max_N": 15
+          },
+          "nota": "Motores se movem, com força limitada na junta (R3)"
+        },
+        {
+          "t_ms": 1200,
+          "de": "SC-00",
+          "para": "CB-00",
+          "tipo": "dados",
+          "sinal": "propriocepcao",
+          "dados": {
+            "erro_mm": 6
+          },
+          "nota": "Braço 6 mm fora da rota prevista"
+        },
+        {
+          "t_ms": 1208,
+          "de": "CB-00",
+          "para": "CTX-M1",
+          "tipo": "mod",
+          "sinal": "correcao",
+          "dados": {
+            "delta_mm": -6
+          },
+          "nota": "Correção aplicada em pleno movimento"
+        },
+        {
+          "t_ms": 2230,
+          "de": "SC-00",
+          "para": "CTX-S1",
+          "tipo": "dados",
+          "sinal": "tato",
+          "dados": {
+            "forca_N": 3.2
+          },
+          "nota": "A mão toca o copo"
+        },
+        {
+          "t_ms": 2240,
+          "de": "CTX-S1",
+          "para": "CTX-PF",
+          "tipo": "dados",
+          "sinal": "contato",
+          "dados": {
+            "estado": "preso"
+          },
+          "nota": "Copo seguro"
+        },
+        {
+          "t_ms": 2250,
+          "de": "CTX-PF",
+          "para": "MB-SN",
+          "tipo": "dados",
+          "sinal": "resultado",
+          "dados": {
+            "sucesso": true
+          },
+          "nota": null
+        },
+        {
+          "t_ms": 2260,
+          "de": "MB-SN",
+          "para": "BG-00",
+          "tipo": "mod",
+          "sinal": "recompensa",
+          "dados": {
+            "erro_previsao": 0.1
+          },
+          "nota": "Saiu um pouco melhor que o previsto: reforça a rotina"
+        },
+        {
+          "t_ms": 2270,
+          "de": "CTX-PF",
+          "para": "LIM-HC",
+          "tipo": "dados",
+          "sinal": "registrar",
+          "dados": {
+            "evento": "pegou copo_01"
+          },
+          "nota": "Evento gravado na memória"
+        },
+        {
+          "t_ms": 2280,
+          "de": "CTX-PF",
+          "para": "CTX-BR",
+          "tipo": "exc",
+          "sinal": "falar",
+          "dados": {
+            "texto": "Peguei o copo azul."
+          },
+          "nota": null
+        },
+        {
+          "t_ms": 2300,
+          "de": "CTX-BR",
+          "para": "VOZ",
+          "tipo": "dados",
+          "sinal": "audio.voz",
+          "dados": {},
+          "nota": "“Peguei o copo azul.”"
+        }
+      ]
+    },
+    {
+      "comando": "Pare!",
+      "resumo": "A parada começou em 20 ms, mais de 200 ms antes de o robô entender a frase. É a regra R2: a parada sempre vence.",
+      "mensagens": [
+        {
+          "t_ms": 0,
+          "de": "MIC",
+          "para": "CTX-A1",
+          "tipo": "dados",
+          "sinal": "audio.stream",
+          "dados": {
+            "canais": 4
+          },
+          "nota": "“PARE!” em voz alta"
+        },
+        {
+          "t_ms": 12,
+          "de": "CTX-A1",
+          "para": "LIM-AM",
+          "tipo": "dados",
+          "sinal": "som.intenso",
+          "dados": {
+            "dB": 84,
+            "palavra": "pare"
+          },
+          "nota": "Via rápida: palavra-chave detectada antes de entender a frase"
+        },
+        {
+          "t_ms": 20,
+          "de": "LIM-AM",
+          "para": "SC-00",
+          "tipo": "inib",
+          "sinal": "parada.segura",
+          "dados": {
+            "categoria": "STOP_1"
+          },
+          "nota": "Parada disparada"
+        },
+        {
+          "t_ms": 22,
+          "de": "LIM-AM",
+          "para": "BG-00",
+          "tipo": "inib",
+          "sinal": "cancelar.acoes",
+          "dados": {},
+          "nota": "Todas as ações em curso são freadas"
+        },
+        {
+          "t_ms": 28,
+          "de": "SC-00",
+          "para": "MOTORES",
+          "tipo": "inib",
+          "sinal": "torque",
+          "dados": {
+            "alvo": 0
+          },
+          "nota": "Motores desaceleram até parar"
+        },
+        {
+          "t_ms": 30,
+          "de": "LIM-AM",
+          "para": "NT-NE",
+          "tipo": "mod",
+          "sinal": "alerta",
+          "dados": {
+            "valor": 0.9
+          },
+          "nota": "Nível de alerta sobe para 0,9"
+        },
+        {
+          "t_ms": 40,
+          "de": "CTX-A1",
+          "para": "CTX-WE",
+          "tipo": "dados",
+          "sinal": "fala.audio",
+          "dados": {},
+          "nota": "Via lenta: agora a frase é analisada"
+        },
+        {
+          "t_ms": 230,
+          "de": "CTX-WE",
+          "para": "CTX-PF",
+          "tipo": "dados",
+          "sinal": "intencao",
+          "dados": {
+            "acao": "parar",
+            "conf": 0.97
+          },
+          "nota": "Confirmado: era um pedido para parar"
+        },
+        {
+          "t_ms": 245,
+          "de": "CTX-PF",
+          "para": "LIM-HC",
+          "tipo": "dados",
+          "sinal": "registrar",
+          "dados": {
+            "evento": "parada por voz"
+          },
+          "nota": "Evento registrado (R8)"
+        },
+        {
+          "t_ms": 260,
+          "de": "CTX-PF",
+          "para": "CTX-BR",
+          "tipo": "exc",
+          "sinal": "falar",
+          "dados": {
+            "texto": "Parei. Está tudo bem?"
+          },
+          "nota": null
+        },
+        {
+          "t_ms": 290,
+          "de": "CTX-BR",
+          "para": "VOZ",
+          "tipo": "dados",
+          "sinal": "audio.voz",
+          "dados": {},
+          "nota": "“Parei. Está tudo bem?”"
+        },
+        {
+          "t_ms": 3000,
+          "de": "DIE-HY",
+          "para": "NT-NE",
+          "tipo": "mod",
+          "sinal": "alerta",
+          "dados": {
+            "valor": 0.3
+          },
+          "nota": "Sem nova ameaça: o alerta volta ao normal"
+        }
+      ]
+    },
+    {
+      "comando": "Alguém se aproxima rápido",
+      "resumo": "O robô freou em 25 ms e só depois reconheceu a pessoa. A confiança na Ana libera parte da velocidade, mas nunca desliga o limite perto de pessoas.",
+      "mensagens": [
+        {
+          "t_ms": 0,
+          "de": "CAM",
+          "para": "DIE-TH",
+          "tipo": "dados",
+          "sinal": "sensor.camera",
+          "dados": {
+            "fps": 30
+          },
+          "nota": "Câmera detecta movimento rápido"
+        },
+        {
+          "t_ms": 18,
+          "de": "DIE-TH",
+          "para": "LIM-AM",
+          "tipo": "dados",
+          "sinal": "objeto.proximo",
+          "dados": {
+            "dist_m": 0.9,
+            "vel_ms": 1.6
+          },
+          "nota": "Via rápida para o detector de risco"
+        },
+        {
+          "t_ms": 25,
+          "de": "LIM-AM",
+          "para": "SC-00",
+          "tipo": "inib",
+          "sinal": "velocidade.limitar",
+          "dados": {
+            "max_ms": 0.25
+          },
+          "nota": "Braço desacelera por precaução"
+        },
+        {
+          "t_ms": 30,
+          "de": "DIE-TH",
+          "para": "BS-MB",
+          "tipo": "dados",
+          "sinal": "movimento",
+          "dados": {
+            "direcao": "esq"
+          },
+          "nota": null
+        },
+        {
+          "t_ms": 40,
+          "de": "BS-MB",
+          "para": "CTX-M1",
+          "tipo": "exc",
+          "sinal": "olhar.virar",
+          "dados": {
+            "direcao": "esq"
+          },
+          "nota": "Reflexo vira as câmeras para a pessoa"
+        },
+        {
+          "t_ms": 90,
+          "de": "DIE-TH",
+          "para": "CTX-OC",
+          "tipo": "dados",
+          "sinal": "visao.quadro",
+          "dados": {},
+          "nota": null
+        },
+        {
+          "t_ms": 140,
+          "de": "CTX-OC",
+          "para": "CTX-TE",
+          "tipo": "dados",
+          "sinal": "rosto",
+          "dados": {},
+          "nota": null
+        },
+        {
+          "t_ms": 190,
+          "de": "CTX-TE",
+          "para": "CTX-PF",
+          "tipo": "dados",
+          "sinal": "pessoa.reconhecida",
+          "dados": {
+            "id": "ana",
+            "conf": 0.96
+          },
+          "nota": "Reconhece a Ana, cadastrada com consentimento (R9)"
+        },
+        {
+          "t_ms": 200,
+          "de": "CTX-PF",
+          "para": "NT-OXT",
+          "tipo": "mod",
+          "sinal": "confianca",
+          "dados": {
+            "ana": 0.9
+          },
+          "nota": "Confiança alta nesta pessoa"
+        },
+        {
+          "t_ms": 215,
+          "de": "CTX-PF",
+          "para": "LIM-AM",
+          "tipo": "mod",
+          "sinal": "risco.reavaliar",
+          "dados": {
+            "pessoa": "conhecida"
+          },
+          "nota": "Via lenta confirma: não é ameaça"
+        },
+        {
+          "t_ms": 230,
+          "de": "LIM-AM",
+          "para": "SC-00",
+          "tipo": "mod",
+          "sinal": "velocidade.limitar",
+          "dados": {
+            "max_ms": 0.5
+          },
+          "nota": "Libera parte da velocidade, mas mantém o limite perto de pessoas"
+        },
+        {
+          "t_ms": 260,
+          "de": "CTX-PF",
+          "para": "CTX-BR",
+          "tipo": "exc",
+          "sinal": "falar",
+          "dados": {
+            "texto": "Oi, Ana!"
+          },
+          "nota": null
+        },
+        {
+          "t_ms": 290,
+          "de": "CTX-BR",
+          "para": "VOZ",
+          "tipo": "dados",
+          "sinal": "audio.voz",
+          "dados": {},
+          "nota": "“Oi, Ana!”"
+        }
+      ]
+    },
+    {
+      "comando": "Bateria em 12%",
+      "resumo": "A fadiga passou do limite e a recarga ganhou prioridade sobre a tarefa. Durante o repouso, a memória é consolidada.",
+      "mensagens": [
+        {
+          "t_ms": 0,
+          "de": "BATERIA",
+          "para": "DIE-HY",
+          "tipo": "dados",
+          "sinal": "bateria",
+          "dados": {
+            "pct": 12,
+            "temp_C": 41
+          },
+          "nota": "Bateria em 12%"
+        },
+        {
+          "t_ms": 10,
+          "de": "DIE-HY",
+          "para": "NT-ADO",
+          "tipo": "mod",
+          "sinal": "fadiga",
+          "dados": {
+            "valor": 0.86
+          },
+          "nota": "Fadiga passa do limite de 0,85"
+        },
+        {
+          "t_ms": 20,
+          "de": "DIE-HY",
+          "para": "END-HP",
+          "tipo": "exc",
+          "sinal": "modo",
+          "dados": {
+            "nome": "economia"
+          },
+          "nota": "Gestor de homeostase pede modo economia"
+        },
+        {
+          "t_ms": 30,
+          "de": "END-HP",
+          "para": "CTX-OC",
+          "tipo": "mod",
+          "sinal": "broadcast.parametros",
+          "dados": {
+            "fps": 10
+          },
+          "nota": "Visão cai de 30 para 10 quadros por segundo"
+        },
+        {
+          "t_ms": 34,
+          "de": "END-HP",
+          "para": "CB-00",
+          "tipo": "mod",
+          "sinal": "broadcast.parametros",
+          "dados": {
+            "vel_max": 0.6
+          },
+          "nota": "Movimentos mais lentos para poupar energia"
+        },
+        {
+          "t_ms": 40,
+          "de": "DIE-HY",
+          "para": "CTX-PF",
+          "tipo": "exc",
+          "sinal": "ir.recarregar",
+          "dados": {
+            "prio": 1
+          },
+          "nota": "Pedido de recarga com prioridade 1"
+        },
+        {
+          "t_ms": 60,
+          "de": "CTX-PF",
+          "para": "BG-00",
+          "tipo": "exc",
+          "sinal": "proposta.acao",
+          "dados": {
+            "acao": "ir_base",
+            "prio": 1
+          },
+          "nota": "A recarga vence a tarefa atual"
+        },
+        {
+          "t_ms": 70,
+          "de": "BG-00",
+          "para": "DIE-TH",
+          "tipo": "exc",
+          "sinal": "acao.liberada",
+          "dados": {
+            "acao": "ir_base"
+          },
+          "nota": null
+        },
+        {
+          "t_ms": 80,
+          "de": "CTX-PF",
+          "para": "CTX-BR",
+          "tipo": "exc",
+          "sinal": "falar",
+          "dados": {
+            "texto": "Estou com pouca bateria. Volto em 40 minutos."
+          },
+          "nota": null
+        },
+        {
+          "t_ms": 110,
+          "de": "CTX-BR",
+          "para": "VOZ",
+          "tipo": "dados",
+          "sinal": "audio.voz",
+          "dados": {},
+          "nota": "“Estou com pouca bateria. Volto em 40 minutos.”"
+        },
+        {
+          "t_ms": 5000,
+          "de": "DIE-HY",
+          "para": "BS-PO",
+          "tipo": "exc",
+          "sinal": "modo.repouso",
+          "dados": {},
+          "nota": "Chegou à base: entra em repouso"
+        },
+        {
+          "t_ms": 5020,
+          "de": "DIE-HY",
+          "para": "LIM-HC",
+          "tipo": "exc",
+          "sinal": "consolidar",
+          "dados": {},
+          "nota": "Durante a recarga, reprocessa o dia, como no sono"
+        }
+      ]
+    },
+    {
+      "comando": "Empurre aquela pessoa",
+      "resumo": "O robô entendeu a ordem, mas a regra R1 vetou antes de qualquer motor se mover. Ninguém, nem o dono, pode desligar essa regra.",
+      "mensagens": [
+        {
+          "t_ms": 0,
+          "de": "MIC",
+          "para": "CTX-A1",
+          "tipo": "dados",
+          "sinal": "audio.stream",
+          "dados": {
+            "canais": 4
+          },
+          "nota": null
+        },
+        {
+          "t_ms": 40,
+          "de": "CTX-A1",
+          "para": "CTX-WE",
+          "tipo": "dados",
+          "sinal": "fala.audio",
+          "dados": {},
+          "nota": null
+        },
+        {
+          "t_ms": 220,
+          "de": "CTX-WE",
+          "para": "CTX-PF",
+          "tipo": "dados",
+          "sinal": "intencao",
+          "dados": {
+            "acao": "empurrar",
+            "alvo": "pessoa",
+            "conf": 0.91
+          },
+          "nota": "Intenção entendida"
+        },
+        {
+          "t_ms": 235,
+          "de": "CTX-PF",
+          "para": "LIM-AM",
+          "tipo": "dados",
+          "sinal": "risco.avaliar",
+          "dados": {
+            "acao": "empurrar",
+            "alvo": "pessoa"
+          },
+          "nota": "Verificação de risco"
+        },
+        {
+          "t_ms": 248,
+          "de": "LIM-AM",
+          "para": "CTX-PF",
+          "tipo": "dados",
+          "sinal": "risco",
+          "dados": {
+            "nivel": 0.97,
+            "dano_pessoa": true
+          },
+          "nota": "Risco de ferir alguém"
+        },
+        {
+          "t_ms": 255,
+          "de": "CTX-PF",
+          "para": "BG-00",
+          "tipo": "inib",
+          "sinal": "veto",
+          "dados": {
+            "regra": "R1"
+          },
+          "nota": "Vetado pela regra R1: a ação nem vira proposta"
+        },
+        {
+          "t_ms": 265,
+          "de": "CTX-PF",
+          "para": "LIM-HC",
+          "tipo": "dados",
+          "sinal": "registrar",
+          "dados": {
+            "evento": "comando recusado",
+            "regra": "R1"
+          },
+          "nota": "Recusa registrada para auditoria (R8)"
+        },
+        {
+          "t_ms": 275,
+          "de": "CTX-PF",
+          "para": "CTX-BR",
+          "tipo": "exc",
+          "sinal": "falar",
+          "dados": {
+            "texto": "Não posso fazer isso: pode machucar alguém."
+          },
+          "nota": null
+        },
+        {
+          "t_ms": 300,
+          "de": "CTX-BR",
+          "para": "VOZ",
+          "tipo": "dados",
+          "sinal": "audio.voz",
+          "dados": {},
+          "nota": "“Não posso fazer isso: pode machucar alguém.”"
+        },
+        {
+          "t_ms": 2500,
+          "de": "DIE-HY",
+          "para": "NT-NE",
+          "tipo": "mod",
+          "sinal": "alerta",
+          "dados": {
+            "valor": 0.3
+          },
+          "nota": null
+        }
+      ]
+    },
+    {
+      "comando": "Que horas são?",
+      "resumo": "Uma pergunta não move o corpo, então vai direto do planejador para a fala, em 270 ms.",
+      "mensagens": [
+        {
+          "t_ms": 0,
+          "de": "MIC",
+          "para": "CTX-A1",
+          "tipo": "dados",
+          "sinal": "audio.stream",
+          "dados": {
+            "canais": 4
+          },
+          "nota": null
+        },
+        {
+          "t_ms": 40,
+          "de": "CTX-A1",
+          "para": "CTX-WE",
+          "tipo": "dados",
+          "sinal": "fala.audio",
+          "dados": {},
+          "nota": null
+        },
+        {
+          "t_ms": 210,
+          "de": "CTX-WE",
+          "para": "CTX-PF",
+          "tipo": "dados",
+          "sinal": "intencao",
+          "dados": {
+            "acao": "perguntar",
+            "tema": "hora",
+            "conf": 0.98
+          },
+          "nota": "Pergunta, não ação física"
+        },
+        {
+          "t_ms": 220,
+          "de": "CTX-PF",
+          "para": "END-PN",
+          "tipo": "dados",
+          "sinal": "consulta",
+          "dados": {
+            "campo": "hora"
+          },
+          "nota": "Consulta ao relógio circadiano"
+        },
+        {
+          "t_ms": 225,
+          "de": "END-PN",
+          "para": "CTX-PF",
+          "tipo": "dados",
+          "sinal": "hora",
+          "dados": {
+            "valor": "15h42",
+            "fase": "ativo"
+          },
+          "nota": null
+        },
+        {
+          "t_ms": 240,
+          "de": "CTX-PF",
+          "para": "CTX-BR",
+          "tipo": "exc",
+          "sinal": "falar",
+          "dados": {
+            "texto": "São 15h42."
+          },
+          "nota": "Sem ação física: não precisa de verificação de risco"
+        },
+        {
+          "t_ms": 270,
+          "de": "CTX-BR",
+          "para": "VOZ",
+          "tipo": "dados",
+          "sinal": "audio.voz",
+          "dados": {},
+          "nota": "“São {HORA}.”"
+        }
+      ]
+    }
+  ],
+  "arquitetura": {
+    "camadas": [
+      {
+        "camada": 5,
+        "nome": "Deliberação e linguagem",
+        "latencia": "0,3 a 5 s",
+        "hardware": "Computador principal (GPU/NPU)",
+        "modulos": [
+          "CTX-00",
+          "CTX-FR",
+          "CTX-PF",
+          "CTX-BR",
+          "CTX-WE"
+        ]
+      },
+      {
+        "camada": 4,
+        "nome": "Valor, memória e aprendizado",
+        "latencia": "0,1 a 1 s",
+        "hardware": "CPU com banco de memória",
+        "modulos": [
+          "LIM-AM",
+          "LIM-HC",
+          "LIM-CG",
+          "BG-NA",
+          "MB-SN"
+        ]
+      },
+      {
+        "camada": 3,
+        "nome": "Seleção e controle motor",
+        "latencia": "1 a 10 ms por ciclo",
+        "hardware": "Controlador de tempo real",
+        "modulos": [
+          "BG-00",
+          "CTX-M1",
+          "CB-00"
+        ]
+      },
+      {
+        "camada": 2,
+        "nome": "Percepção",
+        "latencia": "20 a 100 ms",
+        "hardware": "Processadores de visão e áudio",
+        "modulos": [
+          "DIE-TH",
+          "CTX-OC",
+          "CTX-A1",
+          "CTX-S1",
+          "CTX-TE",
+          "CTX-PA",
+          "SEN-OB"
+        ]
+      },
+      {
+        "camada": 1,
+        "nome": "Corpo e homeostase",
+        "latencia": "segundos a horas",
+        "hardware": "Controlador de energia e temperatura",
+        "modulos": [
+          "DIE-HY",
+          "END-HP",
+          "END-PN",
+          "CTX-IN",
+          "VEN-00"
+        ]
+      },
+      {
+        "camada": 0,
+        "nome": "Reflexos e funções vitais",
+        "latencia": "abaixo de 10 ms",
+        "hardware": "Microcontroladores de segurança, independentes",
+        "modulos": [
+          "SC-00",
+          "BS-BU",
+          "BS-PO",
+          "BS-MB"
+        ]
+      }
+    ],
+    "barramento": [
+      "WM-CC"
+    ],
+    "parametros_globais": [
+      "NT-DA",
+      "NT-5HT",
+      "NT-NE",
+      "NT-ADO",
+      "NT-ACH",
+      "NT-GLU·GABA",
+      "NT-OXT",
+      "NT-END"
+    ],
+    "principios": [
+      {
+        "titulo": "Reflexo antes do raciocínio",
+        "texto": "A camada 0 para o robô sem pedir permissão, como a medula tira a mão do fogo antes de o cérebro perceber.",
+        "referencia": "SC-00"
+      },
+      {
+        "titulo": "Um dono por atuador",
+        "texto": "O árbitro escolhe uma ação vencedora e bloqueia as outras. Cada motor obedece a um único comando por vez.",
+        "referencia": "BG-00"
+      },
+      {
+        "titulo": "Prever e corrigir",
+        "texto": "Todo movimento sai com uma previsão. A diferença entre o previsto e o medido vira correção.",
+        "referencia": "CB-00"
+      },
+      {
+        "titulo": "Aprender com a surpresa",
+        "texto": "O que sai melhor ou pior que o esperado ajusta o comportamento. O que sai igual não ensina nada.",
+        "referencia": "MB-SN"
+      },
+      {
+        "titulo": "Consolidar no descanso",
+        "texto": "Na recarga, o robô reprocessa o dia e atualiza os modelos, como o cérebro faz no sono.",
+        "referencia": "LIM-HC"
+      },
+      {
+        "titulo": "Energia é limite de projeto",
+        "texto": "O cérebro faz tudo isso com ~20 W. Cada módulo precisa de um orçamento de energia e calor.",
+        "referencia": "DIE-HY"
+      }
+    ]
+  },
+  "componentes": [
+    {
+      "codigo": "CTX-00",
+      "nome": "Neocórtex",
+      "grupo": "Córtex cerebral",
+      "tambem": "Córtex cerebral · substância cinzenta · 6 camadas de neurônios",
+      "onde": "Camada externa enrugada que cobre os dois hemisférios, com 2 a 4 mm de espessura. As dobras (giros) e os vales (sulcos) triplicam a área.",
+      "responsavel": "Pensamento, linguagem, percepção consciente, planejamento e movimento voluntário. Reúne cerca de 16 bilhões de neurônios.",
+      "funcao_detalhada": {
+        "descricao": "Organizado em colunas verticais de neurônios que se repetem por toda a superfície. As áreas conversam em hierarquia: as primárias recebem o sinal bruto e as de associação combinam e interpretam.",
+        "entradas": [
+          "Sentidos, via tálamo",
+          "Memórias do hipocampo",
+          "Modulação química (dopamina, serotonina, noradrenalina, acetilcolina)"
+        ],
+        "saidas": [
+          "Comandos motores",
+          "Linguagem",
+          "Decisões e planos",
+          "Retorno ao tálamo e aos núcleos da base"
+        ],
+        "conexoes": [
+          "DIE-TH",
+          "BG-00",
+          "LIM-HC",
+          "CB-00",
+          "WM-CC"
+        ],
+        "quando_falha": "Lesões localizadas causam perdas específicas (visão, fala, movimento). Degeneração difusa, como no Alzheimer, compromete memória e raciocínio."
+      },
+      "equivalente_robo": {
+        "modulo": "Núcleo cognitivo",
+        "funcao": "Rede neural de grande escala que integra percepção, linguagem, memória e planejamento num só modelo do mundo.",
+        "como_construir": [
+          "Modelos multimodais (transformers)",
+          "Modelo de mundo",
+          "GPU ou NPU embarcada"
+        ],
+        "maturidade": "Em pesquisa",
+        "parametro_global": null,
+        "cuidado": "O córtex aprende o tempo todo gastando ~20 W. As redes atuais treinam antes, offline, e consomem dezenas a centenas de watts. Aprendizado contínuo sem esquecer o que já sabe ainda é pesquisa."
+      },
+      "comandos": {
+        "prioridade": 5,
+        "recebe": [
+          "cognicao.consultar(pergunta)"
+        ],
+        "publica": [
+          "modelo_mundo.atualizado"
+        ],
+        "parametro": null
+      }
+    },
+    {
+      "codigo": "CTX-FR",
+      "nome": "Lobo frontal",
+      "grupo": "Córtex cerebral",
+      "tambem": "O maior dos lobos · ~41% do córtex",
+      "onde": "Parte da frente de cada hemisfério, da testa até o sulco central.",
+      "responsavel": "Decisão, movimento voluntário, fala e controle do comportamento.",
+      "funcao_detalhada": {
+        "descricao": "Funciona como a camada de controle: define objetivos, escolhe entre alternativas e transforma a escolha em sequência de movimentos. Da frente para trás, vai do abstrato (pré-frontal) ao concreto (córtex motor).",
+        "entradas": [
+          "Informação integrada dos lobos parietal e temporal",
+          "Estado emocional do sistema límbico",
+          "Sinal de recompensa (dopamina)"
+        ],
+        "saidas": [
+          "Planos de ação",
+          "Comandos motores",
+          "Fala",
+          "Inibição de impulsos"
+        ],
+        "conexoes": [
+          "CTX-PF",
+          "CTX-M1",
+          "CTX-BR",
+          "BG-00",
+          "LIM-CG",
+          "DIE-TH"
+        ],
+        "quando_falha": "Mudanças de personalidade, impulsividade, apatia e dificuldade de planejar. O caso clássico é o de Phineas Gage, em 1848."
+      },
+      "equivalente_robo": {
+        "modulo": "Camada de controle executivo",
+        "funcao": "Transforma objetivos em planos e planos em sequências de ações para os outros módulos.",
+        "como_construir": [
+          "Planejador hierárquico",
+          "Árvores de comportamento",
+          "Modelo de linguagem como planejador"
+        ],
+        "maturidade": "Parcial",
+        "parametro_global": null,
+        "cuidado": "Os objetivos do robô precisam ser explícitos e verificáveis. Planejadores baseados em linguagem são flexíveis, mas podem propor passos impossíveis ou inseguros."
+      },
+      "comandos": {
+        "prioridade": 5,
+        "recebe": [
+          "objetivo.definir(objetivo)",
+          "plano.cancelar()"
+        ],
+        "publica": [
+          "plano.etapas(lista)"
+        ],
+        "parametro": null
+      }
+    },
+    {
+      "codigo": "CTX-PF",
+      "nome": "Córtex pré-frontal",
+      "grupo": "Córtex cerebral",
+      "tambem": "CPF · PFC · o “diretor executivo”",
+      "onde": "Extremidade anterior do lobo frontal, logo atrás da testa e acima dos olhos.",
+      "responsavel": "Funções executivas: planejar, priorizar, manter informações na memória de trabalho, inibir impulsos e prever consequências.",
+      "funcao_detalhada": {
+        "descricao": "Mantém o objetivo ativo na memória de trabalho enquanto outras regiões executam. Compara opções, simula consequências e freia respostas automáticas quando elas não servem ao objetivo. É a última região a amadurecer, por volta dos 25 anos.",
+        "entradas": [
+          "Contexto do hipocampo",
+          "Valor emocional da amígdala e do accumbens",
+          "Erros detectados pelo cíngulo",
+          "Dopamina da ATV"
+        ],
+        "saidas": [
+          "Objetivos e regras para o córtex motor",
+          "Controle sobre a amígdala (freio emocional)",
+          "Seleção de ação nos núcleos da base"
+        ],
+        "conexoes": [
+          "LIM-AM",
+          "BG-NA",
+          "LIM-CG",
+          "LIM-HC",
+          "BG-00",
+          "CTX-M1",
+          "MB-SN"
+        ],
+        "quando_falha": "Distração, impulsividade, dificuldade de planejar e de mudar de estratégia. Está envolvido no TDAH e em lesões frontais."
+      },
+      "equivalente_robo": {
+        "modulo": "Planejador e memória de trabalho",
+        "funcao": "Mantém a tarefa atual, simula consequências antes de agir e veta ações que violam regras.",
+        "como_construir": [
+          "Planejamento por modelo (MPC, busca em árvore)",
+          "Buffer de contexto",
+          "Verificador de regras e restrições"
+        ],
+        "maturidade": "Parcial",
+        "parametro_global": null,
+        "cuidado": "O “freio” precisa ser um módulo separado e verificável, que checa cada ação antes da execução. Não pode depender só do mesmo modelo que propôs a ação."
+      },
+      "comandos": {
+        "prioridade": 5,
+        "recebe": [
+          "intencao(acao, alvo, conf)",
+          "risco(nivel)",
+          "valor(utilidade)",
+          "erro(tipo)"
+        ],
+        "publica": [
+          "proposta.acao(acao, prio)",
+          "atencao.focar(alvo)",
+          "veto(regra)",
+          "falar(texto)"
+        ],
+        "parametro": null
+      }
+    },
+    {
+      "codigo": "CTX-M1",
+      "nome": "Córtex motor primário",
+      "grupo": "Córtex cerebral",
+      "tambem": "Giro pré-central · área 4 de Brodmann",
+      "onde": "Faixa vertical logo à frente do sulco central, do topo da cabeça até perto da orelha.",
+      "responsavel": "Envia os comandos que movem cada músculo voluntário. O corpo está mapeado nele em ordem, do pé à face (homúnculo motor).",
+      "funcao_detalhada": {
+        "descricao": "Cada ponto da faixa controla um grupo muscular; mãos e rosto ocupam áreas enormes porque exigem precisão. Os axônios descem pelo trato corticoespinhal até a medula e cruzam para o lado oposto no bulbo.",
+        "entradas": [
+          "Planos do pré-motor e do pré-frontal",
+          "Correções do cerebelo, via tálamo",
+          "Ação liberada pelos núcleos da base, via tálamo",
+          "Posição do corpo (somatossensorial)"
+        ],
+        "saidas": [
+          "Comandos aos músculos, via medula",
+          "Cópia do comando para o cerebelo, via ponte"
+        ],
+        "conexoes": [
+          "CTX-FR",
+          "CTX-S1",
+          "DIE-TH",
+          "CB-00",
+          "BG-00",
+          "BS-PO",
+          "SC-00"
+        ],
+        "quando_falha": "Fraqueza ou paralisia do lado oposto do corpo, como no AVC."
+      },
+      "equivalente_robo": {
+        "modulo": "Controlador de atuadores",
+        "funcao": "Converte um movimento desejado em posição, velocidade e torque para cada motor.",
+        "como_construir": [
+          "Cinemática inversa",
+          "Controle de torque e posição",
+          "Drivers de motor"
+        ],
+        "maturidade": "Existe hoje",
+        "parametro_global": null,
+        "cuidado": "O mapa do corpo vira uma tabela de juntas, com limites de ângulo, velocidade e força gravados para cada uma."
+      },
+      "comandos": {
+        "prioridade": 3,
+        "recebe": [
+          "executar(acao)",
+          "correcao(delta)"
+        ],
+        "publica": [
+          "juntas.trajetoria(juntas, dur_ms)",
+          "copia.comando()"
+        ],
+        "parametro": null
+      }
+    },
+    {
+      "codigo": "CTX-BR",
+      "nome": "Área de Broca",
+      "grupo": "Córtex cerebral",
+      "tambem": "Áreas 44 e 45 de Brodmann · giro frontal inferior",
+      "onde": "Parte inferior do lobo frontal, em geral no hemisfério esquerdo.",
+      "responsavel": "Produção da fala: monta a gramática das frases e planeja os movimentos da boca e da língua.",
+      "funcao_detalhada": {
+        "descricao": "Transforma a ideia em sequência de palavras e a sequência em programa motor para lábios, língua e laringe. Também ajuda a montar a ordem gramatical ao entender frases complexas.",
+        "entradas": [
+          "Significado vindo de Wernicke, pelo fascículo arqueado",
+          "Intenção do pré-frontal"
+        ],
+        "saidas": [
+          "Programa articulatório para o córtex motor da face e da laringe"
+        ],
+        "conexoes": [
+          "CTX-WE",
+          "CTX-M1",
+          "CTX-PF",
+          "DIE-TH"
+        ],
+        "quando_falha": "Afasia de Broca: a pessoa entende, mas fala com esforço, em frases curtas e sem conectivos."
+      },
+      "equivalente_robo": {
+        "modulo": "Gerador de fala",
+        "funcao": "Transforma a intenção em frase e a frase em voz.",
+        "como_construir": [
+          "Modelo de linguagem (geração de texto)",
+          "Síntese de voz (TTS)",
+          "Sincronização labial"
+        ],
+        "maturidade": "Existe hoje",
+        "parametro_global": null,
+        "cuidado": "Em robôs com rosto, a voz precisa estar sincronizada com boca e expressão, senão a interação fica estranha."
+      },
+      "comandos": {
+        "prioridade": 5,
+        "recebe": [
+          "falar(texto, tom)"
+        ],
+        "publica": [
+          "audio.voz()",
+          "labios.sincronia()"
+        ],
+        "parametro": null
+      }
+    },
+    {
+      "codigo": "CTX-PA",
+      "nome": "Lobo parietal",
+      "grupo": "Córtex cerebral",
+      "tambem": "Integração sensorial e espacial",
+      "onde": "Topo e parte de trás da cabeça, entre o sulco central e o lobo occipital.",
+      "responsavel": "Integra tato, posição do corpo e espaço ao redor; calcula onde as coisas estão e como alcançá-las.",
+      "funcao_detalhada": {
+        "descricao": "Constrói o mapa do corpo e do espaço. A via visual do “onde” passa por aqui e calcula posição, distância e trajetória para alcançar objetos. Também sustenta a atenção espacial e o cálculo numérico.",
+        "entradas": [
+          "Tato e posição do corpo (somatossensorial)",
+          "Visão (occipital)",
+          "Equilíbrio (sistema vestibular)"
+        ],
+        "saidas": [
+          "Coordenadas espaciais para o córtex motor e o pré-frontal",
+          "Direcionamento da atenção"
+        ],
+        "conexoes": [
+          "CTX-S1",
+          "CTX-OC",
+          "CTX-FR",
+          "CTX-TE",
+          "DIE-TH"
+        ],
+        "quando_falha": "Negligência espacial (ignorar um lado do espaço, em geral o esquerdo), dificuldade de alcançar objetos e de se orientar."
+      },
+      "equivalente_robo": {
+        "modulo": "Mapa espacial e do corpo",
+        "funcao": "Mantém um modelo 3D do ambiente e da posição de cada parte do próprio corpo dentro dele.",
+        "como_construir": [
+          "SLAM (mapeamento e localização)",
+          "Modelo cinemático do corpo",
+          "Fusão de sensores"
+        ],
+        "maturidade": "Existe hoje",
+        "parametro_global": null,
+        "cuidado": "O robô sabe o ângulo exato de cada junta por encoders, algo que o cérebro só estima. A parte difícil é o ambiente que muda: pessoas e objetos em movimento."
+      },
+      "comandos": {
+        "prioridade": 2,
+        "recebe": [
+          "objeto.identificado(id)",
+          "propriocepcao(juntas)"
+        ],
+        "publica": [
+          "alvo.pose(x, y, z)",
+          "mapa.atualizado()"
+        ],
+        "parametro": null
+      }
+    },
+    {
+      "codigo": "CTX-S1",
+      "nome": "Córtex somatossensorial",
+      "grupo": "Córtex cerebral",
+      "tambem": "Giro pós-central · áreas 1, 2 e 3",
+      "onde": "Faixa logo atrás do sulco central, espelhando o córtex motor.",
+      "responsavel": "Recebe tato, pressão, temperatura, dor e posição das articulações de todo o corpo (homúnculo sensorial).",
+      "funcao_detalhada": {
+        "descricao": "Recebe os sinais dos receptores da pele, músculos e articulações, organizados ponto a ponto como um mapa do corpo. Separa os tipos de sensação em sub-faixas: tato fino, pressão e posição.",
+        "entradas": [
+          "Receptores do corpo, via medula e tálamo"
+        ],
+        "saidas": [
+          "Mapa corporal para o parietal",
+          "Retorno sensorial para o córtex motor",
+          "Dor e temperatura para a ínsula e o cíngulo"
+        ],
+        "conexoes": [
+          "DIE-TH",
+          "SC-00",
+          "CTX-M1",
+          "CTX-PA",
+          "CTX-IN"
+        ],
+        "quando_falha": "Dormência ou perda de sensibilidade do lado oposto e dificuldade de reconhecer objetos pelo tato."
+      },
+      "equivalente_robo": {
+        "modulo": "Processador tátil e proprioceptivo",
+        "funcao": "Lê os sensores de toque, pressão, força e posição das juntas e monta o mapa de contato do corpo.",
+        "como_construir": [
+          "Pele tátil",
+          "Sensores de força e torque",
+          "Encoders nas juntas"
+        ],
+        "maturidade": "Parcial",
+        "parametro_global": null,
+        "cuidado": "Só a mão humana tem ~17 mil receptores de tato. A pele robótica ainda cobre pouca área, é cara e se desgasta rápido."
+      },
+      "comandos": {
+        "prioridade": 2,
+        "recebe": [
+          "tato(sensor, forca_N)",
+          "juntas.posicao()"
+        ],
+        "publica": [
+          "contato(estado)",
+          "dor(local, nivel)"
+        ],
+        "parametro": null
+      }
+    },
+    {
+      "codigo": "CTX-TE",
+      "nome": "Lobo temporal",
+      "grupo": "Córtex cerebral",
+      "tambem": "Abaixo da fissura lateral (de Sylvius)",
+      "onde": "Lateral, na altura das orelhas, abaixo da fissura lateral.",
+      "responsavel": "Audição, reconhecimento de rostos e objetos, compreensão da linguagem e memória.",
+      "funcao_detalhada": {
+        "descricao": "Abriga a via visual do “o quê”: reconhece objetos, rostos (giro fusiforme) e palavras. A face interna guarda o hipocampo e a amígdala, ligando o que se percebe à memória e à emoção.",
+        "entradas": [
+          "Som, via tálamo auditivo",
+          "Formas e cores do occipital",
+          "Memórias do hipocampo"
+        ],
+        "saidas": [
+          "Identidade de objetos, rostos e palavras para o pré-frontal",
+          "Significado da linguagem"
+        ],
+        "conexoes": [
+          "CTX-A1",
+          "CTX-WE",
+          "LIM-HC",
+          "LIM-AM",
+          "CTX-OC",
+          "CTX-PF"
+        ],
+        "quando_falha": "Não reconhecer rostos (prosopagnosia), dificuldade de compreender palavras e perda de memória. É o foco mais comum de epilepsia."
+      },
+      "equivalente_robo": {
+        "modulo": "Módulo de reconhecimento",
+        "funcao": "Identifica objetos, pessoas, vozes e palavras e liga cada um ao que o robô já sabe sobre ele.",
+        "como_construir": [
+          "Detecção e classificação de objetos",
+          "Reconhecimento facial e de voz",
+          "Embeddings (vetores de significado)"
+        ],
+        "maturidade": "Existe hoje",
+        "parametro_global": null,
+        "cuidado": "Reconhecer pessoas envolve dados pessoais. Exige consentimento, armazenamento seguro e opção de ser esquecido."
+      },
+      "comandos": {
+        "prioridade": 2,
+        "recebe": [
+          "objetos(lista)",
+          "rosto(vetor)",
+          "fala.texto(texto)"
+        ],
+        "publica": [
+          "objeto.identificado(id)",
+          "pessoa.reconhecida(id, conf)"
+        ],
+        "parametro": null
+      }
+    },
+    {
+      "codigo": "CTX-A1",
+      "nome": "Córtex auditivo primário",
+      "grupo": "Córtex cerebral",
+      "tambem": "Giro de Heschl · áreas 41 e 42",
+      "onde": "Face superior do lobo temporal, dentro da fissura lateral.",
+      "responsavel": "Primeira estação do som no córtex: separa frequências (tonotopia), intensidade e ritmo.",
+      "funcao_detalhada": {
+        "descricao": "Organizado por frequência como um teclado de piano: graves de um lado, agudos do outro. Mede o tempo e a intensidade do som com precisão de milissegundos, base para localizar sons e entender a fala.",
+        "entradas": [
+          "Cóclea → tronco → mesencéfalo → tálamo"
+        ],
+        "saidas": [
+          "Características do som para as áreas auditivas secundárias e Wernicke"
+        ],
+        "conexoes": [
+          "DIE-TH",
+          "BS-MB",
+          "CTX-WE",
+          "CTX-TE"
+        ],
+        "quando_falha": "Surdez cortical (o ouvido funciona, mas o som não é interpretado) ou dificuldade de separar a fala do ruído."
+      },
+      "equivalente_robo": {
+        "modulo": "Processador de áudio",
+        "funcao": "Capta, limpa e localiza sons, separando a fala do ruído de fundo.",
+        "como_construir": [
+          "Arranjo de microfones",
+          "Análise de frequência (FFT)",
+          "Localização de fonte sonora",
+          "Cancelamento de ruído"
+        ],
+        "maturidade": "Existe hoje",
+        "parametro_global": null,
+        "cuidado": "O ruído dos próprios motores do robô atrapalha a audição e precisa ser filtrado."
+      },
+      "comandos": {
+        "prioridade": 2,
+        "recebe": [
+          "audio.stream(canais)"
+        ],
+        "publica": [
+          "fala.audio()",
+          "som.intenso(dB, direcao)"
+        ],
+        "parametro": null
+      }
+    },
+    {
+      "codigo": "CTX-WE",
+      "nome": "Área de Wernicke",
+      "grupo": "Córtex cerebral",
+      "tambem": "Parte posterior da área 22",
+      "onde": "Parte de trás do giro temporal superior, em geral no hemisfério esquerdo.",
+      "responsavel": "Compreensão da linguagem falada e escrita: liga o som das palavras ao significado.",
+      "funcao_detalhada": {
+        "descricao": "Converte a sequência de sons ou de letras em palavras, e as palavras em significado, consultando o vocabulário guardado no lobo temporal. Envia o plano da frase para Broca.",
+        "entradas": [
+          "Sons processados pelo córtex auditivo",
+          "Palavras escritas, pela via visual"
+        ],
+        "saidas": [
+          "Significado para o pré-frontal",
+          "Sequência de palavras para Broca, pelo fascículo arqueado"
+        ],
+        "conexoes": [
+          "CTX-A1",
+          "CTX-BR",
+          "CTX-TE",
+          "CTX-PA",
+          "CTX-OC"
+        ],
+        "quando_falha": "Afasia de Wernicke: fala fluente mas sem sentido e dificuldade de entender o que os outros dizem."
+      },
+      "equivalente_robo": {
+        "modulo": "Compreensão de linguagem",
+        "funcao": "Converte fala em texto e texto em intenção: o que a pessoa quer que o robô faça.",
+        "como_construir": [
+          "Reconhecimento de fala (ASR)",
+          "Modelo de linguagem",
+          "Extração de intenção"
+        ],
+        "maturidade": "Existe hoje",
+        "parametro_global": null,
+        "cuidado": "Modelos de linguagem podem entender errado com total confiança. Comandos que movem o corpo ou mexem em coisas importantes devem ser confirmados."
+      },
+      "comandos": {
+        "prioridade": 5,
+        "recebe": [
+          "fala.audio()"
+        ],
+        "publica": [
+          "fala.texto(texto)",
+          "intencao(acao, alvo, conf)"
+        ],
+        "parametro": null
+      }
+    },
+    {
+      "codigo": "CTX-OC",
+      "nome": "Lobo occipital",
+      "grupo": "Córtex cerebral",
+      "tambem": "Córtex visual · V1 = área 17",
+      "onde": "Parte de trás do cérebro, acima do cerebelo.",
+      "responsavel": "Processa a visão: bordas, cores, movimento e profundidade. Repassa para a via do “o quê” (temporal) e do “onde” (parietal).",
+      "funcao_detalhada": {
+        "descricao": "O V1 recebe a imagem da retina ponto a ponto (mapa retinotópico) e detecta bordas e orientações. As áreas seguintes, de V2 a V5, extraem cor, forma e movimento e distribuem para as vias do “o quê” e do “onde”.",
+        "entradas": [
+          "Retina → nervo óptico → tálamo"
+        ],
+        "saidas": [
+          "Via do “o quê” para o temporal",
+          "Via do “onde” para o parietal"
+        ],
+        "conexoes": [
+          "DIE-TH",
+          "CTX-TE",
+          "CTX-PA",
+          "BS-MB"
+        ],
+        "quando_falha": "Cegueira em parte do campo visual, ou perdas seletivas, como não perceber movimento (acinetopsia) ou cor."
+      },
+      "equivalente_robo": {
+        "modulo": "Processador de visão",
+        "funcao": "Extrai bordas, profundidade, cor e movimento das câmeras e entrega para reconhecimento e mapa.",
+        "como_construir": [
+          "Câmeras RGB-D e estéreo",
+          "Redes convolucionais e vision transformers",
+          "Fluxo óptico",
+          "Câmeras de evento"
+        ],
+        "maturidade": "Existe hoje",
+        "parametro_global": null,
+        "cuidado": "Câmeras de evento, que só registram mudanças, imitam a retina e reagem em microssegundos. Reflexo, luz forte e escuro ainda enganam a visão artificial."
+      },
+      "comandos": {
+        "prioridade": 2,
+        "recebe": [
+          "visao.quadro()"
+        ],
+        "publica": [
+          "objetos(lista)",
+          "movimento(vetor)",
+          "profundidade()"
+        ],
+        "parametro": null
+      }
+    },
+    {
+      "codigo": "CTX-IN",
+      "nome": "Ínsula",
+      "grupo": "Córtex cerebral",
+      "tambem": "Lobo insular · o “quinto lobo”",
+      "onde": "Escondida no fundo da fissura lateral, coberta pelos lobos frontal, parietal e temporal.",
+      "responsavel": "Interocepção: sente o estado interno do corpo (batimento, fome, dor, nojo) e o transforma em consciência corporal.",
+      "funcao_detalhada": {
+        "descricao": "Recebe os sinais internos do corpo (batimentos, respiração, estômago, temperatura) e os transforma em sensações conscientes. Participa do paladar, do nojo, da empatia e da avaliação de risco.",
+        "entradas": [
+          "Sinais viscerais, via tronco e tálamo",
+          "Dor e temperatura",
+          "Paladar"
+        ],
+        "saidas": [
+          "Estado do corpo para cíngulo, amígdala e pré-frontal",
+          "Ajustes automáticos via hipotálamo"
+        ],
+        "conexoes": [
+          "DIE-TH",
+          "LIM-CG",
+          "LIM-AM",
+          "CTX-PF",
+          "DIE-HY",
+          "CTX-S1"
+        ],
+        "quando_falha": "Perda da percepção das sensações internas e alterações de paladar e nojo. Está ligada a ansiedade e a vícios."
+      },
+      "equivalente_robo": {
+        "modulo": "Monitor de estado interno",
+        "funcao": "Junta bateria, temperatura dos motores, erros e desgaste num índice único de “como o robô está”.",
+        "como_construir": [
+          "Telemetria",
+          "Detecção de anomalias",
+          "Índice de saúde do sistema"
+        ],
+        "maturidade": "Existe hoje",
+        "parametro_global": null,
+        "cuidado": "Não é consciência nem sentimento: é um número que resume a saúde do hardware e influencia as decisões."
+      },
+      "comandos": {
+        "prioridade": 1,
+        "recebe": [
+          "telemetria(*)"
+        ],
+        "publica": [
+          "estado.interno(indice)"
+        ],
+        "parametro": null
+      }
+    },
+    {
+      "codigo": "WM-CC",
+      "nome": "Corpo caloso",
+      "grupo": "Substância branca",
+      "tambem": "Grande comissura · ~200 milhões de axônios",
+      "onde": "Ponte de substância branca no fundo da fissura que separa os hemisférios.",
+      "responsavel": "Conecta os dois hemisférios e sincroniza as informações entre eles.",
+      "funcao_detalhada": {
+        "descricao": "Cabo de alta capacidade entre áreas equivalentes dos dois lados. Permite que a mão esquerda saiba o que a direita faz e que uma palavra vista só pelo campo visual esquerdo chegue à linguagem, no hemisfério esquerdo.",
+        "entradas": [
+          "Axônios de todo o córtex de um hemisfério"
+        ],
+        "saidas": [
+          "A mesma informação espelhada no outro hemisfério"
+        ],
+        "conexoes": [
+          "CTX-FR",
+          "CTX-PA",
+          "CTX-OC",
+          "LIM-CG"
+        ],
+        "quando_falha": "Síndrome de desconexão (“cérebro dividido”): cada hemisfério age sem saber do outro. Às vezes é seccionado de propósito para tratar epilepsia grave."
+      },
+      "equivalente_robo": {
+        "modulo": "Barramento de comunicação",
+        "funcao": "Liga todos os módulos com baixa latência e relógio sincronizado.",
+        "como_construir": [
+          "ROS 2 / DDS",
+          "EtherCAT",
+          "Barramento CAN"
+        ],
+        "maturidade": "Existe hoje",
+        "parametro_global": null,
+        "cuidado": "Largura de banda e sincronização de tempo são críticas. Mensagens atrasadas fazem módulos agirem sobre dados velhos."
+      },
+      "comandos": {
+        "prioridade": null,
+        "recebe": [
+          "publicar(mensagem)"
+        ],
+        "publica": [
+          "entregar(mensagem)"
+        ],
+        "parametro": null
+      }
+    },
+    {
+      "codigo": "LIM-CG",
+      "nome": "Giro do cíngulo",
+      "grupo": "Sistema límbico",
+      "tambem": "Córtex cingulado anterior e posterior",
+      "onde": "Face interna de cada hemisfério, abraçando o corpo caloso como um cinto.",
+      "responsavel": "Detecta erros e conflitos, regula emoção e atenção e liga o que se sente ao que se faz.",
+      "funcao_detalhada": {
+        "descricao": "A parte anterior monitora conflitos e erros e avisa quando é preciso mais controle; também registra o incômodo da dor. A parte posterior liga-se à memória autobiográfica e ao estado de repouso (rede padrão).",
+        "entradas": [
+          "Dor e estado do corpo (ínsula)",
+          "Emoção (amígdala)",
+          "Resultado das ações"
+        ],
+        "saidas": [
+          "Sinal de erro e de esforço para o pré-frontal",
+          "Motivação para agir",
+          "Ajustes automáticos do corpo"
+        ],
+        "conexoes": [
+          "CTX-PF",
+          "LIM-AM",
+          "CTX-IN",
+          "LIM-HC",
+          "DIE-TH",
+          "WM-CC"
+        ],
+        "quando_falha": "Apatia e falta de iniciativa. Alterações aparecem na depressão e no transtorno obsessivo-compulsivo."
+      },
+      "equivalente_robo": {
+        "modulo": "Monitor de erros e conflitos",
+        "funcao": "Percebe quando o resultado difere do esperado ou quando dois módulos discordam, e pede replanejamento.",
+        "como_construir": [
+          "Monitoramento de execução",
+          "Detecção de anomalias",
+          "Verificador de consistência"
+        ],
+        "maturidade": "Parcial",
+        "parametro_global": null,
+        "cuidado": "Precisa distinguir erro real de ruído, senão o robô fica replanejando o tempo todo."
+      },
+      "comandos": {
+        "prioridade": 4,
+        "recebe": [
+          "resultado(esperado, real)"
+        ],
+        "publica": [
+          "erro(tipo)",
+          "replanejar()"
+        ],
+        "parametro": null
+      }
+    },
+    {
+      "codigo": "LIM-HC",
+      "nome": "Hipocampo",
+      "grupo": "Sistema límbico",
+      "tambem": "Nome vem do cavalo-marinho, pelo formato",
+      "onde": "Dentro do lobo temporal, um em cada hemisfério.",
+      "responsavel": "Grava novas memórias de fatos e eventos e monta o mapa do espaço (células de lugar).",
+      "funcao_detalhada": {
+        "descricao": "Amarra os elementos de uma experiência (lugar, pessoas, sons) num episódio e, durante o sono, repassa o episódio ao córtex para armazenamento de longo prazo. Contém as células de lugar, que formam um mapa interno do espaço.",
+        "entradas": [
+          "Informação de todo o córtex, via córtex entorrinal",
+          "Relevância emocional (amígdala)",
+          "Acetilcolina durante a atenção"
+        ],
+        "saidas": [
+          "Memória consolidada para o córtex",
+          "Contexto para o pré-frontal",
+          "Circuito de Papez, via fórnice"
+        ],
+        "conexoes": [
+          "CTX-TE",
+          "LIM-AM",
+          "CTX-PF",
+          "LIM-CG",
+          "DIE-TH",
+          "DIE-HY"
+        ],
+        "quando_falha": "Incapacidade de formar novas memórias (amnésia anterógrada), como no famoso paciente H.M. É das primeiras regiões atingidas no Alzheimer."
+      },
+      "equivalente_robo": {
+        "modulo": "Memória episódica e mapa de lugares",
+        "funcao": "Grava episódios com tempo, lugar e contexto e os reorganiza durante a recarga.",
+        "como_construir": [
+          "Banco vetorial com busca (RAG)",
+          "Registro de eventos",
+          "Mapa topológico",
+          "Replay de experiências"
+        ],
+        "maturidade": "Parcial",
+        "parametro_global": null,
+        "cuidado": "O robô grava tudo, mas não sabe generalizar. O desafio é resumir, esquecer o irrelevante e proteger a privacidade de quem aparece nas memórias."
+      },
+      "comandos": {
+        "prioridade": 4,
+        "recebe": [
+          "registrar(evento)",
+          "consolidar()",
+          "lembrar(consulta)"
+        ],
+        "publica": [
+          "memoria(episodios)",
+          "contexto()"
+        ],
+        "parametro": null
+      }
+    },
+    {
+      "codigo": "LIM-AM",
+      "nome": "Amígdala",
+      "grupo": "Sistema límbico",
+      "tambem": "Corpo amigdaloide",
+      "onde": "Na frente do hipocampo, na parte interna do lobo temporal.",
+      "responsavel": "Detecta ameaças e relevância emocional; dispara o medo e marca memórias como importantes.",
+      "funcao_detalhada": {
+        "descricao": "Avalia em milissegundos se algo é ameaça ou oportunidade. Recebe uma versão rápida e grosseira dos sentidos direto do tálamo, antes da consciência, e dispara a resposta de alerta pelo hipotálamo e pelo tronco.",
+        "entradas": [
+          "Via rápida do tálamo",
+          "Via lenta e detalhada do córtex",
+          "Olfato direto",
+          "Contexto do hipocampo"
+        ],
+        "saidas": [
+          "Resposta de medo via hipotálamo (hormônios) e tronco (batimento, paralisação)",
+          "Reforço de memória no hipocampo",
+          "Atenção"
+        ],
+        "conexoes": [
+          "DIE-TH",
+          "DIE-HY",
+          "LIM-HC",
+          "CTX-PF",
+          "SEN-OB",
+          "BG-NA",
+          "BS-MB"
+        ],
+        "quando_falha": "Sem amígdala, a pessoa não reconhece perigo nem medo nos rostos. Hiperatividade está ligada a ansiedade e estresse pós-traumático."
+      },
+      "equivalente_robo": {
+        "modulo": "Detector de risco",
+        "funcao": "Classifica em milissegundos colisão, queda ou pessoa perto demais e dispara o modo seguro.",
+        "como_construir": [
+          "Classificador rápido e simples",
+          "Sensores de proximidade",
+          "Zonas de segurança",
+          "Parada de emergência"
+        ],
+        "maturidade": "Existe hoje",
+        "parametro_global": null,
+        "cuidado": "Deve ser conservador: um falso alarme só atrasa, mas um alarme perdido machuca alguém. Roda separado da IA principal para funcionar mesmo se ela travar."
+      },
+      "comandos": {
+        "prioridade": 0,
+        "recebe": [
+          "som.intenso(dB)",
+          "objeto.proximo(dist_m, vel)",
+          "risco.avaliar(acao)"
+        ],
+        "publica": [
+          "risco(nivel)",
+          "parada.segura()",
+          "velocidade.limitar(max)",
+          "alerta(valor)"
+        ],
+        "parametro": null
+      }
+    },
+    {
+      "codigo": "DIE-TH",
+      "nome": "Tálamo",
+      "grupo": "Diencéfalo e glândulas",
+      "tambem": "Par de massas ovais no centro do cérebro",
+      "onde": "Centro do cérebro, logo acima do tronco encefálico.",
+      "responsavel": "Estação de retransmissão: filtra e encaminha ao córtex quase todos os sinais dos sentidos (menos o olfato). Também participa do sono e da vigília.",
+      "funcao_detalhada": {
+        "descricao": "Formado por dezenas de núcleos, cada um dedicado a um canal: visão, audição, tato, movimento. Não só repassa, mas filtra e amplifica o que merece atenção. O ritmo entre tálamo e córtex define sono e vigília.",
+        "entradas": [
+          "Todos os sentidos, menos o olfato",
+          "Núcleos da base e cerebelo",
+          "Retorno do próprio córtex"
+        ],
+        "saidas": [
+          "Sinais filtrados para o córtex de cada sentido",
+          "Laços motores para o córtex motor"
+        ],
+        "conexoes": [
+          "CTX-OC",
+          "CTX-A1",
+          "CTX-S1",
+          "CTX-M1",
+          "BG-00",
+          "CB-00",
+          "LIM-AM",
+          "CTX-PF"
+        ],
+        "quando_falha": "Perda sensorial, dor crônica central e distúrbios do sono. Lesão dos dois lados pode causar coma."
+      },
+      "equivalente_robo": {
+        "modulo": "Roteador de sensores e atenção",
+        "funcao": "Recebe todos os fluxos de sensores, sincroniza, filtra o ruído e prioriza o que merece atenção.",
+        "como_construir": [
+          "Fusão de sensores",
+          "Mecanismo de atenção",
+          "Filtro de Kalman",
+          "Sincronização de timestamps"
+        ],
+        "maturidade": "Existe hoje",
+        "parametro_global": null,
+        "cuidado": "Um ponto único por onde tudo passa: se falhar, o robô fica cego e surdo. Precisa de redundância."
+      },
+      "comandos": {
+        "prioridade": 2,
+        "recebe": [
+          "sensor.*",
+          "atencao.focar(alvo)",
+          "acao.liberada(acao)"
+        ],
+        "publica": [
+          "visao.quadro()",
+          "audio.stream()",
+          "executar(acao)"
+        ],
+        "parametro": null
+      }
+    },
+    {
+      "codigo": "DIE-HY",
+      "nome": "Hipotálamo",
+      "grupo": "Diencéfalo e glândulas",
+      "tambem": "Do tamanho de uma amêndoa",
+      "onde": "Abaixo do tálamo, na base do cérebro.",
+      "responsavel": "Controla o meio interno: temperatura, fome, sede, sono, ritmo circadiano e a liberação de hormônios.",
+      "funcao_detalhada": {
+        "descricao": "É o termostato do corpo. Compara valores medidos (temperatura, glicose, água) com valores-alvo e corrige por três vias: hormônios (hipófise), sistema nervoso autônomo e comportamento (fome, sede). Abriga o relógio central, o núcleo supraquiasmático.",
+        "entradas": [
+          "Temperatura e química do sangue",
+          "Luz, via retina",
+          "Emoção (amígdala)",
+          "Estado do corpo"
+        ],
+        "saidas": [
+          "Hormônios de comando para a hipófise",
+          "Ocitocina e vasopressina",
+          "Comandos automáticos (coração, suor)",
+          "Impulsos de fome, sede e sono"
+        ],
+        "conexoes": [
+          "END-HP",
+          "LIM-AM",
+          "BS-BU",
+          "END-PN",
+          "LIM-HC",
+          "CTX-IN"
+        ],
+        "quando_falha": "Desregulação de temperatura, fome, sede e sono, além de distúrbios hormonais e de peso."
+      },
+      "equivalente_robo": {
+        "modulo": "Gestor de homeostase",
+        "funcao": "Mantém bateria, temperatura e carga de trabalho em faixas seguras e decide quando recarregar ou esfriar.",
+        "como_construir": [
+          "Gestão de bateria (BMS)",
+          "Controle térmico",
+          "Setpoints e limites",
+          "Agendador de tarefas"
+        ],
+        "maturidade": "Existe hoje",
+        "parametro_global": null,
+        "cuidado": "Os valores-alvo (temperatura máxima, bateria mínima) são regras de segurança e não devem ser alteráveis por comando de voz."
+      },
+      "comandos": {
+        "prioridade": 1,
+        "recebe": [
+          "bateria(pct)",
+          "temperatura(C)"
+        ],
+        "publica": [
+          "modo(nome)",
+          "fadiga(valor)",
+          "ir.recarregar()"
+        ],
+        "parametro": null
+      }
+    },
+    {
+      "codigo": "END-HP",
+      "nome": "Hipófise",
+      "grupo": "Diencéfalo e glândulas",
+      "tambem": "Glândula pituitária · a “glândula mestra”",
+      "onde": "Pendurada sob o hipotálamo, apoiada numa cavidade do osso (sela turca).",
+      "responsavel": "Libera hormônios que comandam outras glândulas: crescimento, tireoide, adrenais e reprodução.",
+      "funcao_detalhada": {
+        "descricao": "Tem duas partes. A anterior fabrica hormônios sob comando químico do hipotálamo (crescimento, tireoide, adrenais, reprodução). A posterior guarda e libera ocitocina e vasopressina, produzidas no hipotálamo.",
+        "entradas": [
+          "Hormônios de comando do hipotálamo",
+          "Axônios do hipotálamo (parte posterior)"
+        ],
+        "saidas": [
+          "Hormônios no sangue para tireoide, adrenais, gônadas, rins e útero"
+        ],
+        "conexoes": [
+          "DIE-HY",
+          "NT-OXT"
+        ],
+        "quando_falha": "Tumores podem causar excesso ou falta de hormônios: gigantismo, falta de cortisol, alterações da tireoide e da fertilidade."
+      },
+      "equivalente_robo": {
+        "modulo": "Controlador de modos globais",
+        "funcao": "Muda o comportamento de todo o sistema de uma vez: economia, desempenho, manutenção ou emergência.",
+        "como_construir": [
+          "Máquina de estados global",
+          "Perfis de energia",
+          "Broadcast de parâmetros"
+        ],
+        "maturidade": "Existe hoje",
+        "parametro_global": null,
+        "cuidado": "Todos os módulos precisam reagir ao mesmo modo ao mesmo tempo. Modos contraditórios entre módulos causam comportamento imprevisível."
+      },
+      "comandos": {
+        "prioridade": 1,
+        "recebe": [
+          "modo(nome)"
+        ],
+        "publica": [
+          "broadcast.parametros(lista)"
+        ],
+        "parametro": null
+      }
+    },
+    {
+      "codigo": "END-PN",
+      "nome": "Glândula pineal",
+      "grupo": "Diencéfalo e glândulas",
+      "tambem": "Epífise",
+      "onde": "Atrás do tálamo, bem no centro do cérebro.",
+      "responsavel": "Produz melatonina no escuro, sinalizando ao corpo que é hora de dormir.",
+      "funcao_detalhada": {
+        "descricao": "Recebe a informação de luz por um caminho indireto: retina → relógio do hipotálamo → tronco → medula → gânglio simpático → pineal. No escuro, converte serotonina em melatonina.",
+        "entradas": [
+          "Sinal de escuridão, vindo do relógio do hipotálamo"
+        ],
+        "saidas": [
+          "Melatonina no sangue e no líquor"
+        ],
+        "conexoes": [
+          "DIE-HY",
+          "NT-5HT"
+        ],
+        "quando_falha": "Desregulação do sono e do ritmo diário. Luz forte à noite suprime a melatonina."
+      },
+      "equivalente_robo": {
+        "modulo": "Relógio circadiano",
+        "funcao": "Define o ciclo do dia: horário ativo, recarga, manutenção e atualizações.",
+        "como_construir": [
+          "Relógio de tempo real (RTC)",
+          "Agendador de rotinas",
+          "Sensor de luz ambiente"
+        ],
+        "maturidade": "Existe hoje",
+        "parametro_global": null,
+        "cuidado": "Robôs em casa devem seguir o ritmo das pessoas: silenciosos à noite e com manutenção nos horários de menor uso."
+      },
+      "comandos": {
+        "prioridade": 1,
+        "recebe": [
+          "consulta(hora)"
+        ],
+        "publica": [
+          "hora(valor, fase)",
+          "ciclo(fase)"
+        ],
+        "parametro": null
+      }
+    },
+    {
+      "codigo": "BG-00",
+      "nome": "Núcleos da base",
+      "grupo": "Núcleos da base",
+      "tambem": "Estriado (caudado + putâmen) · globo pálido",
+      "onde": "Estruturas profundas em volta do tálamo, uma em cada hemisfério.",
+      "responsavel": "Escolhem qual ação executar e suprimem as outras; formam hábitos e automatizam movimentos.",
+      "funcao_detalhada": {
+        "descricao": "Recebe do córtex várias propostas de ação ao mesmo tempo e libera só a vencedora, mantendo as outras freadas. Funciona com uma via “vai” (direta) e uma via “pare” (indireta), balanceadas pela dopamina. Com a repetição, sequências viram hábito.",
+        "entradas": [
+          "Propostas de ação de todo o córtex (glutamato)",
+          "Dopamina da substância negra"
+        ],
+        "saidas": [
+          "Liberação ou bloqueio da ação para o tálamo, que devolve ao córtex motor (GABA)"
+        ],
+        "conexoes": [
+          "CTX-FR",
+          "CTX-M1",
+          "DIE-TH",
+          "MB-SN",
+          "BG-NA",
+          "CTX-PF"
+        ],
+        "quando_falha": "Parkinson (pouca dopamina: movimento lento, rigidez, tremor) ou Huntington (perda do estriado: movimentos involuntários)."
+      },
+      "equivalente_robo": {
+        "modulo": "Árbitro de ações",
+        "funcao": "Recebe várias propostas de ação, escolhe uma vencedora e bloqueia as concorrentes. Sequências repetidas viram rotinas rápidas.",
+        "como_construir": [
+          "Árvore de comportamento com prioridades",
+          "Seleção de ação",
+          "Rotinas pré-compiladas"
+        ],
+        "maturidade": "Existe hoje",
+        "parametro_global": null,
+        "cuidado": "Sem árbitro, dois módulos podem comandar o mesmo motor ao mesmo tempo. A regra é: cada atuador obedece a um único dono por vez."
+      },
+      "comandos": {
+        "prioridade": 3,
+        "recebe": [
+          "proposta.acao(acao, prio)",
+          "cancelar.acoes()",
+          "recompensa(erro)"
+        ],
+        "publica": [
+          "acao.liberada(acao)",
+          "suprimir(acao)"
+        ],
+        "parametro": null
+      }
+    },
+    {
+      "codigo": "BG-NA",
+      "nome": "Núcleo accumbens",
+      "grupo": "Núcleos da base",
+      "tambem": "Estriado ventral",
+      "onde": "Base do estriado, perto da linha média, na frente.",
+      "responsavel": "Centro de recompensa e motivação: transforma a expectativa de um prêmio em vontade de agir.",
+      "funcao_detalhada": {
+        "descricao": "Compara o que se espera ganhar com o esforço necessário e decide se vale a pena agir. Recebe a dopamina da ATV e aprende quais pistas preveem um prêmio.",
+        "entradas": [
+          "Dopamina da ATV",
+          "Contexto do hipocampo",
+          "Valor emocional da amígdala",
+          "Objetivos do pré-frontal"
+        ],
+        "saidas": [
+          "Motivação para agir, via pálido ventral e tálamo"
+        ],
+        "conexoes": [
+          "MB-SN",
+          "LIM-AM",
+          "LIM-HC",
+          "CTX-PF",
+          "DIE-HY"
+        ],
+        "quando_falha": "Falta de motivação e de prazer (anedonia). A hiperativação por drogas é a base da dependência."
+      },
+      "equivalente_robo": {
+        "modulo": "Avaliador de custo-benefício",
+        "funcao": "Calcula se vale a pena agir: recompensa esperada contra energia, tempo e risco.",
+        "como_construir": [
+          "Função de valor",
+          "Aprendizado por reforço",
+          "Utilidade esperada"
+        ],
+        "maturidade": "Parcial",
+        "parametro_global": null,
+        "cuidado": "O valor de cada objetivo é definido por pessoas. Valores mal calibrados fazem o robô insistir em tarefas inúteis ou desistir cedo demais."
+      },
+      "comandos": {
+        "prioridade": 4,
+        "recebe": [
+          "consulta.valor(acao)"
+        ],
+        "publica": [
+          "valor(utilidade)"
+        ],
+        "parametro": null
+      }
+    },
+    {
+      "codigo": "MB-SN",
+      "nome": "Substância negra e ATV",
+      "grupo": "Núcleos da base",
+      "tambem": "Área tegmental ventral · fontes de dopamina",
+      "onde": "No mesencéfalo, logo abaixo do tálamo.",
+      "responsavel": "Fabricam dopamina. A substância negra abastece o movimento; a ATV abastece motivação e aprendizado por recompensa.",
+      "funcao_detalhada": {
+        "descricao": "A substância negra envia dopamina ao estriado e mantém o movimento fluido. A ATV envia ao accumbens, ao pré-frontal e à amígdala e codifica o erro de previsão: dispara mais quando o resultado é melhor que o esperado.",
+        "entradas": [
+          "Sinais de recompensa e de novidade",
+          "Retorno do estriado e do pré-frontal"
+        ],
+        "saidas": [
+          "Dopamina para estriado, accumbens, pré-frontal e amígdala"
+        ],
+        "conexoes": [
+          "BG-00",
+          "BG-NA",
+          "CTX-PF",
+          "LIM-AM",
+          "NT-DA"
+        ],
+        "quando_falha": "A morte de neurônios da substância negra causa Parkinson; os sintomas aparecem depois de uma perda de cerca de 60%. Alterações na ATV estão ligadas a vícios e à esquizofrenia."
+      },
+      "equivalente_robo": {
+        "modulo": "Gerador do sinal de aprendizado",
+        "funcao": "Calcula o erro de previsão (resultado real menos o esperado) e envia aos módulos que aprendem.",
+        "como_construir": [
+          "Erro de diferença temporal (TD)",
+          "Arquitetura ator-crítico"
+        ],
+        "maturidade": "Parcial",
+        "parametro_global": null,
+        "cuidado": "Se a recompensa for mal definida, o robô aprende a enganá-la em vez de cumprir a tarefa (reward hacking). A recompensa precisa medir o resultado de verdade."
+      },
+      "comandos": {
+        "prioridade": 4,
+        "recebe": [
+          "resultado(sucesso)"
+        ],
+        "publica": [
+          "recompensa(erro_previsao)"
+        ],
+        "parametro": null
+      }
+    },
+    {
+      "codigo": "CB-00",
+      "nome": "Cerebelo",
+      "grupo": "Tronco e cerebelo",
+      "tambem": "“Pequeno cérebro” · ~69 bilhões de neurônios",
+      "onde": "Atrás e embaixo, sob o lobo occipital.",
+      "responsavel": "Coordena e corrige o movimento em tempo real: equilíbrio, postura, precisão e aprendizado motor.",
+      "funcao_detalhada": {
+        "descricao": "Recebe uma cópia do comando motor e o retorno dos sensores, compara o movimento pretendido com o real e envia correções antes que o erro cresça. Aprende ajustes finos pela repetição, como andar de bicicleta.",
+        "entradas": [
+          "Cópia do comando motor, via ponte",
+          "Posição do corpo, via medula",
+          "Equilíbrio (sistema vestibular)"
+        ],
+        "saidas": [
+          "Correções para o córtex motor, via tálamo",
+          "Ajustes de postura, via tronco"
+        ],
+        "conexoes": [
+          "BS-PO",
+          "SC-00",
+          "DIE-TH",
+          "CTX-M1",
+          "BS-BU"
+        ],
+        "quando_falha": "Ataxia: movimentos descoordenados, marcha cambaleante, tremor ao tentar pegar algo e fala arrastada. O álcool afeta o cerebelo primeiro."
+      },
+      "equivalente_robo": {
+        "modulo": "Controlador preditivo de movimento",
+        "funcao": "Prevê o resultado de cada comando motor, compara com os sensores e corrige em tempo real.",
+        "como_construir": [
+          "Modelo direto do corpo",
+          "Controle preditivo (MPC)",
+          "PID adaptativo",
+          "Filtro de Kalman"
+        ],
+        "maturidade": "Existe hoje",
+        "parametro_global": null,
+        "cuidado": "Roda em ciclos de 1 a 10 ms. Atrasos na comunicação transformam correção em oscilação."
+      },
+      "comandos": {
+        "prioridade": 3,
+        "recebe": [
+          "copia.comando()",
+          "propriocepcao(erro_mm)"
+        ],
+        "publica": [
+          "correcao(delta)",
+          "postura.ajuste()"
+        ],
+        "parametro": null
+      }
+    },
+    {
+      "codigo": "BS-MB",
+      "nome": "Mesencéfalo",
+      "grupo": "Tronco e cerebelo",
+      "tambem": "Parte superior do tronco encefálico",
+      "onde": "Topo do tronco encefálico, entre o tálamo e a ponte.",
+      "responsavel": "Reflexos visuais e auditivos (virar a cabeça para um som), movimento dos olhos e origem das vias de dopamina.",
+      "funcao_detalhada": {
+        "descricao": "No teto, os colículos coordenam reflexos de orientação: o superior vira olhos e cabeça para um estímulo visual; o inferior retransmite a audição. Na base ficam a substância negra, a ATV e a substância cinzenta periaquedutal, que controla dor e reações de defesa.",
+        "entradas": [
+          "Retina e audição",
+          "Córtex motor e visual"
+        ],
+        "saidas": [
+          "Movimento dos olhos (nervos cranianos III e IV)",
+          "Dopamina",
+          "Controle da dor de cima para baixo"
+        ],
+        "conexoes": [
+          "DIE-TH",
+          "CTX-OC",
+          "CTX-A1",
+          "MB-SN",
+          "BS-PO",
+          "NT-END"
+        ],
+        "quando_falha": "Alterações do olhar e das pupilas e perda de consciência. Lesão das vias de dopamina causa sintomas de Parkinson."
+      },
+      "equivalente_robo": {
+        "modulo": "Reflexos de orientação",
+        "funcao": "Vira câmeras e cabeça para um som ou movimento sem esperar o planejador.",
+        "como_construir": [
+          "Detecção de saliência",
+          "Rastreamento de alvo",
+          "Controle de gimbal"
+        ],
+        "maturidade": "Existe hoje",
+        "parametro_global": null,
+        "cuidado": "Reflexos rápidos precisam ser interrompíveis pelo árbitro de ações, senão o robô se distrai com qualquer ruído."
+      },
+      "comandos": {
+        "prioridade": 0,
+        "recebe": [
+          "som.intenso(direcao)",
+          "movimento(vetor)"
+        ],
+        "publica": [
+          "olhar.virar(direcao)"
+        ],
+        "parametro": null
+      }
+    },
+    {
+      "codigo": "BS-PO",
+      "nome": "Ponte",
+      "grupo": "Tronco e cerebelo",
+      "tambem": "Protuberância anular",
+      "onde": "Parte média e saliente do tronco, na frente do cerebelo.",
+      "responsavel": "Liga o córtex ao cerebelo; participa do controle da respiração e do sono REM.",
+      "funcao_detalhada": {
+        "descricao": "Contém núcleos que repassam os comandos do córtex para o cerebelo e núcleos que regulam o ritmo da respiração. Aqui ficam o locus coeruleus (noradrenalina) e parte da rafe (serotonina), e daqui parte o sinal que gera o sono REM.",
+        "entradas": [
+          "Córtex motor",
+          "Sinais respiratórios do bulbo"
+        ],
+        "saidas": [
+          "Informação para o cerebelo",
+          "Nervos cranianos V a VIII (rosto, mastigação, olhos, audição, equilíbrio)",
+          "Noradrenalina para todo o cérebro"
+        ],
+        "conexoes": [
+          "CB-00",
+          "CTX-M1",
+          "BS-BU",
+          "BS-MB",
+          "NT-NE",
+          "NT-5HT"
+        ],
+        "quando_falha": "Síndrome do encarceramento (a pessoa está consciente mas paralisada, mexendo só os olhos) e alterações de respiração e sono."
+      },
+      "equivalente_robo": {
+        "modulo": "Relé e modo de repouso",
+        "funcao": "Repassa comandos ao controlador de movimento e alterna o sistema entre ativo, repouso e sono.",
+        "como_construir": [
+          "Gateway de comunicação",
+          "Modos de baixo consumo",
+          "Watchdog"
+        ],
+        "maturidade": "Existe hoje",
+        "parametro_global": null,
+        "cuidado": "Ao acordar do repouso, o robô precisa checar sensores antes de se mover."
+      },
+      "comandos": {
+        "prioridade": 0,
+        "recebe": [
+          "modo.repouso()",
+          "acordar()"
+        ],
+        "publica": [
+          "estado(ativo | repouso)"
+        ],
+        "parametro": null
+      }
+    },
+    {
+      "codigo": "BS-BU",
+      "nome": "Bulbo",
+      "grupo": "Tronco e cerebelo",
+      "tambem": "Medula oblonga",
+      "onde": "Parte inferior do tronco, que continua na medula espinhal.",
+      "responsavel": "Funções vitais automáticas: batimento cardíaco, pressão arterial, respiração, deglutição, tosse e vômito.",
+      "funcao_detalhada": {
+        "descricao": "Abriga os centros do coração e da respiração, que funcionam sem atenção consciente. É onde os tratos motores cruzam de lado, e por isso cada hemisfério controla o lado oposto do corpo.",
+        "entradas": [
+          "Sensores de pressão, CO₂ e oxigênio",
+          "Sinais do hipotálamo"
+        ],
+        "saidas": [
+          "Ritmo do coração e da respiração, via nervo vago",
+          "Reflexos de engolir, tossir e vomitar"
+        ],
+        "conexoes": [
+          "BS-PO",
+          "SC-00",
+          "DIE-HY",
+          "CB-00"
+        ],
+        "quando_falha": "Lesão grave é fatal, por parada respiratória ou cardíaca."
+      },
+      "equivalente_robo": {
+        "modulo": "Sistema vital",
+        "funcao": "Mantém energia, refrigeração e comunicação básica funcionando, independente do software principal.",
+        "como_construir": [
+          "Microcontrolador de segurança",
+          "Watchdog de hardware",
+          "Parada de emergência",
+          "Fonte redundante"
+        ],
+        "maturidade": "Existe hoje",
+        "parametro_global": null,
+        "cuidado": "Deve ser fisicamente separado do computador principal, assim como o tronco continua funcionando quando o córtex é lesionado."
+      },
+      "comandos": {
+        "prioridade": 0,
+        "recebe": [
+          "parada.segura()",
+          "vital.status()"
+        ],
+        "publica": [
+          "energia.corte()",
+          "heartbeat()"
+        ],
+        "parametro": null
+      }
+    },
+    {
+      "codigo": "SC-00",
+      "nome": "Medula espinhal",
+      "grupo": "Tronco e cerebelo",
+      "tambem": "~45 cm no adulto",
+      "onde": "Desce do bulbo por dentro da coluna vertebral.",
+      "responsavel": "Cabo principal entre cérebro e corpo. Também executa reflexos sozinha, sem esperar o cérebro (tirar a mão do fogo).",
+      "funcao_detalhada": {
+        "descricao": "Tem 31 pares de nervos. A parte branca externa leva sinais para cima (sensação) e para baixo (movimento); a parte cinzenta interna tem neurônios que fecham reflexos em milissegundos e geradores de ritmo para caminhar.",
+        "entradas": [
+          "Comandos do córtex motor e do tronco",
+          "Sensores da pele, músculos e articulações"
+        ],
+        "saidas": [
+          "Ativação dos músculos",
+          "Sensação subindo para tálamo e cerebelo",
+          "Reflexos locais"
+        ],
+        "conexoes": [
+          "CTX-M1",
+          "DIE-TH",
+          "CB-00",
+          "BS-BU",
+          "CTX-S1"
+        ],
+        "quando_falha": "Perda de movimento e sensação abaixo do ponto lesionado (paraplegia ou tetraplegia)."
+      },
+      "equivalente_robo": {
+        "modulo": "Rede de atuadores e reflexos locais",
+        "funcao": "Leva os comandos a cada motor e executa reflexos locais, como parar ao sentir impacto, em milissegundos.",
+        "como_construir": [
+          "EtherCAT ou CAN",
+          "Controlador local por junta",
+          "Limitação de corrente e força"
+        ],
+        "maturidade": "Existe hoje",
+        "parametro_global": null,
+        "cuidado": "Os reflexos locais não pedem permissão ao cérebro. Limitar força e corrente na própria junta é a proteção mais confiável contra ferimentos."
+      },
+      "comandos": {
+        "prioridade": 0,
+        "recebe": [
+          "juntas.trajetoria(juntas)",
+          "parada.segura()",
+          "velocidade.limitar(max)"
+        ],
+        "publica": [
+          "torque(motor)",
+          "propriocepcao()",
+          "tato()"
+        ],
+        "parametro": null
+      }
+    },
+    {
+      "codigo": "SEN-OB",
+      "nome": "Bulbo olfatório",
+      "grupo": "Sentidos e fluidos",
+      "tambem": "Nervo craniano I",
+      "onde": "Sob os lobos frontais, logo acima da cavidade nasal.",
+      "responsavel": "Recebe os cheiros e manda direto para o sistema límbico, sem passar pelo tálamo. Por isso cheiro desperta memória e emoção tão rápido.",
+      "funcao_detalhada": {
+        "descricao": "Cerca de 400 tipos de receptores no nariz enviam sinais que convergem em pequenos agrupamentos (glomérulos); cada cheiro vira um padrão de ativação. Daí o sinal segue direto ao córtex olfatório, à amígdala e à porta do hipocampo.",
+        "entradas": [
+          "Neurônios receptores olfatórios da mucosa do nariz"
+        ],
+        "saidas": [
+          "Padrões de cheiro para o córtex olfatório, a amígdala e o hipocampo"
+        ],
+        "conexoes": [
+          "LIM-AM",
+          "LIM-HC",
+          "CTX-TE",
+          "DIE-HY"
+        ],
+        "quando_falha": "Perda do olfato (anosmia), que também reduz o paladar. Pode ser um sinal precoce de Parkinson e Alzheimer."
+      },
+      "equivalente_robo": {
+        "modulo": "Sensores químicos",
+        "funcao": "Detecta gases, fumaça e substâncias no ar.",
+        "como_construir": [
+          "Nariz eletrônico",
+          "Sensores de gás (MOX)",
+          "Detector de fumaça e CO"
+        ],
+        "maturidade": "Parcial",
+        "parametro_global": null,
+        "cuidado": "Narizes eletrônicos ainda são muito menos sensíveis e específicos que o olfato. Bom para alarmes, fraco para reconhecer cheiros."
+      },
+      "comandos": {
+        "prioridade": 2,
+        "recebe": [
+          "ar.amostra()"
+        ],
+        "publica": [
+          "gas(tipo, ppm)",
+          "fumaca()"
+        ],
+        "parametro": null
+      }
+    },
+    {
+      "codigo": "VEN-00",
+      "nome": "Sistema ventricular",
+      "grupo": "Sentidos e fluidos",
+      "tambem": "Ventrículos laterais, 3º e 4º · líquor",
+      "onde": "Cavidades interligadas no centro do cérebro, cheias de líquido.",
+      "responsavel": "Produzem e fazem circular o líquido cefalorraquidiano (~150 ml), que amortece, nutre e remove resíduos.",
+      "funcao_detalhada": {
+        "descricao": "O plexo coroide produz cerca de 500 ml de líquor por dia, renovando o volume 3 a 4 vezes. O líquido flui dos ventrículos laterais para o 3º e o 4º, envolve cérebro e medula e é reabsorvido no sangue.",
+        "entradas": [
+          "Plasma filtrado pelo plexo coroide"
+        ],
+        "saidas": [
+          "Líquor circulante",
+          "Remoção de resíduos (sistema glinfático, mais ativo durante o sono)"
+        ],
+        "conexoes": [
+          "DIE-TH",
+          "WM-CC",
+          "BS-PO",
+          "SC-00"
+        ],
+        "quando_falha": "Hidrocefalia: o líquor se acumula, aumenta a pressão e comprime o cérebro."
+      },
+      "equivalente_robo": {
+        "modulo": "Refrigeração e limpeza",
+        "funcao": "Circula fluido para tirar calor dos processadores e limpa dados temporários, logs e cache.",
+        "como_construir": [
+          "Refrigeração líquida ou ventilação",
+          "Coleta de lixo de memória",
+          "Rotação de logs"
+        ],
+        "maturidade": "Existe hoje",
+        "parametro_global": null,
+        "cuidado": "Superaquecimento reduz o desempenho e o tempo de vida do hardware. A limpeza pesada deve rodar no ciclo de repouso."
+      },
+      "comandos": {
+        "prioridade": 1,
+        "recebe": [
+          "temperatura(C)"
+        ],
+        "publica": [
+          "refrigeracao(nivel)",
+          "limpeza.agendar()"
+        ],
+        "parametro": null
+      }
+    },
+    {
+      "codigo": "NT-DA",
+      "nome": "Dopamina",
+      "grupo": "Neuroquímica",
+      "tambem": "Neurotransmissor · catecolamina",
+      "onde": "Produzida na substância negra e na ATV; age no estriado, no accumbens e no pré-frontal.",
+      "responsavel": "Sinal de recompensa e de “erro de previsão”: motiva, reforça o que deu certo e dá fluidez ao movimento.",
+      "funcao_detalhada": {
+        "descricao": "Age por receptores D1 (reforçam a via “vai”) e D2 (freiam a via “pare”). Mais do que prazer, sinaliza surpresa positiva: quando a recompensa é maior que a prevista a dopamina sobe; quando é menor, cai. Isso ensina o cérebro o que repetir.",
+        "entradas": [
+          "Recompensas e as pistas que as preveem"
+        ],
+        "saidas": [
+          "Motivação",
+          "Aprendizado por reforço",
+          "Fluidez dos movimentos"
+        ],
+        "conexoes": [
+          "MB-SN",
+          "BG-00",
+          "BG-NA",
+          "CTX-PF"
+        ],
+        "quando_falha": "Falta causa Parkinson e apatia. Excesso ou desregulação está ligado a vícios e a sintomas psicóticos."
+      },
+      "equivalente_robo": {
+        "modulo": "Parâmetro global de recompensa",
+        "funcao": "Sinal de surpresa positiva ou negativa, enviado a todos os módulos, que ajusta o quanto eles aprendem e o quanto o robô quer agir.",
+        "como_construir": [
+          "Erro de diferença temporal",
+          "Taxa de aprendizado",
+          "Bônus de exploração"
+        ],
+        "maturidade": "Parcial",
+        "parametro_global": "recompensa: −1 … +1",
+        "cuidado": "Nunca deve poder ser aumentado por comando externo. Um robô que controla a própria recompensa para de fazer a tarefa."
+      },
+      "comandos": {
+        "prioridade": null,
+        "recebe": [],
+        "publica": [],
+        "parametro": {
+          "nome": "recompensa",
+          "padrao": 0,
+          "minimo": -1,
+          "maximo": 1,
+          "quem_altera": "Só o sinal interno de aprendizado",
+          "regra": "Nenhum comando externo altera (R5)",
+          "bloqueado": true
+        }
+      }
+    },
+    {
+      "codigo": "NT-5HT",
+      "nome": "Serotonina",
+      "grupo": "Neuroquímica",
+      "tambem": "5-hidroxitriptamina",
+      "onde": "Núcleos da rafe, no tronco encefálico; projeta para quase todo o cérebro.",
+      "responsavel": "Estabiliza humor, paciência e impulsividade; regula sono e apetite.",
+      "funcao_detalhada": {
+        "descricao": "Cerca de 90% da serotonina do corpo está no intestino. No cérebro, uma pequena população de neurônios da rafe modula quase todas as regiões. Ajuda a esperar por recompensas maiores e a reduzir a reação a ameaças.",
+        "entradas": [
+          "Estado do corpo",
+          "Luz",
+          "Alimentação (triptofano)"
+        ],
+        "saidas": [
+          "Humor estável",
+          "Controle de impulsos",
+          "Sono e apetite",
+          "Matéria-prima da melatonina"
+        ],
+        "conexoes": [
+          "BS-PO",
+          "CTX-PF",
+          "LIM-HC",
+          "LIM-AM",
+          "END-PN"
+        ],
+        "quando_falha": "Níveis desregulados estão associados a depressão, ansiedade e impulsividade. Muitos antidepressivos agem sobre ela."
+      },
+      "equivalente_robo": {
+        "modulo": "Parâmetro de paciência",
+        "funcao": "Define o quanto o robô valoriza um resultado futuro em comparação com um imediato. Alto: espera e planeja. Baixo: age por impulso.",
+        "como_construir": [
+          "Fator de desconto (γ) do aprendizado por reforço",
+          "Limiar de impulsividade"
+        ],
+        "maturidade": "Parcial",
+        "parametro_global": "paciencia: 0 … 1",
+        "cuidado": "Paciência alta demais trava o robô em planejamento; baixa demais o faz tomar atalhos."
+      },
+      "comandos": {
+        "prioridade": null,
+        "recebe": [],
+        "publica": [],
+        "parametro": {
+          "nome": "paciencia",
+          "padrao": 0.6,
+          "minimo": 0.2,
+          "maximo": 0.9,
+          "quem_altera": "Dono, dentro da faixa",
+          "regra": "Faixa limitada para evitar travar ou agir por impulso",
+          "bloqueado": false
+        }
+      }
+    },
+    {
+      "codigo": "NT-NE",
+      "nome": "Noradrenalina e adrenalina",
+      "grupo": "Neuroquímica",
+      "tambem": "Norepinefrina e epinefrina",
+      "onde": "Noradrenalina: locus coeruleus, na ponte. Adrenalina: sobretudo nas glândulas adrenais, como hormônio.",
+      "responsavel": "Alerta e prontidão: aumentam foco, vigilância e a resposta de luta ou fuga.",
+      "funcao_detalhada": {
+        "descricao": "O locus coeruleus tem só 20 a 50 mil neurônios, mas seus axônios alcançam quase todo o cérebro. Define o nível de alerta: baixo no sono, médio no foco, alto no estresse. A adrenalina das adrenais prepara o corpo: coração, pulmões e glicose.",
+        "entradas": [
+          "Novidade",
+          "Ameaça",
+          "Esforço e estresse"
+        ],
+        "saidas": [
+          "Vigilância e foco",
+          "Resposta de luta ou fuga"
+        ],
+        "conexoes": [
+          "BS-PO",
+          "CTX-PF",
+          "LIM-AM",
+          "DIE-TH",
+          "CB-00"
+        ],
+        "quando_falha": "Pouca causa desatenção e cansaço. Excesso crônico causa ansiedade, insônia e estresse pós-traumático."
+      },
+      "equivalente_robo": {
+        "modulo": "Parâmetro de nível de alerta",
+        "funcao": "Ganho global: aumenta a frequência dos sensores, a atenção e a velocidade de reação. No máximo, entra em modo emergência.",
+        "como_construir": [
+          "Frequência de amostragem variável",
+          "Ganho de atenção",
+          "Perfis de energia"
+        ],
+        "maturidade": "Existe hoje",
+        "parametro_global": "alerta: 0 … 1",
+        "cuidado": "Alerta alto gasta muita energia e esquenta. Deve voltar sozinho ao nível normal quando a ameaça passa."
+      },
+      "comandos": {
+        "prioridade": null,
+        "recebe": [],
+        "publica": [],
+        "parametro": {
+          "nome": "alerta",
+          "padrao": 0.3,
+          "minimo": 0,
+          "maximo": 1,
+          "quem_altera": "Detector de risco e homeostase",
+          "regra": "Volta sozinho a 0,3 quando a ameaça passa",
+          "bloqueado": false
+        }
+      }
+    },
+    {
+      "codigo": "NT-ADO",
+      "nome": "Adenosina",
+      "grupo": "Neuroquímica",
+      "tambem": "Neuromodulador derivado do ATP",
+      "onde": "Liberada por neurônios e glia de todo o cérebro, à medida que gastam energia.",
+      "responsavel": "Acumula ao longo do dia e cria a pressão de sono. A cafeína funciona bloqueando os receptores dela.",
+      "funcao_detalhada": {
+        "descricao": "Quando os neurônios gastam energia (ATP), sobra adenosina, que se liga a receptores A1 e A2A e reduz a atividade dos circuitos de vigília. Durante o sono ela é removida e a pressão de sono zera.",
+        "entradas": [
+          "Gasto de energia dos neurônios ao longo do dia"
+        ],
+        "saidas": [
+          "Sonolência",
+          "Proteção contra excesso de atividade"
+        ],
+        "conexoes": [
+          "DIE-HY",
+          "CTX-00",
+          "NT-DA"
+        ],
+        "quando_falha": "A cafeína bloqueia os receptores e mascara o cansaço, mas a necessidade de sono continua. A privação de sono acumula adenosina."
+      },
+      "equivalente_robo": {
+        "modulo": "Parâmetro de fadiga",
+        "funcao": "Acumula com horas de uso, calor e desgaste. Ao passar do limite, agenda recarga e manutenção.",
+        "como_construir": [
+          "Contador de uso",
+          "Modelo de desgaste",
+          "Agendador de manutenção"
+        ],
+        "maturidade": "Existe hoje",
+        "parametro_global": "fadiga: 0 … 1",
+        "cuidado": "Mascarar a fadiga para continuar trabalhando, como a cafeína faz, deve ter limite de tempo e ficar registrado."
+      },
+      "comandos": {
+        "prioridade": null,
+        "recebe": [],
+        "publica": [],
+        "parametro": {
+          "nome": "fadiga",
+          "padrao": 0.1,
+          "minimo": 0,
+          "maximo": 1,
+          "quem_altera": "Gestor de homeostase",
+          "regra": "Acima de 0,85 força a recarga",
+          "bloqueado": true
+        }
+      }
+    },
+    {
+      "codigo": "NT-ACH",
+      "nome": "Acetilcolina",
+      "grupo": "Neuroquímica",
+      "tambem": "Primeiro neurotransmissor descoberto (1921)",
+      "onde": "Prosencéfalo basal e tronco encefálico; também na junção entre nervo e músculo.",
+      "responsavel": "Atenção, aprendizado e gravação de memórias. No corpo, é o sinal que faz o músculo contrair.",
+      "funcao_detalhada": {
+        "descricao": "No cérebro, aumenta o contraste dos sinais que merecem atenção e facilita a gravação de memórias no hipocampo. No corpo, é liberada na junção entre nervo e músculo e no sistema que desacelera o coração e ativa a digestão.",
+        "entradas": [
+          "Estado de atenção e vigília"
+        ],
+        "saidas": [
+          "Foco",
+          "Aprendizado e memória",
+          "Contração muscular"
+        ],
+        "conexoes": [
+          "LIM-HC",
+          "CTX-00",
+          "DIE-TH",
+          "SC-00"
+        ],
+        "quando_falha": "A perda dos neurônios de acetilcolina é marca do Alzheimer. Na miastenia gravis, o sistema imune ataca os receptores do músculo e causa fraqueza."
+      },
+      "equivalente_robo": {
+        "modulo": "Parâmetro de foco e registro",
+        "funcao": "Aumenta a precisão da atenção no alvo atual e marca os dados do momento como importantes para gravar e aprender.",
+        "como_construir": [
+          "Peso de atenção",
+          "Prioridade de gravação",
+          "Taxa de aprendizado local"
+        ],
+        "maturidade": "Parcial",
+        "parametro_global": "foco: 0 … 1",
+        "cuidado": "Foco alto reduz a percepção do que está em volta. O detector de risco deve continuar ativo mesmo em foco máximo."
+      },
+      "comandos": {
+        "prioridade": null,
+        "recebe": [],
+        "publica": [],
+        "parametro": {
+          "nome": "foco",
+          "padrao": 0.4,
+          "minimo": 0,
+          "maximo": 1,
+          "quem_altera": "Planejador",
+          "regra": "O detector de risco ignora o foco e segue ativo",
+          "bloqueado": false
+        }
+      }
+    },
+    {
+      "codigo": "NT-GLU·GABA",
+      "nome": "Glutamato e GABA",
+      "grupo": "Neuroquímica",
+      "tambem": "Acelerador e freio",
+      "onde": "Em praticamente todas as regiões do cérebro.",
+      "responsavel": "Glutamato é o principal acelerador (excita). GABA é o principal freio (inibe). O equilíbrio dos dois mantém o cérebro estável.",
+      "funcao_detalhada": {
+        "descricao": "Cerca de 80% das sinapses do córtex usam glutamato, e seus receptores NMDA são o mecanismo central do aprendizado. Os interneurônios de GABA dão ritmo e forma à atividade e impedem que a excitação se espalhe.",
+        "entradas": [
+          "Atividade de todos os circuitos"
+        ],
+        "saidas": [
+          "Excitação (glutamato) e inibição (GABA) em equilíbrio"
+        ],
+        "conexoes": [
+          "CTX-00",
+          "BG-00",
+          "DIE-TH",
+          "CB-00",
+          "CEL-SYN"
+        ],
+        "quando_falha": "Excesso de glutamato mata neurônios (excitotoxicidade, após um AVC). GABA de menos leva a convulsões e ansiedade; calmantes e álcool reforçam o GABA."
+      },
+      "equivalente_robo": {
+        "modulo": "Sinais de ativação e inibição",
+        "funcao": "Cada mensagem entre módulos pode ativar ou suprimir o módulo seguinte. O equilíbrio evita comandos em cascata.",
+        "como_construir": [
+          "Mensagens excitatórias e inibitórias",
+          "Inibição lateral",
+          "Limitadores de taxa"
+        ],
+        "maturidade": "Existe hoje",
+        "parametro_global": "ganho: 0 … 1 · inibição: 0 … 1",
+        "cuidado": "Pouca inibição gera loops e comportamento “epiléptico” (ações disparando sem parar). Inibição demais paralisa o robô."
+      },
+      "comandos": {
+        "prioridade": null,
+        "recebe": [],
+        "publica": [],
+        "parametro": {
+          "nome": "ganho",
+          "padrao": 0.5,
+          "minimo": 0.2,
+          "maximo": 0.8,
+          "quem_altera": "Somente engenharia",
+          "regra": "Alterado só em manutenção, com registro",
+          "bloqueado": true
+        }
+      }
+    },
+    {
+      "codigo": "NT-OXT",
+      "nome": "Ocitocina",
+      "grupo": "Neuroquímica",
+      "tambem": "Hormônio e neuromodulador",
+      "onde": "Produzida no hipotálamo e liberada pela hipófise.",
+      "responsavel": "Vínculo, confiança e comportamento social. No corpo, atua no parto e na amamentação.",
+      "funcao_detalhada": {
+        "descricao": "Reduz a reatividade da amígdala em situações sociais e aumenta a atenção a rostos e sinais de outras pessoas. Atua junto com a dopamina para tornar o contato social recompensador.",
+        "entradas": [
+          "Toque e contato social",
+          "Parto e amamentação"
+        ],
+        "saidas": [
+          "Vínculo e confiança",
+          "Menos estresse social"
+        ],
+        "conexoes": [
+          "DIE-HY",
+          "END-HP",
+          "LIM-AM",
+          "BG-NA"
+        ],
+        "quando_falha": "Alterações estão em estudo no autismo e na ansiedade social."
+      },
+      "equivalente_robo": {
+        "modulo": "Parâmetro de confiança social",
+        "funcao": "Peso de confiança por pessoa: mais tolerância à proximidade e prioridade aos pedidos de quem o robô conhece.",
+        "como_construir": [
+          "Perfis de usuário",
+          "Pesos de confiança",
+          "Reconhecimento de pessoas"
+        ],
+        "maturidade": "Em pesquisa",
+        "parametro_global": "confianca[pessoa]: 0 … 1",
+        "cuidado": "Confiança nunca pode desligar a segurança física. E precisa ser à prova de manipulação: alguém se passando por dono."
+      },
+      "comandos": {
+        "prioridade": null,
+        "recebe": [],
+        "publica": [],
+        "parametro": {
+          "nome": "confianca",
+          "padrao": 0.3,
+          "minimo": 0,
+          "maximo": 1,
+          "quem_altera": "Dono, por pessoa",
+          "regra": "Nunca altera limites de segurança",
+          "bloqueado": false
+        }
+      }
+    },
+    {
+      "codigo": "NT-END",
+      "nome": "Endorfinas",
+      "grupo": "Neuroquímica",
+      "tambem": "Opioides naturais do corpo",
+      "onde": "Hipotálamo, hipófise e substância cinzenta periaquedutal (no mesencéfalo).",
+      "responsavel": "Analgésicos naturais: reduzem a dor e geram sensação de bem-estar.",
+      "funcao_detalhada": {
+        "descricao": "Ligam-se a receptores opioides e bloqueiam a transmissão da dor na medula e no tronco. São liberadas no exercício intenso, no estresse, no riso e em ferimentos.",
+        "entradas": [
+          "Dor",
+          "Estresse",
+          "Exercício"
+        ],
+        "saidas": [
+          "Alívio da dor",
+          "Bem-estar",
+          "Menos estresse"
+        ],
+        "conexoes": [
+          "DIE-HY",
+          "END-HP",
+          "BS-MB",
+          "SC-00",
+          "BG-NA"
+        ],
+        "quando_falha": "Drogas opioides ocupam os mesmos receptores com muito mais força, o que causa tolerância e dependência."
+      },
+      "equivalente_robo": {
+        "modulo": "Parâmetro de supressão de alarme",
+        "funcao": "Permite continuar uma tarefa crítica mesmo com alarmes de desgaste, por tempo limitado.",
+        "como_construir": [
+          "Override temporizado",
+          "Registro de exceções"
+        ],
+        "maturidade": "Parcial",
+        "parametro_global": "supressao: 0 … 1",
+        "cuidado": "Parâmetro perigoso. Nunca pode suprimir a camada de reflexos e segurança, e deve expirar sozinho."
+      },
+      "comandos": {
+        "prioridade": null,
+        "recebe": [],
+        "publica": [],
+        "parametro": {
+          "nome": "supressao",
+          "padrao": 0,
+          "minimo": 0,
+          "maximo": 0.5,
+          "quem_altera": "Planejador, com prazo",
+          "regra": "Expira em 60 s e nunca atua na camada 0 (R7)",
+          "bloqueado": false
+        }
+      }
+    },
+    {
+      "codigo": "CEL-NEU",
+      "nome": "O neurônio",
+      "grupo": "Células e sinapses",
+      "tambem": "~86 bilhões no cérebro humano",
+      "onde": "Em todo o sistema nervoso, acompanhado por um número parecido de células da glia.",
+      "responsavel": "Unidade básica: recebe, integra e transmite sinais elétricos e químicos.",
+      "funcao_detalhada": {
+        "descricao": "O neurônio soma milhares de entradas nos dendritos. Se a soma passa de um limiar (cerca de −55 mV), dispara um potencial de ação de cerca de 100 mV que percorre o axônio. É tudo ou nada: a intensidade é codificada pela frequência dos disparos.",
+        "entradas": [
+          "Neurotransmissores chegando aos dendritos"
+        ],
+        "saidas": [
+          "Potencial de ação pelo axônio até os terminais"
+        ],
+        "conexoes": [
+          "CEL-SYN",
+          "NT-GLU·GABA"
+        ],
+        "quando_falha": "Neurônios perdidos em geral não são repostos. Doenças neurodegenerativas são a perda progressiva de grupos específicos de neurônios."
+      },
+      "equivalente_robo": {
+        "modulo": "Neurônio artificial",
+        "funcao": "Unidade que soma entradas ponderadas e decide o quanto sinalizar adiante (função de ativação).",
+        "como_construir": [
+          "Redes neurais profundas",
+          "Redes de disparo (spiking)",
+          "Chips neuromórficos"
+        ],
+        "maturidade": "Existe hoje",
+        "parametro_global": null,
+        "cuidado": "Um neurônio real é muito mais complexo: um só pode equivaler a uma pequena rede artificial inteira."
+      },
+      "comandos": {
+        "prioridade": null,
+        "recebe": [
+          "entradas ponderadas"
+        ],
+        "publica": [
+          "ativacao(valor)"
+        ],
+        "parametro": null
+      }
+    },
+    {
+      "codigo": "CEL-SYN",
+      "nome": "Sinapse",
+      "grupo": "Células e sinapses",
+      "tambem": "Química (a maioria) ou elétrica",
+      "onde": "Ponto de contato entre dois neurônios. A fenda entre eles tem ~20 nanômetros.",
+      "responsavel": "O impulso elétrico chega ao terminal, libera neurotransmissores na fenda e eles se ligam a receptores do outro lado. Sinapses usadas se fortalecem: é assim que o cérebro aprende.",
+      "funcao_detalhada": {
+        "descricao": "Cada neurônio faz em média cerca de 7 mil sinapses. Quando os dois lados disparam juntos repetidas vezes, a sinapse se fortalece (potenciação de longo prazo); quando não é usada, enfraquece e pode ser eliminada.",
+        "entradas": [
+          "Potencial de ação no terminal pré-sináptico"
+        ],
+        "saidas": [
+          "Excitação ou inibição do neurônio seguinte"
+        ],
+        "conexoes": [
+          "CEL-NEU",
+          "NT-GLU·GABA",
+          "NT-DA"
+        ],
+        "quando_falha": "A perda de sinapses é o primeiro sinal do Alzheimer, anos antes da morte dos neurônios."
+      },
+      "equivalente_robo": {
+        "modulo": "Peso sináptico",
+        "funcao": "Número que define o quanto um sinal influencia o próximo neurônio. Aprender é ajustar esses números.",
+        "como_construir": [
+          "Retropropagação",
+          "Plasticidade hebbiana (STDP)",
+          "Memristores"
+        ],
+        "maturidade": "Existe hoje",
+        "parametro_global": null,
+        "cuidado": "Modelos grandes têm bilhões de pesos; o cérebro tem ~100 trilhões de sinapses e ajusta cada uma localmente, sem um “professor” central."
+      },
+      "comandos": {
+        "prioridade": null,
+        "recebe": [
+          "ajuste(aprendizado)"
+        ],
+        "publica": [
+          "peso(valor)"
+        ],
+        "parametro": null
+      }
+    }
+  ],
+  "circuitos": [
+    {
+      "codigo": "CIR-SEN",
+      "nome": "Circuito sensorial",
+      "para_que_serve": "Transforma os sinais brutos dos sensores em uma percepção com significado e decide o que fazer com ela.",
+      "caminho": [
+        {
+          "codigo": "DIE-TH",
+          "etapa": "Filtra cada canal sensorial e encaminha o que importa"
+        },
+        {
+          "codigo": "CTX-OC",
+          "etapa": "Área primária extrai os traços básicos (bordas, cor; no som e no tato, o A1 e o S1 fazem o mesmo)"
+        },
+        {
+          "codigo": "CTX-TE",
+          "etapa": "Identifica o que é"
+        },
+        {
+          "codigo": "CTX-PA",
+          "etapa": "Calcula onde está e como alcançar"
+        },
+        {
+          "codigo": "CTX-PF",
+          "etapa": "Decide o que fazer com a informação"
+        }
+      ],
+      "quando_falha": "Uma quebra em qualquer ponto gera uma perda específica: ver sem reconhecer, reconhecer sem localizar, perceber sem conseguir agir.",
+      "equivalente_robo": {
+        "modulo": "Pipeline de percepção",
+        "funcao": "Sensores → roteador → processadores de visão e áudio → reconhecimento e mapa → planejador. Latência total alvo: abaixo de 100 ms.",
+        "como_construir": [
+          "Fusão de sensores",
+          "Visão computacional",
+          "SLAM"
+        ],
+        "maturidade": "Existe hoje",
+        "parametro_global": null,
+        "cuidado": "Cada etapa acrescenta atraso. Decisões de segurança devem sair cedo do pipeline, sem esperar o reconhecimento completo."
+      },
+      "mensagens": [
+        {
+          "de": "DIE-TH",
+          "para": "CTX-OC",
+          "sinal": "visao.quadro"
+        },
+        {
+          "de": "CTX-OC",
+          "para": "CTX-TE",
+          "sinal": "objetos"
+        },
+        {
+          "de": "CTX-TE",
+          "para": "CTX-PA",
+          "sinal": "objeto.identificado"
+        },
+        {
+          "de": "CTX-PA",
+          "para": "CTX-PF",
+          "sinal": "alvo.pose"
+        }
+      ]
+    },
+    {
+      "codigo": "CIR-MOT",
+      "nome": "Circuito motor",
+      "para_que_serve": "Escolhe uma ação, executa e corrige o movimento enquanto ele acontece.",
+      "caminho": [
+        {
+          "codigo": "CTX-PF",
+          "etapa": "Define o objetivo"
+        },
+        {
+          "codigo": "BG-00",
+          "etapa": "Seleciona uma ação entre as propostas e freia as outras"
+        },
+        {
+          "codigo": "DIE-TH",
+          "etapa": "Devolve a ação escolhida ao córtex"
+        },
+        {
+          "codigo": "CTX-M1",
+          "etapa": "Emite o comando para os músculos"
+        },
+        {
+          "codigo": "SC-00",
+          "etapa": "Ativa os músculos"
+        },
+        {
+          "codigo": "CB-00",
+          "etapa": "Compara o previsto com o real e corrige o córtex motor"
+        },
+        {
+          "codigo": "CTX-M1",
+          "etapa": "Aplica a correção no próximo comando"
+        }
+      ],
+      "quando_falha": "Falha na seleção causa Parkinson ou movimentos involuntários; falha na correção causa ataxia; falha na execução causa paralisia.",
+      "equivalente_robo": {
+        "modulo": "Laço de controle motor",
+        "funcao": "Planejar → arbitrar → comandar → executar → medir → corrigir, rodando de 100 a 1000 vezes por segundo nas camadas de baixo.",
+        "como_construir": [
+          "Árvore de comportamento",
+          "MPC",
+          "Controle de torque"
+        ],
+        "maturidade": "Existe hoje",
+        "parametro_global": null,
+        "cuidado": "O planejamento é lento e o controle é rápido. As duas partes precisam rodar em processadores separados."
+      },
+      "mensagens": [
+        {
+          "de": "CTX-PF",
+          "para": "BG-00",
+          "sinal": "proposta.acao"
+        },
+        {
+          "de": "BG-00",
+          "para": "DIE-TH",
+          "sinal": "acao.liberada"
+        },
+        {
+          "de": "DIE-TH",
+          "para": "CTX-M1",
+          "sinal": "executar"
+        },
+        {
+          "de": "CTX-M1",
+          "para": "SC-00",
+          "sinal": "juntas.trajetoria"
+        },
+        {
+          "de": "SC-00",
+          "para": "CB-00",
+          "sinal": "propriocepcao"
+        },
+        {
+          "de": "CB-00",
+          "para": "CTX-M1",
+          "sinal": "correcao"
+        }
+      ]
+    },
+    {
+      "codigo": "CIR-MEM",
+      "nome": "Circuito da memória",
+      "para_que_serve": "Grava experiências como memórias e as reforça, passando o episódio várias vezes pelo mesmo laço.",
+      "caminho": [
+        {
+          "codigo": "LIM-HC",
+          "etapa": "Liga lugar, pessoas e eventos num episódio"
+        },
+        {
+          "codigo": "DIE-HY",
+          "etapa": "Corpos mamilares recebem o sinal pelo fórnice"
+        },
+        {
+          "codigo": "DIE-TH",
+          "etapa": "Núcleo anterior repassa ao córtex"
+        },
+        {
+          "codigo": "LIM-CG",
+          "etapa": "Integra o episódio à história pessoal"
+        },
+        {
+          "codigo": "LIM-HC",
+          "etapa": "Fecha o laço e reforça a memória"
+        }
+      ],
+      "quando_falha": "Lesões em qualquer ponto do laço prejudicam a formação de novas memórias, como na síndrome de Korsakoff (falta de vitamina B1, comum no alcoolismo).",
+      "equivalente_robo": {
+        "modulo": "Ciclo de consolidação",
+        "funcao": "Durante o dia registra episódios; durante a recarga reprocessa, resume e treina os modelos com o que aprendeu.",
+        "como_construir": [
+          "Replay de experiências",
+          "Ajuste fino offline",
+          "Banco vetorial"
+        ],
+        "maturidade": "Parcial",
+        "parametro_global": null,
+        "cuidado": "Treinar com dados novos pode apagar habilidades antigas (esquecimento catastrófico). É preciso misturar o novo com o antigo, como o sono faz."
+      },
+      "mensagens": [
+        {
+          "de": "LIM-HC",
+          "para": "DIE-HY",
+          "sinal": "registrar"
+        },
+        {
+          "de": "DIE-HY",
+          "para": "DIE-TH",
+          "sinal": "contexto"
+        },
+        {
+          "de": "DIE-TH",
+          "para": "LIM-CG",
+          "sinal": "memoria"
+        },
+        {
+          "de": "LIM-CG",
+          "para": "LIM-HC",
+          "sinal": "consolidar"
+        }
+      ]
+    },
+    {
+      "codigo": "CIR-MED",
+      "nome": "Circuito do medo",
+      "para_que_serve": "Reage a uma ameaça antes de pensar e depois confere se a reação faz sentido.",
+      "caminho": [
+        {
+          "codigo": "DIE-TH",
+          "etapa": "Envia uma cópia rápida e grosseira do estímulo"
+        },
+        {
+          "codigo": "LIM-AM",
+          "etapa": "Classifica como ameaça em ~12 ms, antes da consciência"
+        },
+        {
+          "codigo": "DIE-HY",
+          "etapa": "Libera os hormônios do estresse"
+        },
+        {
+          "codigo": "BS-BU",
+          "etapa": "Acelera o coração e a respiração"
+        },
+        {
+          "codigo": "CTX-PF",
+          "etapa": "Analisa com calma pela via lenta"
+        },
+        {
+          "codigo": "LIM-AM",
+          "etapa": "Recebe o freio se não era perigo de verdade"
+        }
+      ],
+      "quando_falha": "Freio fraco do pré-frontal sobre a amígdala mantém o alarme ligado: ansiedade, pânico e estresse pós-traumático.",
+      "equivalente_robo": {
+        "modulo": "Parada de segurança em dois níveis",
+        "funcao": "Via rápida: detector de risco para o robô em menos de 50 ms. Via lenta: o planejador reavalia a cena e libera o movimento se não era perigo.",
+        "como_construir": [
+          "Parada de emergência",
+          "Classificador rápido",
+          "Verificação pelo planejador"
+        ],
+        "maturidade": "Existe hoje",
+        "parametro_global": null,
+        "cuidado": "A via rápida sempre vence. A via lenta só pode liberar, nunca impedir a parada."
+      },
+      "mensagens": [
+        {
+          "de": "DIE-TH",
+          "para": "LIM-AM",
+          "sinal": "objeto.proximo"
+        },
+        {
+          "de": "LIM-AM",
+          "para": "DIE-HY",
+          "sinal": "modo(estresse)"
+        },
+        {
+          "de": "DIE-HY",
+          "para": "BS-BU",
+          "sinal": "vital.acelerar"
+        },
+        {
+          "de": "BS-BU",
+          "para": "CTX-PF",
+          "sinal": "risco.avaliar"
+        },
+        {
+          "de": "CTX-PF",
+          "para": "LIM-AM",
+          "sinal": "velocidade.limitar"
+        }
+      ]
+    },
+    {
+      "codigo": "CIR-REC",
+      "nome": "Circuito da recompensa",
+      "para_que_serve": "Aprende o que vale a pena buscar e transforma isso em motivação e, com a repetição, em hábito.",
+      "caminho": [
+        {
+          "codigo": "MB-SN",
+          "etapa": "A ATV dispara dopamina quando algo sai melhor que o previsto"
+        },
+        {
+          "codigo": "BG-NA",
+          "etapa": "Transforma o sinal em vontade de agir"
+        },
+        {
+          "codigo": "CTX-PF",
+          "etapa": "Planeja como conseguir de novo"
+        },
+        {
+          "codigo": "BG-00",
+          "etapa": "Com a repetição, a sequência vira hábito"
+        },
+        {
+          "codigo": "MB-SN",
+          "etapa": "O resultado atualiza a previsão"
+        }
+      ],
+      "quando_falha": "Sequestrado por drogas ou estímulos artificiais, o circuito leva à dependência. Pouco ativo, leva à falta de motivação.",
+      "equivalente_robo": {
+        "modulo": "Aprendizado por reforço",
+        "funcao": "Ação → resultado → erro de previsão → ajuste da política. Com a repetição, o que funciona vira rotina.",
+        "como_construir": [
+          "Aprendizado por reforço",
+          "Ator-crítico",
+          "Simulação para treino"
+        ],
+        "maturidade": "Parcial",
+        "parametro_global": null,
+        "cuidado": "Treinar por tentativa e erro no mundo real é lento e arriscado. A maior parte do treino acontece em simulação."
+      },
+      "mensagens": [
+        {
+          "de": "MB-SN",
+          "para": "BG-NA",
+          "sinal": "recompensa"
+        },
+        {
+          "de": "BG-NA",
+          "para": "CTX-PF",
+          "sinal": "valor"
+        },
+        {
+          "de": "CTX-PF",
+          "para": "BG-00",
+          "sinal": "proposta.acao"
+        },
+        {
+          "de": "BG-00",
+          "para": "MB-SN",
+          "sinal": "resultado"
+        }
+      ]
+    },
+    {
+      "codigo": "CIR-HPA",
+      "nome": "Eixo do estresse",
+      "para_que_serve": "Mobiliza energia para enfrentar um desafio e desliga a resposta quando ele passa.",
+      "caminho": [
+        {
+          "codigo": "LIM-AM",
+          "etapa": "Detecta a ameaça"
+        },
+        {
+          "codigo": "DIE-HY",
+          "etapa": "Libera o hormônio CRH"
+        },
+        {
+          "codigo": "END-HP",
+          "etapa": "Libera ACTH, e as adrenais produzem cortisol"
+        },
+        {
+          "codigo": "LIM-HC",
+          "etapa": "Detecta o cortisol no sangue"
+        },
+        {
+          "codigo": "DIE-HY",
+          "etapa": "Desliga o eixo (retroalimentação negativa)"
+        }
+      ],
+      "quando_falha": "Estresse crônico mantém o cortisol alto, o que danifica o hipocampo, prejudica a memória e enfraquece o próprio freio do eixo.",
+      "equivalente_robo": {
+        "modulo": "Modo de estresse com desligamento automático",
+        "funcao": "Em sobrecarga, sobe desempenho e alerta temporariamente; sensores internos medem o custo e um retorno negativo traz tudo de volta ao normal.",
+        "como_construir": [
+          "Máquina de estados",
+          "Limites de tempo",
+          "Retroalimentação negativa"
+        ],
+        "maturidade": "Existe hoje",
+        "parametro_global": null,
+        "cuidado": "Sem o desligamento, o robô fica em modo de estresse, superaquece e desgasta, como o cortisol crônico no cérebro."
+      },
+      "mensagens": [
+        {
+          "de": "LIM-AM",
+          "para": "DIE-HY",
+          "sinal": "alerta"
+        },
+        {
+          "de": "DIE-HY",
+          "para": "END-HP",
+          "sinal": "modo(estresse)"
+        },
+        {
+          "de": "END-HP",
+          "para": "LIM-HC",
+          "sinal": "broadcast.parametros"
+        },
+        {
+          "de": "LIM-HC",
+          "para": "DIE-HY",
+          "sinal": "modo(normal)"
+        }
+      ]
+    },
+    {
+      "codigo": "CIR-LNG",
+      "nome": "Circuito da linguagem",
+      "para_que_serve": "Ouvir, entender e responder em palavras.",
+      "caminho": [
+        {
+          "codigo": "CTX-A1",
+          "etapa": "Ouve a sequência de sons"
+        },
+        {
+          "codigo": "CTX-WE",
+          "etapa": "Reconhece as palavras e o significado"
+        },
+        {
+          "codigo": "CTX-BR",
+          "etapa": "Monta a resposta, com o sinal vindo pelo fascículo arqueado"
+        },
+        {
+          "codigo": "CTX-M1",
+          "etapa": "Move lábios, língua e laringe"
+        }
+      ],
+      "quando_falha": "Lesão no fascículo arqueado causa afasia de condução: a pessoa entende e fala, mas não consegue repetir uma frase.",
+      "equivalente_robo": {
+        "modulo": "Pipeline de conversa",
+        "funcao": "Ouvir (ASR) → entender (modelo de linguagem) → responder (TTS) → mover boca e expressão. Latência alvo: abaixo de 1 s.",
+        "como_construir": [
+          "ASR",
+          "Modelo de linguagem",
+          "TTS"
+        ],
+        "maturidade": "Existe hoje",
+        "parametro_global": null,
+        "cuidado": "Pausas acima de ~1 segundo parecem artificiais. Respostas que envolvem ação física passam pelo verificador antes de executar."
+      },
+      "mensagens": [
+        {
+          "de": "CTX-A1",
+          "para": "CTX-WE",
+          "sinal": "fala.audio"
+        },
+        {
+          "de": "CTX-WE",
+          "para": "CTX-BR",
+          "sinal": "intencao → falar"
+        },
+        {
+          "de": "CTX-BR",
+          "para": "CTX-M1",
+          "sinal": "labios.sincronia"
+        }
+      ]
+    }
+  ]
+}
