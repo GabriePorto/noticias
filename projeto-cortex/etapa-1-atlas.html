@@ -1,0 +1,1143 @@
+<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"></head><body style="margin:0">
+<title>Projeto Córtex</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* Layout: canvas 3D fixo em tela cheia; coluna de fichas à esquerda rola por cima (parallax), trilho de grupos à direita. */
+:root{
+  --bg:#07080f; --bg2:#10101f; --fg:#efeaf5; --muted:#a8a1b9; --faint:#6f6984;
+  --line:rgba(239,234,245,.13); --panel:rgba(11,11,22,.74); --panel-solid:#0d0d1a;
+  --tissue:#e8b9b1; --hi:#6f9bff;
+  --display:'Bricolage Grotesque','Avenir Next',system-ui,sans-serif;
+  --body:'IBM Plex Sans',system-ui,-apple-system,'Segoe UI',sans-serif;
+  --mono:'IBM Plex Mono',ui-monospace,'SFMono-Regular',Menlo,monospace;
+  --gutter:max(16px,4vw);
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:auto}
+body{background:var(--bg);color:var(--fg);font-family:var(--body);font-size:15px;line-height:1.55;overflow-x:hidden}
+.atmos{position:fixed;inset:0;z-index:0;pointer-events:none;
+  background:radial-gradient(60% 55% at 66% 46%,rgba(92,70,170,.30),transparent 70%),
+             radial-gradient(40% 40% at 20% 90%,rgba(40,90,150,.18),transparent 70%),var(--bg)}
+.grid{position:fixed;inset:-50% 0;z-index:0;pointer-events:none;opacity:.35;
+  background-image:linear-gradient(rgba(239,234,245,.045) 1px,transparent 1px),linear-gradient(90deg,rgba(239,234,245,.045) 1px,transparent 1px);
+  background-size:64px 64px;will-change:transform;
+  -webkit-mask-image:radial-gradient(70% 60% at 60% 50%,#000 20%,transparent 75%);mask-image:radial-gradient(70% 60% at 60% 50%,#000 20%,transparent 75%)}
+#gl{position:fixed;inset:0;width:100%;height:100%;z-index:1;touch-action:pan-y;cursor:grab;display:block}
+#gl.drag{cursor:grabbing}
+
+/* Header */
+.top{position:fixed;left:0;right:0;top:0;z-index:5;padding:calc(env(safe-area-inset-top,0px) + 12px) var(--gutter) 12px;
+  display:flex;align-items:center;gap:16px;justify-content:space-between;
+  background:linear-gradient(var(--bg) 20%,rgba(7,8,15,0));pointer-events:none}
+.brand{display:flex;flex-direction:column;line-height:1.15;pointer-events:auto}
+.brand b{font-family:var(--display);font-weight:800;font-size:17px;letter-spacing:.01em}
+.brand span{white-space:nowrap;font-family:var(--mono);font-size:11px;color:var(--muted);letter-spacing:.04em}
+.stages{display:flex;gap:6px;list-style:none;margin:0;padding:0;pointer-events:auto}
+.stages button{all:unset;cursor:pointer;display:flex;align-items:center;gap:8px;padding:6px 12px 6px 6px;border-radius:999px;border:1px solid var(--line);
+  font-size:12.5px;color:var(--muted);background:rgba(13,13,26,.6)}
+.stages button b{display:grid;place-items:center;width:22px;height:22px;border-radius:50%;font-family:var(--mono);font-size:11px;font-weight:500;border:1px dashed var(--faint)}
+.stages .on button{color:var(--fg);border-color:rgba(239,234,245,.35)}
+.stages .on button b{background:var(--fg);color:var(--bg);border:0}
+.stages button:focus-visible{outline:2px solid var(--hi);outline-offset:2px}
+.bar{position:fixed;left:0;top:0;height:2px;z-index:6;background:var(--hi);width:0;transition:background .6s}
+
+/* Rail */
+.rail{position:fixed;right:var(--gutter);top:50%;transform:translateY(-50%);z-index:4;display:flex;flex-direction:column;gap:4px}
+.rail button{all:unset;cursor:pointer;display:flex;align-items:center;justify-content:flex-end;gap:10px;padding:4px 0;font-size:11.5px;color:var(--faint);font-family:var(--mono);letter-spacing:.02em}
+.rail button i{display:block;width:14px;height:2px;border-radius:2px;background:currentColor;transition:width .35s,background .35s}
+.rail button span{opacity:0;transform:translateX(6px);transition:opacity .3s,transform .3s;white-space:nowrap}
+.rail:hover button span,.rail button.on span{opacity:1;transform:none}
+.rail button.on{color:var(--fg)}
+.rail button.on i{width:34px;background:var(--c)}
+.rail button:focus-visible{outline:2px solid var(--hi);outline-offset:3px}
+
+/* 3D tag */
+.tag3d{position:fixed;left:0;top:0;z-index:3;pointer-events:none;display:flex;align-items:center;gap:8px;white-space:nowrap;
+  font-family:var(--mono);font-size:11.5px;color:var(--fg);transition:opacity .35s;will-change:transform}
+.tag3d .dot{width:10px;height:10px;border-radius:50%;background:var(--hi);box-shadow:0 0 0 4px rgba(255,255,255,.08),0 0 18px var(--hi);flex:none}
+.tag3d .stem{width:38px;height:1px;background:linear-gradient(90deg,var(--hi),rgba(255,255,255,.2))}
+.tag3d .txt{padding:4px 9px;border:1px solid var(--line);border-radius:6px;background:rgba(9,9,18,.82)}
+.tag3d.flip{flex-direction:row-reverse}
+.tag3d.flip .stem{background:linear-gradient(270deg,var(--hi),rgba(255,255,255,.2))}
+.tag3d .txt em{font-style:normal;color:var(--hi);margin-right:6px}
+
+/* Steps */
+main{position:relative;z-index:2;pointer-events:none;padding-inline:var(--gutter)}
+.step{position:relative;min-height:92vh;display:flex;align-items:center;padding-block:12vh}
+.ghost{position:absolute;left:calc(var(--gutter) + 330px);top:50%;margin-top:-.55em;font-family:var(--display);font-weight:800;
+  font-size:clamp(110px,19vw,300px);line-height:1;letter-spacing:-.04em;color:transparent;-webkit-text-stroke:1px rgba(239,234,245,.10);
+  pointer-events:none;will-change:transform;user-select:none;white-space:nowrap}
+.card{pointer-events:auto;position:relative;width:min(430px,100%);background:var(--panel);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);
+  border:1px solid var(--line);border-radius:14px;padding:20px 22px 16px;box-shadow:0 30px 60px -30px rgba(0,0,0,.7)}
+.meta{display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-family:var(--mono);font-size:11.5px;color:var(--muted);letter-spacing:.03em}
+.code{color:var(--bg);background:var(--c);padding:2px 7px;border-radius:4px;font-weight:500}
+.grp{display:flex;align-items:center;gap:6px}
+.grp i{width:7px;height:7px;border-radius:50%;background:var(--c)}
+.idx{margin-left:auto;font-variant-numeric:tabular-nums}
+.card h2{font-family:var(--display);font-weight:800;font-size:clamp(28px,3.1vw,38px);line-height:1.02;letter-spacing:-.02em;margin:14px 0 4px;text-wrap:balance}
+.alt{margin:0 0 12px;color:var(--muted);font-size:13px}
+.facts{margin:0;display:grid;gap:10px}
+.facts div{display:grid;gap:2px}
+.facts dt{font-family:var(--mono);font-size:10.5px;text-transform:uppercase;letter-spacing:.09em;color:var(--faint)}
+.facts dd{margin:0;max-width:62ch}
+.facts .role dd{font-size:16px;color:var(--fg)}
+.note{margin-top:12px;padding:10px 12px;border-left:2px solid var(--c);background:rgba(239,234,245,.04);border-radius:0 8px 8px 0;font-size:13.5px;color:var(--muted)}
+.note b{color:var(--fg);font-weight:600}
+.paths{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px}
+.paths span{font-family:var(--mono);font-size:11px;padding:3px 8px;border-radius:999px;border:1px solid var(--line);color:var(--muted)}
+.paths span b{color:var(--c);font-weight:500}
+.pending{margin-top:14px;padding-top:10px;border-top:1px dashed var(--line);display:flex;justify-content:space-between;gap:8px;font-family:var(--mono);font-size:11px;color:var(--faint)}
+.parts{list-style:none;margin:12px 0 0;padding:0;display:grid;gap:6px}
+.parts li{display:grid;grid-template-columns:128px 1fr;gap:10px;font-size:13.5px;align-items:baseline}
+.parts b{font-weight:600}
+.parts span{color:var(--muted)}
+.parts li.glia b{color:var(--c)}
+canvas.syn{display:block;width:100%;height:230px;margin-top:12px;border-radius:10px;background:rgba(0,0,0,.25);border:1px solid var(--line)}
+
+/* Hero */
+.step.hero .card{background:none;border:0;box-shadow:none;-webkit-backdrop-filter:none;backdrop-filter:none;padding:0;width:min(560px,100%)}
+.eyebrow{font-family:var(--mono);font-size:12px;color:var(--muted);letter-spacing:.06em;text-transform:uppercase;display:flex;gap:10px;align-items:center}
+.eyebrow i{width:26px;height:1px;background:var(--hi)}
+.hero h1{font-family:var(--display);font-weight:800;font-size:clamp(40px,6.2vw,84px);line-height:.94;letter-spacing:-.035em;margin:18px 0 18px;text-wrap:balance}
+.hero h1 em{font-style:normal;color:var(--tissue)}
+.hero p.lead{font-size:17px;color:var(--muted);max-width:48ch;margin:0}
+.stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:1px;margin-top:28px;border:1px solid var(--line);border-radius:12px;overflow:hidden;background:var(--line)}
+.stats div{background:rgba(9,9,18,.8);padding:12px 12px 10px}
+.stats b{display:block;font-family:var(--display);font-weight:600;font-size:24px;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.stats span{font-size:11.5px;color:var(--muted);line-height:1.3;display:block}
+.hint{margin-top:22px;font-family:var(--mono);font-size:12px;color:var(--faint);display:flex;gap:14px;flex-wrap:wrap}
+.hint span::before{content:"";display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--hi);margin-right:7px;vertical-align:1px}
+
+/* Wide sections */
+.step.wide{justify-content:center}
+.step.wide .card{width:min(1120px,100%);background:rgba(10,10,20,.9);padding:26px 26px 22px}
+.wide h2{margin-top:6px}
+.lede{color:var(--muted);max-width:70ch;margin:6px 0 18px}
+.toolbar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+.btn{all:unset;cursor:pointer;font-family:var(--mono);font-size:12px;padding:8px 12px;border-radius:8px;border:1px solid var(--line);color:var(--fg);background:rgba(239,234,245,.05)}
+.btn:hover{background:rgba(239,234,245,.1)}
+.btn:focus-visible{outline:2px solid var(--hi);outline-offset:2px}
+.btn.primary{background:var(--fg);color:var(--bg);border-color:var(--fg)}
+.cat-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:10px}
+table.cat{width:100%;border-collapse:collapse;font-size:13.5px;min-width:760px}
+.cat th{text-align:left;font-family:var(--mono);font-weight:400;font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--faint);padding:10px 12px;border-bottom:1px solid var(--line);position:sticky;top:0;background:var(--panel-solid)}
+.cat td{padding:9px 12px;border-bottom:1px solid rgba(239,234,245,.06);vertical-align:top}
+.cat tr.row{cursor:pointer}
+.cat tr.row:hover td{background:rgba(239,234,245,.04)}
+.cat tr.row:focus-visible{outline:2px solid var(--hi);outline-offset:-2px}
+.cat td.c{font-family:var(--mono);font-size:12px;white-space:nowrap;color:var(--c)}
+.cat td.n{font-weight:600;white-space:nowrap}
+.cat td.r{color:var(--muted)}
+.cat tr.gh td{font-family:var(--mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--c);padding-top:16px;background:rgba(239,234,245,.02)}
+pre.json{max-height:260px;overflow:auto;font-family:var(--mono);font-size:11.5px;background:rgba(0,0,0,.35);border:1px solid var(--line);border-radius:8px;padding:12px;color:var(--muted);white-space:pre}
+.toast{font-family:var(--mono);font-size:12px;color:var(--hi);align-self:center}
+.road{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+.road article{border:1px solid var(--line);border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:8px;min-width:0;background:rgba(239,234,245,.025)}
+.road article.done{border-color:rgba(239,234,245,.4);background:rgba(239,234,245,.06)}
+.road .st{font-family:var(--mono);font-size:11px;color:var(--faint);display:flex;justify-content:space-between;gap:8px}
+.road .done .st em{color:#7ff0b2}
+.road em{font-style:normal}
+.road h3{font-family:var(--display);font-weight:800;font-size:22px;letter-spacing:-.02em;margin:0;line-height:1.05}
+.road p{margin:0;color:var(--muted);font-size:13.5px}
+.road ul{margin:0;padding-left:16px;color:var(--muted);font-size:13px;display:grid;gap:3px}
+.road code{font-family:var(--mono);font-size:11.5px;color:var(--fg)}
+.foot{margin-top:18px;font-family:var(--mono);font-size:11px;color:var(--faint)}
+
+@media (max-width:1080px){.road{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:860px){
+  .rail{display:none}
+  .stages button span{display:none}
+  .stages button{padding:4px}
+  .step{min-height:100vh;align-items:flex-end;padding-block:0 18px}
+  .step .card{max-height:52vh;overflow:auto}
+  .ghost{left:var(--gutter);top:18%}
+  .step.hero{align-items:flex-end}
+  .step.hero .card{max-height:none;background:linear-gradient(rgba(7,8,15,0),var(--bg) 22%);padding-top:40px}
+  .hero h1{font-size:clamp(34px,10vw,54px)}
+  .stats{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .step.wide{align-items:center;padding-block:80px 24px}
+  .step.wide .card{max-height:none;padding:18px}
+  .road{grid-template-columns:1fr}
+  .parts li{grid-template-columns:110px 1fr}
+}
+@media (prefers-reduced-motion:reduce){.ghost{transform:none!important}}
+</style>
+
+<div class="atmos"></div>
+<div class="grid" id="grid"></div>
+<canvas id="gl" aria-label="Modelo 3D do cérebro. Arraste para girar; clique numa região para ir até ela."></canvas>
+<div class="bar" id="bar"></div>
+
+<header class="top">
+  <div class="brand"><b>Projeto Córtex</b><span>cérebro para robôs · atlas v1</span></div>
+  <ol class="stages" id="stages">
+    <li class="on"><button data-go="roteiro" title="Etapa 1: nomenclatura (atual)"><b>1</b><span>Nomes</span></button></li>
+    <li><button data-go="roteiro" title="Etapa 2: funções"><b>2</b><span>Funções</span></button></li>
+    <li><button data-go="roteiro" title="Etapa 3: análise para o robô"><b>3</b><span>Robô</span></button></li>
+    <li><button data-go="roteiro" title="Etapa 4: comandos e sinapses"><b>4</b><span>Comandos</span></button></li>
+  </ol>
+</header>
+
+<nav class="rail" id="rail" aria-label="Grupos do atlas"></nav>
+<div class="tag3d" id="tag"><span class="dot"></span><span class="stem"></span><span class="txt" id="tagtxt"></span></div>
+
+<main id="steps"></main>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+(function(){
+'use strict';
+
+/* ================================================================
+   DADOS — Etapa 1: nomenclatura
+   Coordenadas: +x = lado ESQUERDO do sujeito, +y = topo, +z = frente
+   ================================================================ */
+const G = {
+  ctx:{name:'Córtex cerebral',color:'#6f9bff'},
+  wm:{name:'Substância branca',color:'#e3ddff'},
+  lim:{name:'Sistema límbico',color:'#ff6f91'},
+  die:{name:'Diencéfalo e glândulas',color:'#ffd56a'},
+  bg:{name:'Núcleos da base',color:'#d98cff'},
+  stem:{name:'Tronco e cerebelo',color:'#4fd8d0'},
+  oth:{name:'Sentidos e fluidos',color:'#9fd0ff'},
+  nt:{name:'Neuroquímica',color:'#ffcf4d'},
+  cel:{name:'Células e sinapses',color:'#8fe9ff'},
+  end:{name:'Projeto',color:'#efeaf5'}
+};
+const LOBE = {1:'#6f9bff',2:'#ffc35e',3:'#6fdc8c',4:'#b08cff'};
+const NTC = {DA:'#ffcf4d',S5:'#7ae7ff',NE:'#ff6b5a',ADO:'#e0d2b8',ACH:'#a4f07a',GLU:'#ff9a3c',GABA:'#5b8cff',OXT:'#ff8fd0',END:'#c9a2ff'};
+
+const S = [
+ {id:'inicio',kind:'hero',group:'end',cam:{t:[0,-0.05,0],d:[0.8,0.42,0.55],r:4.4},tint:0,mode:'surface',pulse:'surface',auto:true},
+
+ {id:'neocortex',code:'CTX-00',name:'Neocórtex',alt:'Córtex cerebral · substância cinzenta · 6 camadas de neurônios',group:'ctx',
+  where:'Camada externa enrugada que cobre os dois hemisférios, com 2 a 4 mm de espessura. As dobras (giros) e os vales (sulcos) triplicam a área.',
+  role:'Pensamento, linguagem, percepção consciente, planejamento e movimento voluntário. Reúne cerca de 16 bilhões de neurônios.',
+  note:'As cores mostram os quatro lobos: <b>frontal</b>, <b>parietal</b>, <b>temporal</b> e <b>occipital</b>.',
+  f:{cortex:true},cam:{t:[0,0.05,0],d:[0.85,0.5,0.45],r:4.0},tint:0.62,mode:'surface',pulse:'surface',ghost:'CTX'},
+ {id:'lobo-frontal',code:'CTX-FR',name:'Lobo frontal',alt:'O maior dos lobos · ~41% do córtex',group:'ctx',color:LOBE[1],
+  where:'Parte da frente de cada hemisfério, da testa até o sulco central.',
+  role:'Decisão, movimento voluntário, fala e controle do comportamento.',
+  f:{lobe:1},cam:{d:[0.65,0.4,0.75],r:3.5},tint:0.12,ghost:'FR'},
+ {id:'pre-frontal',code:'CTX-PF',name:'Córtex pré-frontal',alt:'CPF · PFC · o “diretor executivo”',group:'ctx',color:'#9cbcff',
+  where:'Extremidade anterior do lobo frontal, logo atrás da testa e acima dos olhos.',
+  role:'Funções executivas: planejar, priorizar, manter informações na memória de trabalho, inibir impulsos e prever consequências.',
+  f:{area:1},cam:{d:[0.3,0.25,1],r:2.8},tint:0.1,ghost:'PF'},
+ {id:'motor',code:'CTX-M1',name:'Córtex motor primário',alt:'Giro pré-central · área 4 de Brodmann',group:'ctx',color:'#8fb0ff',
+  where:'Faixa vertical logo à frente do sulco central, do topo da cabeça até perto da orelha.',
+  role:'Envia os comandos que movem cada músculo voluntário. O corpo está mapeado nele em ordem, do pé à face (homúnculo motor).',
+  f:{area:2},cam:{d:[0.6,0.9,0.25],r:3.0},tint:0.1,ghost:'M1'},
+ {id:'broca',code:'CTX-BR',name:'Área de Broca',alt:'Áreas 44 e 45 de Brodmann · giro frontal inferior',group:'ctx',color:'#b3caff',
+  where:'Parte inferior do lobo frontal, em geral no hemisfério esquerdo.',
+  role:'Produção da fala: monta a gramática das frases e planeja os movimentos da boca e da língua.',
+  f:{area:3},cam:{d:[1,0.12,0.3],r:2.4},tint:0.1,ghost:'BR'},
+ {id:'lobo-parietal',code:'CTX-PA',name:'Lobo parietal',alt:'Integração sensorial e espacial',group:'ctx',color:LOBE[2],
+  where:'Topo e parte de trás da cabeça, entre o sulco central e o lobo occipital.',
+  role:'Integra tato, posição do corpo e espaço ao redor; calcula onde as coisas estão e como alcançá-las.',
+  f:{lobe:2},cam:{d:[0.4,0.95,-0.5],r:3.3},tint:0.12,ghost:'PA'},
+ {id:'somatossensorial',code:'CTX-S1',name:'Córtex somatossensorial',alt:'Giro pós-central · áreas 1, 2 e 3',group:'ctx',color:'#ffd690',
+  where:'Faixa logo atrás do sulco central, espelhando o córtex motor.',
+  role:'Recebe tato, pressão, temperatura, dor e posição das articulações de todo o corpo (homúnculo sensorial).',
+  f:{area:4},cam:{d:[0.55,0.9,-0.1],r:3.0},tint:0.1,ghost:'S1'},
+ {id:'lobo-temporal',code:'CTX-TE',name:'Lobo temporal',alt:'Abaixo da fissura lateral (de Sylvius)',group:'ctx',color:LOBE[3],
+  where:'Lateral, na altura das orelhas, abaixo da fissura lateral.',
+  role:'Audição, reconhecimento de rostos e objetos, compreensão da linguagem e memória.',
+  f:{lobe:3},cam:{d:[1,-0.05,0.25],r:3.0},tint:0.12,ghost:'TE'},
+ {id:'auditivo',code:'CTX-A1',name:'Córtex auditivo primário',alt:'Giro de Heschl · áreas 41 e 42',group:'ctx',color:'#9ee8b0',
+  where:'Face superior do lobo temporal, dentro da fissura lateral.',
+  role:'Primeira estação do som no córtex: separa frequências (tonotopia), intensidade e ritmo.',
+  f:{area:6},cam:{d:[1,0.3,0.1],r:2.5},tint:0.1,ghost:'A1'},
+ {id:'wernicke',code:'CTX-WE',name:'Área de Wernicke',alt:'Parte posterior da área 22',group:'ctx',color:'#b8f0c6',
+  where:'Parte de trás do giro temporal superior, em geral no hemisfério esquerdo.',
+  role:'Compreensão da linguagem falada e escrita: liga o som das palavras ao significado.',
+  f:{area:5},cam:{d:[1,0.22,-0.3],r:2.5},tint:0.1,ghost:'WE'},
+ {id:'lobo-occipital',code:'CTX-OC',name:'Lobo occipital',alt:'Córtex visual · V1 = área 17',group:'ctx',color:LOBE[4],
+  where:'Parte de trás do cérebro, acima do cerebelo.',
+  role:'Processa a visão: bordas, cores, movimento e profundidade. Repassa para a via do “o quê” (temporal) e do “onde” (parietal).',
+  f:{lobe:4},cam:{d:[0.35,0.3,-1],r:2.9},tint:0.12,ghost:'OC'},
+ {id:'insula',code:'CTX-IN',name:'Ínsula',alt:'Lobo insular · o “quinto lobo”',group:'ctx',color:'#ff9f7a',
+  where:'Escondida no fundo da fissura lateral, coberta pelos lobos frontal, parietal e temporal.',
+  role:'Interocepção: sente o estado interno do corpo (batimento, fome, dor, nojo) e o transforma em consciência corporal.',
+  f:{s:['ins']},mode:'xray',cam:{d:[1,0.15,0.35],r:2.5},ghost:'IN'},
+
+ {id:'corpo-caloso',code:'WM-CC',name:'Corpo caloso',alt:'Grande comissura · ~200 milhões de axônios',group:'wm',
+  where:'Ponte de substância branca no fundo da fissura que separa os hemisférios.',
+  role:'Conecta os dois hemisférios e sincroniza as informações entre eles.',
+  f:{s:['cc']},mode:'xray',cam:{t:[0,0.15,0],d:[0.75,0.65,0.35],r:3.0},ghost:'CC'},
+
+ {id:'cingulo',code:'LIM-CG',name:'Giro do cíngulo',alt:'Córtex cingulado anterior e posterior',group:'lim',
+  where:'Face interna de cada hemisfério, abraçando o corpo caloso como um cinto.',
+  role:'Detecta erros e conflitos, regula emoção e atenção e liga o que se sente ao que se faz.',
+  f:{s:['cing']},mode:'xray',cam:{t:[0,0.15,0],d:[1,0.35,0.1],r:3.0},ghost:'CG'},
+ {id:'hipocampo',code:'LIM-HC',name:'Hipocampo',alt:'Nome vem do cavalo-marinho, pelo formato',group:'lim',
+  where:'Dentro do lobo temporal, um em cada hemisfério.',
+  role:'Grava novas memórias de fatos e eventos e monta o mapa do espaço (células de lugar).',
+  f:{s:['hipp']},mode:'xray',cam:{d:[0.9,0.35,0.35],r:2.3},ghost:'HC'},
+ {id:'amigdala',code:'LIM-AM',name:'Amígdala',alt:'Corpo amigdaloide',group:'lim',
+  where:'Na frente do hipocampo, na parte interna do lobo temporal.',
+  role:'Detecta ameaças e relevância emocional; dispara o medo e marca memórias como importantes.',
+  f:{s:['amy']},mode:'xray',cam:{d:[0.9,0.2,0.6],r:2.0},ghost:'AM'},
+
+ {id:'talamo',code:'DIE-TH',name:'Tálamo',alt:'Par de massas ovais no centro do cérebro',group:'die',
+  where:'Centro do cérebro, logo acima do tronco encefálico.',
+  role:'Estação de retransmissão: filtra e encaminha ao córtex quase todos os sinais dos sentidos (menos o olfato). Também participa do sono e da vigília.',
+  f:{s:['thal']},mode:'xray',cam:{t:[0,0,-0.06],d:[0.7,0.55,0.6],r:2.1},ghost:'TH'},
+ {id:'hipotalamo',code:'DIE-HY',name:'Hipotálamo',alt:'Do tamanho de uma amêndoa',group:'die',
+  where:'Abaixo do tálamo, na base do cérebro.',
+  role:'Controla o meio interno: temperatura, fome, sede, sono, ritmo circadiano e a liberação de hormônios.',
+  f:{s:['hyp']},mode:'xray',cam:{d:[0.9,0.1,0.55],r:1.9},ghost:'HY'},
+ {id:'hipofise',code:'END-HP',name:'Hipófise',alt:'Glândula pituitária · a “glândula mestra”',group:'die',color:'#ffa15c',
+  where:'Pendurada sob o hipotálamo, apoiada numa cavidade do osso (sela turca).',
+  role:'Libera hormônios que comandam outras glândulas: crescimento, tireoide, adrenais e reprodução.',
+  f:{s:['pit']},mode:'xray',cam:{d:[0.8,-0.2,0.6],r:1.8},ghost:'HP'},
+ {id:'pineal',code:'END-PN',name:'Glândula pineal',alt:'Epífise',group:'die',color:'#ffa15c',
+  where:'Atrás do tálamo, bem no centro do cérebro.',
+  role:'Produz melatonina no escuro, sinalizando ao corpo que é hora de dormir.',
+  f:{s:['pin']},mode:'xray',cam:{d:[0.6,0.45,-0.7],r:1.8},ghost:'PN'},
+
+ {id:'nucleos-base',code:'BG-00',name:'Núcleos da base',alt:'Estriado (caudado + putâmen) · globo pálido',group:'bg',
+  where:'Estruturas profundas em volta do tálamo, uma em cada hemisfério.',
+  role:'Escolhem qual ação executar e suprimem as outras; formam hábitos e automatizam movimentos.',
+  f:{s:['caud','put','gp']},mode:'xray',cam:{t:[0,0.02,0.02],d:[0.65,0.55,0.7],r:2.5},ghost:'BG'},
+ {id:'accumbens',code:'BG-NA',name:'Núcleo accumbens',alt:'Estriado ventral',group:'bg',
+  where:'Base do estriado, perto da linha média, na frente.',
+  role:'Centro de recompensa e motivação: transforma a expectativa de um prêmio em vontade de agir.',
+  f:{s:['nac']},mode:'xray',cam:{d:[0.7,0.1,0.85],r:1.8},ghost:'NA'},
+ {id:'substancia-negra',code:'MB-SN',name:'Substância negra e ATV',alt:'Área tegmental ventral · fontes de dopamina',group:'bg',color:'#ffcf4d',
+  where:'No mesencéfalo, logo abaixo do tálamo.',
+  role:'Fabricam dopamina. A substância negra abastece o movimento; a ATV abastece motivação e aprendizado por recompensa.',
+  f:{s:['sn','vta']},mode:'xray',pulse:'DA',cam:{t:[0,-0.25,-0.1],d:[0.85,0.1,0.55],r:1.9},ghost:'SN'},
+
+ {id:'cerebelo',code:'CB-00',name:'Cerebelo',alt:'“Pequeno cérebro” · ~69 bilhões de neurônios',group:'stem',
+  where:'Atrás e embaixo, sob o lobo occipital.',
+  role:'Coordena e corrige o movimento em tempo real: equilíbrio, postura, precisão e aprendizado motor.',
+  note:'Tem apenas ~10% do volume do cérebro, mas cerca de <b>80% de todos os neurônios</b>.',
+  f:{s:['cb']},cam:{d:[0.55,0.05,-1],r:2.6},ghost:'CB'},
+ {id:'mesencefalo',code:'BS-MB',name:'Mesencéfalo',alt:'Parte superior do tronco encefálico',group:'stem',color:'#5ec4ff',
+  where:'Topo do tronco encefálico, entre o tálamo e a ponte.',
+  role:'Reflexos visuais e auditivos (virar a cabeça para um som), movimento dos olhos e origem das vias de dopamina.',
+  f:{s:['mb']},mode:'xray',cam:{d:[1,0.15,0.3],r:2.0},ghost:'MB'},
+ {id:'ponte',code:'BS-PO',name:'Ponte',alt:'Protuberância anular',group:'stem',color:'#5ec4ff',
+  where:'Parte média e saliente do tronco, na frente do cerebelo.',
+  role:'Liga o córtex ao cerebelo; participa do controle da respiração e do sono REM.',
+  f:{s:['pons']},cam:{d:[0.75,-0.15,0.8],r:2.0},ghost:'PO'},
+ {id:'bulbo',code:'BS-BU',name:'Bulbo',alt:'Medula oblonga',group:'stem',color:'#5ec4ff',
+  where:'Parte inferior do tronco, que continua na medula espinhal.',
+  role:'Funções vitais automáticas: batimento cardíaco, pressão arterial, respiração, deglutição, tosse e vômito.',
+  f:{s:['med']},cam:{d:[0.75,-0.1,0.8],r:2.0},ghost:'BU'},
+ {id:'medula',code:'SC-00',name:'Medula espinhal',alt:'~45 cm no adulto',group:'stem',color:'#8fb8ff',
+  where:'Desce do bulbo por dentro da coluna vertebral.',
+  role:'Cabo principal entre cérebro e corpo. Também executa reflexos sozinha, sem esperar o cérebro (tirar a mão do fogo).',
+  f:{s:['sc']},cam:{d:[0.8,0.05,0.7],r:2.6},ghost:'SC'},
+
+ {id:'olfato',code:'SEN-OB',name:'Bulbo olfatório',alt:'Nervo craniano I',group:'oth',color:'#c7f06a',
+  where:'Sob os lobos frontais, logo acima da cavidade nasal.',
+  role:'Recebe os cheiros e manda direto para o sistema límbico, sem passar pelo tálamo. Por isso cheiro desperta memória e emoção tão rápido.',
+  f:{s:['ob']},cam:{d:[0.35,-1,0.55],r:2.3},ghost:'OB'},
+ {id:'ventriculos',code:'VEN-00',name:'Sistema ventricular',alt:'Ventrículos laterais, 3º e 4º · líquor',group:'oth',color:'#58a6ff',
+  where:'Cavidades interligadas no centro do cérebro, cheias de líquido.',
+  role:'Produzem e fazem circular o líquido cefalorraquidiano (~150 ml), que amortece, nutre e remove resíduos.',
+  f:{s:['vent']},mode:'xray',cam:{t:[0,0.02,-0.05],d:[0.7,0.5,0.6],r:2.7},ghost:'VE'},
+
+ {id:'dopamina',code:'NT-DA',name:'Dopamina',alt:'Neurotransmissor · catecolamina',group:'nt',color:NTC.DA,
+  where:'Produzida na substância negra e na ATV; age no estriado, no accumbens e no pré-frontal.',
+  role:'Sinal de recompensa e de “erro de previsão”: motiva, reforça o que deu certo e dá fluidez ao movimento.',
+  paths:['ATV → accumbens','ATV → pré-frontal','Subst. negra → estriado'],
+  f:{s:['sn','vta']},mode:'xray',pulse:'DA',cam:{t:[0,-0.05,0.05],d:[1,0.3,0.35],r:3.3},ghost:'DA'},
+ {id:'serotonina',code:'NT-5HT',name:'Serotonina',alt:'5-hidroxitriptamina',group:'nt',color:NTC.S5,
+  where:'Núcleos da rafe, no tronco encefálico; projeta para quase todo o cérebro.',
+  role:'Estabiliza humor, paciência e impulsividade; regula sono e apetite.',
+  paths:['Rafe → córtex','Rafe → hipocampo','Rafe → medula'],
+  f:{s:['raphe']},mode:'xray',pulse:'S5',cam:{t:[0,-0.1,-0.05],d:[1,0.25,0.3],r:3.4},ghost:'5HT'},
+ {id:'noradrenalina',code:'NT-NE',name:'Noradrenalina e adrenalina',alt:'Norepinefrina e epinefrina',group:'nt',color:NTC.NE,
+  where:'Noradrenalina: locus coeruleus, na ponte. Adrenalina: sobretudo nas glândulas adrenais, como hormônio.',
+  role:'Alerta e prontidão: aumentam foco, vigilância e a resposta de luta ou fuga.',
+  paths:['Locus coeruleus → córtex','→ tálamo','→ amígdala','→ cerebelo'],
+  f:{s:['lc']},mode:'xray',pulse:'NE',cam:{t:[0,-0.1,-0.05],d:[1,0.2,0.2],r:3.4},ghost:'NE'},
+ {id:'adenosina',code:'NT-ADO',name:'Adenosina',alt:'Neuromodulador derivado do ATP',group:'nt',color:NTC.ADO,
+  where:'Liberada por neurônios e glia de todo o cérebro, à medida que gastam energia.',
+  role:'Acumula ao longo do dia e cria a pressão de sono. A cafeína funciona bloqueando os receptores dela.',
+  note:'Sobre “adenina”: é uma das bases do DNA. No cérebro, as moléculas parecidas no nome são a <b>adenosina</b> (sono) e a <b>adrenalina</b> (alerta). As duas estão neste atlas.',
+  f:{s:[]},mode:'xray',pulse:'ADO',cam:{t:[0,0.05,0],d:[0.8,0.5,0.45],r:3.6},ghost:'ADO'},
+ {id:'acetilcolina',code:'NT-ACH',name:'Acetilcolina',alt:'Primeiro neurotransmissor descoberto (1921)',group:'nt',color:NTC.ACH,
+  where:'Prosencéfalo basal e tronco encefálico; também na junção entre nervo e músculo.',
+  role:'Atenção, aprendizado e gravação de memórias. No corpo, é o sinal que faz o músculo contrair.',
+  paths:['Prosencéfalo basal → córtex','→ hipocampo','Tronco → tálamo'],
+  f:{s:['bf']},mode:'xray',pulse:'ACH',cam:{t:[0,0,0.05],d:[1,0.35,0.5],r:3.3},ghost:'ACh'},
+ {id:'glutamato-gaba',code:'NT-GLU·GABA',name:'Glutamato e GABA',alt:'Acelerador e freio',group:'nt',color:NTC.GLU,
+  where:'Em praticamente todas as regiões do cérebro.',
+  role:'Glutamato é o principal acelerador (excita). GABA é o principal freio (inibe). O equilíbrio dos dois mantém o cérebro estável.',
+  paths:['<b style="color:#ff9a3c">●</b> Glutamato: córtex ↔ córtex, córtex → estriado','<b style="color:#5b8cff">●</b> GABA: estriado → pálido → tálamo'],
+  f:{s:['caud','put','gp','thal']},mode:'xray',pulse:'GG',cam:{t:[0,0.05,0],d:[0.9,0.5,0.4],r:3.5},ghost:'GLU'},
+ {id:'ocitocina',code:'NT-OXT',name:'Ocitocina',alt:'Hormônio e neuromodulador',group:'nt',color:NTC.OXT,
+  where:'Produzida no hipotálamo e liberada pela hipófise.',
+  role:'Vínculo, confiança e comportamento social. No corpo, atua no parto e na amamentação.',
+  paths:['Hipotálamo → hipófise','→ amígdala','→ accumbens'],
+  f:{s:['hyp','pit']},mode:'xray',pulse:'OXT',cam:{t:[0,-0.15,0.1],d:[1,0.2,0.55],r:2.6},ghost:'OXT'},
+ {id:'endorfinas',code:'NT-END',name:'Endorfinas',alt:'Opioides naturais do corpo',group:'nt',color:NTC.END,
+  where:'Hipotálamo, hipófise e substância cinzenta periaquedutal (no mesencéfalo).',
+  role:'Analgésicos naturais: reduzem a dor e geram sensação de bem-estar.',
+  paths:['Hipotálamo → periaquedutal','Periaquedutal → medula'],
+  f:{s:['hyp','pag']},mode:'xray',pulse:'END',cam:{t:[0,-0.35,-0.1],d:[1,0.1,0.45],r:2.9},ghost:'END'},
+
+ {id:'neuronio',code:'CEL-NEU',name:'O neurônio',alt:'~86 bilhões no cérebro humano',group:'cel',
+  where:'Em todo o sistema nervoso, acompanhado por um número parecido de células da glia.',
+  role:'Unidade básica: recebe, integra e transmite sinais elétricos e químicos.',
+  parts:true,f:{none:true},cam:{t:[0,0.05,0],d:[-0.65,0.5,0.6],r:3.8},tint:0,pulse:'network',net:1,ghost:'NEU'},
+ {id:'sinapse',code:'CEL-SYN',name:'Sinapse',alt:'Química (a maioria) ou elétrica',group:'cel',
+  where:'Ponto de contato entre dois neurônios. A fenda entre eles tem ~20 nanômetros.',
+  role:'O impulso elétrico chega ao terminal, libera neurotransmissores na fenda e eles se ligam a receptores do outro lado. Sinapses usadas se fortalecem: é assim que o cérebro aprende.',
+  syn:true,f:{none:true},cam:{t:[0,0.05,0],d:[-0.3,0.7,0.65],r:3.3},tint:0,pulse:'network',net:1,ghost:'SYN'},
+
+ {id:'catalogo',kind:'catalog',group:'end',cam:{t:[0,-0.05,0],d:[0.8,0.4,0.6],r:5.2},tint:0.4,mode:'surface',pulse:'surface',auto:true,f:{cortex:true}},
+ {id:'roteiro',kind:'road',group:'end',cam:{t:[0,-0.05,0],d:[-0.8,0.4,0.6],r:5.4},tint:0,mode:'surface',pulse:'network',net:0.5,auto:true}
+];
+
+const PARTS = [
+ ['Dendritos','recebem sinais de outros neurônios'],
+ ['Soma','corpo celular; soma os sinais e decide disparar'],
+ ['Axônio','cabo de saída que conduz o impulso'],
+ ['Bainha de mielina','isolante que acelera o sinal até ~120 m/s'],
+ ['Nós de Ranvier','intervalos onde o impulso “salta”'],
+ ['Terminal axonal','ponta que libera neurotransmissores'],
+ ['Astrócitos','glia: nutre neurônios e regula sinapses',1],
+ ['Oligodendrócitos','glia: fabrica a mielina no cérebro',1],
+ ['Micróglia','glia: defesa imunológica e limpeza',1]
+];
+
+/* ================================================================
+   DOM
+   ================================================================ */
+const comps = S.filter(s=>!s.kind);
+const TOTAL = comps.length;
+const esc = t => t;
+const colorOf = s => s.color || G[s.group].color;
+const stepsEl = document.getElementById('steps');
+let n = 0;
+const html = S.map((s,i)=>{
+  const c = colorOf(s);
+  if(s.kind==='hero') return `
+  <section class="step hero" id="${s.id}" style="--c:${c}">
+    <div class="ghost" aria-hidden="true">1/4</div>
+    <div class="card">
+      <div class="eyebrow"><i></i>Etapa 1 de 4 · Nomenclatura</div>
+      <h1>Antes de construir um cérebro, <em>dê nome a cada peça.</em></h1>
+      <p class="lead">Atlas 3D com ${TOTAL} componentes do cérebro humano: lobos, áreas do córtex, sistema límbico, núcleos profundos, tronco, neuroquímica e sinapses. Cada um recebe um código de módulo que vai acompanhar o robô nas próximas etapas.</p>
+      <div class="stats">
+        <div><b>86 bi</b><span>neurônios</span></div>
+        <div><b>~100 tri</b><span>sinapses</span></div>
+        <div><b>1,4 kg</b><span>peso médio</span></div>
+        <div><b>~20 W</b><span>consumo de energia</span></div>
+      </div>
+      <div class="hint"><span>role para percorrer</span><span>arraste para girar</span><span>clique numa região</span></div>
+    </div>
+  </section>`;
+  if(s.kind==='catalog') return `
+  <section class="step wide" id="${s.id}" style="--c:${c}">
+    <div class="card">
+      <div class="meta"><span class="code" style="--c:#efeaf5">INDEX</span><span>Inventário da Etapa 1</span></div>
+      <h2>Catálogo de módulos</h2>
+      <p class="lede">Os ${TOTAL} componentes nomeados nesta etapa. O código de cada um é o identificador do módulo no cérebro do robô. Clique numa linha para ver o componente no modelo.</p>
+      <div class="toolbar"><button class="btn primary" id="copyJson">Copiar inventário (JSON)</button><button class="btn" id="showJson" aria-expanded="false">Ver JSON</button><span class="toast" id="toast" role="status"></span></div>
+      <pre class="json" id="json" hidden></pre>
+      <div class="cat-wrap"><table class="cat"><thead><tr><th>Código</th><th>Componente</th><th>Responsável por</th></tr></thead><tbody id="catBody"></tbody></table></div>
+    </div>
+  </section>`;
+  if(s.kind==='road') return `
+  <section class="step wide" id="${s.id}" style="--c:${c}">
+    <div class="card">
+      <div class="meta"><span class="code" style="--c:#efeaf5">PLANO</span><span>Projeto Córtex</span></div>
+      <h2>As quatro etapas</h2>
+      <p class="lede">Cada etapa usa os mesmos códigos de módulo, então o que foi nomeado aqui vira a estrutura de dados das próximas fases.</p>
+      <div class="road">
+        <article class="done"><div class="st"><span>ETAPA 1</span><em>concluída</em></div><h3>Nomenclatura</h3><p>Mapear e nomear cada componente, com localização, papel resumido e código de módulo.</p><ul><li>${TOTAL} componentes</li><li>9 grupos</li><li>Inventário em JSON</li></ul></article>
+        <article><div class="st"><span>ETAPA 2</span><em>próxima</em></div><h3>Funções</h3><p>O que cada componente faz em detalhe.</p><ul><li>Entradas e saídas</li><li>Com quem se conecta</li><li>O que acontece quando falha</li></ul></article>
+        <article><div class="st"><span>ETAPA 3</span><em>a fazer</em></div><h3>Tradução para o robô</h3><p>O equivalente computacional de cada módulo.</p><ul><li><code>DIE-TH</code> tálamo → roteador de sensores</li><li><code>CB-00</code> cerebelo → corretor de movimento</li><li><code>LIM-AM</code> amígdala → detector de risco</li></ul></article>
+        <article><div class="st"><span>ETAPA 4</span><em>a fazer</em></div><h3>Comandos e sinapses</h3><p>Os sinais entre módulos, as prioridades e a neuroquímica como parâmetros globais.</p><ul><li>Protocolo de mensagens</li><li><code>NT-DA</code> → sinal de recompensa</li><li><code>NT-NE</code> → nível de alerta</li></ul></article>
+      </div>
+      <p class="foot">Valores anatômicos são médias de adultos e servem de referência, não de diagnóstico.</p>
+    </div>
+  </section>`;
+  n++;
+  const parts = s.parts ? `<ul class="parts">${PARTS.map(p=>`<li class="${p[2]?'glia':''}"><b>${p[0]}</b><span>${p[1]}</span></li>`).join('')}</ul>` : '';
+  const syn = s.syn ? `<canvas class="syn" id="synCanvas" aria-label="Animação de uma sinapse química: vesículas liberam neurotransmissores que cruzam a fenda e ativam receptores."></canvas>` : '';
+  const paths = s.paths ? `<div class="paths">${s.paths.map(p=>`<span>${p}</span>`).join('')}</div>` : '';
+  const note = s.note ? `<div class="note">${s.note}</div>` : '';
+  return `
+  <section class="step" id="${s.id}" style="--c:${c}">
+    <div class="ghost" aria-hidden="true">${s.ghost||''}</div>
+    <article class="card">
+      <div class="meta"><span class="code">${s.code}</span><span class="grp"><i></i>${G[s.group].name}</span><span class="idx">${String(n).padStart(2,'0')} / ${TOTAL}</span></div>
+      <h2>${s.name}</h2>
+      ${s.alt?`<p class="alt">${s.alt}</p>`:''}
+      <dl class="facts"><div><dt>Onde fica</dt><dd>${s.where}</dd></div><div class="role"><dt>Responsável por</dt><dd>${s.role}</dd></div></dl>
+      ${paths}${note}${parts}${syn}
+      <div class="pending"><span>Etapa 2 · função detalhada</span><span>pendente</span></div>
+    </article>
+  </section>`;
+}).join('');
+stepsEl.innerHTML = html;
+const stepEls = S.map(s=>document.getElementById(s.id));
+const ghosts = stepEls.map(el=>el.querySelector('.ghost'));
+
+// Rail
+const groupsOrder = ['ctx','wm','lim','die','bg','stem','oth','nt','cel','end'];
+const rail = document.getElementById('rail');
+rail.innerHTML = groupsOrder.map(g=>{
+  const first = S.findIndex(s=>s.group===g && (g!=='end' || s.kind==='catalog'));
+  const label = g==='end' ? 'Catálogo e etapas' : G[g].name;
+  return `<button data-g="${g}" data-i="${first}" style="--c:${G[g].color}"><span>${label}</span><i></i></button>`;
+}).join('');
+rail.addEventListener('click',e=>{const b=e.target.closest('button');if(b)goTo(+b.dataset.i)});
+document.getElementById('stages').addEventListener('click',e=>{const b=e.target.closest('button');if(b)goTo(S.findIndex(s=>s.id===b.dataset.go))});
+
+// Catalog
+const catBody = document.getElementById('catBody');
+let lastG = null, rows='';
+S.forEach((s,i)=>{ if(s.kind) return;
+  if(s.group!==lastG){ lastG=s.group; rows+=`<tr class="gh" style="--c:${G[s.group].color}"><td colspan="3">${G[s.group].name}</td></tr>`; }
+  rows+=`<tr class="row" tabindex="0" data-i="${i}" style="--c:${colorOf(s)}"><td class="c">${s.code}</td><td class="n">${s.name}</td><td class="r">${s.role}</td></tr>`;
+});
+catBody.innerHTML = rows;
+catBody.addEventListener('click',e=>{const r=e.target.closest('tr.row');if(r)goTo(+r.dataset.i)});
+catBody.addEventListener('keydown',e=>{if(e.key==='Enter'){const r=e.target.closest('tr.row');if(r)goTo(+r.dataset.i)}});
+const strip = h => h.replace(/<[^>]+>/g,'');
+const inventory = {projeto:'Projeto Córtex',etapa:1,titulo:'Nomenclatura',total:TOTAL,
+  componentes:comps.map(s=>({codigo:s.code,nome:s.name,grupo:G[s.group].name,tambem:s.alt?strip(s.alt):null,onde:strip(s.where),responsavel:strip(s.role),funcao_detalhada:null,equivalente_robo:null,comandos:[]}))};
+const jsonTxt = JSON.stringify(inventory,null,2);
+const jsonEl = document.getElementById('json'); jsonEl.textContent = jsonTxt;
+const toast = document.getElementById('toast');
+document.getElementById('showJson').addEventListener('click',e=>{jsonEl.hidden=!jsonEl.hidden;e.currentTarget.setAttribute('aria-expanded',String(!jsonEl.hidden));e.currentTarget.textContent=jsonEl.hidden?'Ver JSON':'Ocultar JSON'});
+document.getElementById('copyJson').addEventListener('click',()=>{
+  const fallback=()=>{jsonEl.hidden=false;const r=document.createRange();r.selectNodeContents(jsonEl);const sel=getSelection();sel.removeAllRanges();sel.addRange(r);toast.textContent='Texto selecionado. Use Ctrl+C para copiar.';};
+  try{ navigator.clipboard.writeText(jsonTxt).then(()=>{toast.textContent='Inventário copiado.'},fallback);}catch(err){fallback()}
+});
+
+function goTo(i){
+  const el = stepEls[i]; if(!el) return;
+  const top = el.offsetTop + el.offsetHeight/2 - innerHeight/2;
+  window.scrollTo({top:Math.max(0,top),behavior:reduced?'auto':'smooth'});
+}
+const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/* ================================================================
+   RUÍDO (simplex 3D)
+   ================================================================ */
+function rng(seed){return function(){seed|=0;seed=seed+0x6D2B79F5|0;let t=Math.imul(seed^seed>>>15,1|seed);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+function makeNoise(seed){
+  const r=rng(seed),p=new Uint8Array(256);for(let i=0;i<256;i++)p[i]=i;
+  for(let i=255;i>0;i--){const j=Math.floor(r()*(i+1));const t=p[i];p[i]=p[j];p[j]=t}
+  const perm=new Uint8Array(512),pm=new Uint8Array(512);for(let i=0;i<512;i++){perm[i]=p[i&255];pm[i]=perm[i]%12}
+  const g3=[1,1,0,-1,1,0,1,-1,0,-1,-1,0,1,0,1,-1,0,1,1,0,-1,-1,0,-1,0,1,1,0,-1,1,0,1,-1,0,-1,-1];
+  const F3=1/3,G3=1/6;
+  return function(x,y,z){
+    let n0=0,n1=0,n2=0,n3=0;const s=(x+y+z)*F3;const i=Math.floor(x+s),j=Math.floor(y+s),k=Math.floor(z+s);
+    const t=(i+j+k)*G3;const x0=x-(i-t),y0=y-(j-t),z0=z-(k-t);let i1,j1,k1,i2,j2,k2;
+    if(x0>=y0){if(y0>=z0){i1=1;j1=0;k1=0;i2=1;j2=1;k2=0}else if(x0>=z0){i1=1;j1=0;k1=0;i2=1;j2=0;k2=1}else{i1=0;j1=0;k1=1;i2=1;j2=0;k2=1}}
+    else{if(y0<z0){i1=0;j1=0;k1=1;i2=0;j2=1;k2=1}else if(x0<z0){i1=0;j1=1;k1=0;i2=0;j2=1;k2=1}else{i1=0;j1=1;k1=0;i2=1;j2=1;k2=0}}
+    const x1=x0-i1+G3,y1=y0-j1+G3,z1=z0-k1+G3,x2=x0-i2+2*G3,y2=y0-j2+2*G3,z2=z0-k2+2*G3,x3=x0-1+3*G3,y3=y0-1+3*G3,z3=z0-1+3*G3;
+    const ii=i&255,jj=j&255,kk=k&255;let q;
+    let t0=.6-x0*x0-y0*y0-z0*z0;if(t0>0){q=pm[ii+perm[jj+perm[kk]]]*3;t0*=t0;n0=t0*t0*(g3[q]*x0+g3[q+1]*y0+g3[q+2]*z0)}
+    let t1=.6-x1*x1-y1*y1-z1*z1;if(t1>0){q=pm[ii+i1+perm[jj+j1+perm[kk+k1]]]*3;t1*=t1;n1=t1*t1*(g3[q]*x1+g3[q+1]*y1+g3[q+2]*z1)}
+    let t2=.6-x2*x2-y2*y2-z2*z2;if(t2>0){q=pm[ii+i2+perm[jj+j2+perm[kk+k2]]]*3;t2*=t2;n2=t2*t2*(g3[q]*x2+g3[q+1]*y2+g3[q+2]*z2)}
+    let t3=.6-x3*x3-y3*y3-z3*z3;if(t3>0){q=pm[ii+1+perm[jj+1+perm[kk+1]]]*3;t3*=t3;n3=t3*t3*(g3[q]*x3+g3[q+1]*y3+g3[q+2]*z3)}
+    return 32*(n0+n1+n2+n3);
+  };
+}
+const sm=(a,b,x)=>{let t=(x-a)/(b-a);t=t<0?0:t>1?1:t;return t*t*(3-2*t)};
+
+/* ================================================================
+   THREE
+   ================================================================ */
+if(!window.THREE){ document.getElementById('gl').style.display='none'; return; }
+const canvas=document.getElementById('gl');
+const renderer=new THREE.WebGLRenderer({canvas,antialias:true,alpha:true,powerPreference:'high-performance'});
+renderer.setClearColor(0x000000,0);
+const scene=new THREE.Scene();
+const camera=new THREE.PerspectiveCamera(34,1,0.05,60);
+scene.add(camera);
+scene.add(new THREE.AmbientLight(0x6a6090,0.55));
+scene.add(new THREE.HemisphereLight(0xcfd8ff,0x2a1420,0.55));
+const key=new THREE.DirectionalLight(0xfff1ec,1.05);key.position.set(2,3,2);camera.add(key);
+const rim=new THREE.DirectionalLight(0x8aa0ff,0.55);rim.position.set(-3,-1,-2);scene.add(rim);
+
+const brain=new THREE.Group();scene.add(brain);
+const CENTER=new THREE.Vector3(0,0.02,-0.05);
+
+/* ---------- Hemisférios ---------- */
+const cortexMat=new THREE.ShaderMaterial({
+  transparent:true,side:THREE.DoubleSide,depthWrite:true,
+  uniforms:{
+    uHiCol:{value:new THREE.Color('#6f9bff')},uHi:{value:0},uTint:{value:0},
+    uXray:{value:0},uDim:{value:0},uTime:{value:0}
+  },
+  vertexShader:`
+    attribute float aMatch; attribute vec3 aLCol; attribute float aCurv;
+    varying vec3 vN; varying vec3 vV; varying float vMatch; varying vec3 vLCol; varying float vCurv; varying vec3 vObj;
+    void main(){
+      vec4 mv=modelViewMatrix*vec4(position,1.0);
+      vV=-mv.xyz; vN=normalize(normalMatrix*normal);
+      vMatch=aMatch; vLCol=aLCol; vCurv=aCurv; vObj=position;
+      gl_Position=projectionMatrix*mv;
+    }`,
+  fragmentShader:`
+    uniform vec3 uHiCol;
+    uniform float uHi,uTint,uXray,uDim,uTime;
+    varying vec3 vN; varying vec3 vV; varying float vMatch; varying vec3 vLCol; varying float vCurv; varying vec3 vObj;
+    void main(){
+      vec3 N=normalize(vN); vec3 V=normalize(vV);
+      if(!gl_FrontFacing) N=-N;
+      vec3 L1=normalize(vec3(0.45,0.8,0.55)); vec3 L2=normalize(vec3(-0.7,-0.15,0.35));
+      float d1=max(dot(N,L1),0.0); float d2=max(dot(N,L2),0.0);
+      float ao=smoothstep(-0.05,0.012,vCurv);
+      vec3 tissue=mix(vec3(0.34,0.16,0.21),vec3(0.93,0.73,0.70),ao);
+      tissue=mix(tissue,vLCol*mix(0.45,1.05,ao),uTint);
+      vec3 col=tissue*(0.2+0.85*d1+0.32*d2);
+      vec3 H=normalize(L1+V);
+      col+=vec3(1.0,0.92,0.92)*pow(max(dot(N,H),0.0),42.0)*0.3*ao;
+      float fr=pow(1.0-max(dot(N,V),0.0),2.4);
+      float m = smoothstep(0.08,0.75,vMatch)*uHi;
+      col*=mix(1.0,0.42,uDim*(1.0-m));
+      float pulse=0.5+0.5*sin(uTime*2.6-vObj.z*7.0+vObj.y*3.0);
+      col=mix(col,uHiCol*(0.3+0.85*d1+0.3*d2)*mix(0.55,1.15,ao),m*0.74);
+      col+=uHiCol*m*(0.1+0.2*pulse)*ao;
+      col+=fr*mix(vec3(0.3,0.34,0.8),uHiCol,m)*(0.3+0.6*m);
+      vec3 xcol=mix(vec3(0.35,0.42,0.9),vec3(0.8,0.85,1.0),fr)*(0.25+fr);
+      col=mix(col,xcol,uXray*0.85);
+      float a=mix(1.0,0.03+fr*0.42,uXray);
+      gl_FragColor=vec4(col,a);
+    }`
+});
+
+const areaCentroid={}, lobeCentroid={};
+const surfNodes=[];
+function buildHemisphere(side){
+  const W=300,H=220;
+  const g=new THREE.SphereGeometry(1,W,H);
+  const P=g.attributes.position,count=P.count;
+  const U=new Float32Array(count*3);
+  for(let i=0;i<count;i++){
+    const sx=P.getX(i),sy=P.getY(i),sz=P.getZ(i);
+    U[i*3]=sx;U[i*3+1]=sy;U[i*3+2]=sz;
+    const lat= sx>0 ? sx*0.66 : sx*0.235;
+    const taper=(1-0.14*Math.max(0,sz))*(1-0.07*Math.max(0,-sz)*Math.max(0,-sz));
+    const x=0.25+lat*taper;
+    let y;
+    if(sy>=0) y=sy*0.70*(1-0.12*Math.max(0,sz)*Math.max(0,sz))*(1-0.06*Math.max(0,-sz));
+    else{
+      const tm=Math.exp(-Math.pow((sz-0.12)/0.4,2))*sm(-0.25,0.5,sx);
+      const om=sm(-0.35,-0.8,sz), fm=sm(0.45,0.95,sz);
+      y=sy*(0.34+0.22*tm-0.13*om-0.08*fm*(1-tm));
+    }
+    const z=sz*1.05;
+    P.setXYZ(i,x*side,y,z);
+  }
+  if(side<0){const ix=g.index.array;for(let i=0;i<ix.length;i+=3){const t=ix[i+1];ix[i+1]=ix[i+2];ix[i+2]=t}}
+  g.computeVertexNormals();
+  const N=g.attributes.normal;
+  const lobe=new Float32Array(count),area=new Float32Array(count),curv=new Float32Array(count);
+  const nz=makeNoise(side>0?11:29);
+  const acc={};
+  for(let i=0;i<count;i++){
+    const sx=U[i*3],sy=U[i*3+1],sz=U[i*3+2];
+    const px=P.getX(i),py=P.getY(i),pz=P.getZ(i);
+    const wx=nz(px*1.7+3.1,py*1.7,pz*1.7)*0.32,wy=nz(px*1.7,py*1.7+7.3,pz*1.7)*0.32,wz=nz(px*1.7,py*1.7,pz*1.7+1.9)*0.32;
+    const f=4.4;
+    const g1=nz((px+wx)*f,(py+wy)*f,(pz+wz)*f);
+    const g2=nz(px*12+5,py*12,pz*12);
+    let d=0.036*Math.pow(Math.abs(g1),0.5)-0.025+0.0045*g2;
+    const medial=sm(-0.2,-0.75,sx); d*=1-0.45*medial;
+    const ys=-0.05+(0.35-sz)*0.35;
+    const inSylZ=sm(-0.64,-0.42,sz)*sm(0.56,0.4,sz);
+    const lateral=sm(0.0,0.35,sx);
+    const syl=Math.exp(-Math.pow((sy-ys)/0.045,2))*inSylZ*lateral;
+    const zc=0.02+(1-sy)*0.12;
+    const aboveSyl=sm(ys-0.02,ys+0.08,sy);
+    const cen=Math.exp(-Math.pow((sz-zc)/0.028,2))*aboveSyl*sm(-0.85,-0.45,sx);
+    const zpo=-0.6-0.1*sy;
+    const po=Math.exp(-Math.pow((sz-zpo)/0.03,2))*(0.4+0.6*medial)*sm(-0.2,0.2,sy);
+    const lf=Math.exp(-Math.pow((sx+1)/0.05,2));
+    d-=0.08*syl+0.042*cen+0.03*po;
+    curv[i]=d-0.02*lf;
+    P.setXYZ(i,px+N.getX(i)*d,py+N.getY(i)*d,pz+N.getZ(i)*d);
+    // regiões
+    const temporal= sy<ys && sz>-0.64 && sz<0.5 && (sx>-0.2 || sy<-0.55);
+    const occ= sz < -0.62-0.08*sy;
+    let L,A=0;
+    if(occ)L=4;else if(temporal)L=3;else if(sz>zc)L=1;else L=2;
+    if(L===1){ if(sz<zc+0.11 && sy>ys+0.03) A=2; else if(sz>zc+0.34) A=1;
+      if(side>0 && sx>0.3 && Math.pow((sz-0.4)/0.13,2)+Math.pow((sy-ys-0.11)/0.12,2)<1) A=3; }
+    if(L===2){ if(sz>zc-0.11) A=4; }
+    if(L===3){ if(side>0 && sx>0.2 && Math.pow((sz+0.4)/0.19,2)+Math.pow((sy-ys+0.1)/0.14,2)<1) A=5; if(sx>0.25 && Math.pow((sz-0.02)/0.2,2)+Math.pow((sy-ys+0.06)/0.08,2)<1) A=6; }
+    if(L===4){ if(sz<-0.88 || sx<-0.35) A=7; }
+    lobe[i]=L;area[i]=A;
+    if(side>0){
+      const kL='L'+L; (acc[kL]=acc[kL]||[0,0,0,0]);acc[kL][0]+=px;acc[kL][1]+=py;acc[kL][2]+=pz;acc[kL][3]++;
+      if(A){const kA='A'+A;(acc[kA]=acc[kA]||[0,0,0,0]);acc[kA][0]+=px;acc[kA][1]+=py;acc[kA][2]+=pz;acc[kA][3]++;}
+    }
+  }
+  const lcol=new Float32Array(count*3);const lc={};for(const k in LOBE)lc[k]=new THREE.Color(LOBE[k]);
+  for(let i=0;i<count;i++){const c=lc[lobe[i]];lcol[i*3]=c.r;lcol[i*3+1]=c.g;lcol[i*3+2]=c.b}
+  blurAttr(g.index.array,lcol,3,3);
+  g.setAttribute('aLCol',new THREE.BufferAttribute(lcol,3));
+  g.setAttribute('aMatch',new THREE.BufferAttribute(new Float32Array(count),1));
+  g.userData.lobe=lobe;g.userData.area=area;
+  g.setAttribute('aCurv',new THREE.BufferAttribute(curv,1));
+  g.computeVertexNormals();
+  g.computeBoundingSphere();
+  if(side>0){
+    const hc=new THREE.Vector3(0.25,0.08,0);
+    for(const k in acc){const a=acc[k];const v=new THREE.Vector3(a[0]/a[3],a[1]/a[3],a[2]/a[3]);
+      const out=v.clone().sub(hc).normalize();v.addScaledVector(out,0.14);
+      if(k[0]==='L')lobeCentroid[k.slice(1)]=v;else areaCentroid[k.slice(1)]=v;}
+  }
+  // nós de superfície para a rede sináptica
+  const r=rng(side>0?5:9);const P2=g.attributes.position,N2=g.attributes.normal;
+  for(let k=0;k<170;k++){const i=Math.floor(r()*count);
+    if(U[i*3]<-0.7)continue;
+    const p=new THREE.Vector3(P2.getX(i),P2.getY(i),P2.getZ(i)),nn=new THREE.Vector3(N2.getX(i),N2.getY(i),N2.getZ(i));
+    surfNodes.push({p:p.clone().addScaledVector(nn,0.018),q:p.clone().addScaledVector(nn,-0.05),n:nn,side,lobe:lobe[i]});}
+  const m=new THREE.Mesh(g,cortexMat);m.renderOrder=10;m.userData.cortex=true;
+  return m;
+}
+function blurAttr(idx,arr,dim,iters){
+  const n=arr.length/dim,sum=new Float32Array(arr.length),cnt=new Float32Array(n);
+  for(let it=0;it<iters;it++){sum.fill(0);cnt.fill(0);
+    for(let t=0;t<idx.length;t+=3){const a=idx[t],b=idx[t+1],c=idx[t+2];
+      for(let d=0;d<dim;d++){const s=arr[a*dim+d]+arr[b*dim+d]+arr[c*dim+d];sum[a*dim+d]+=s;sum[b*dim+d]+=s;sum[c*dim+d]+=s}
+      cnt[a]+=3;cnt[b]+=3;cnt[c]+=3}
+    for(let i=0;i<n;i++)if(cnt[i])for(let d=0;d<dim;d++)arr[i*dim+d]=sum[i*dim+d]/cnt[i]}
+}
+function setMatch(f){
+  for(const h of hemis){const g=h.geometry,M=g.attributes.aMatch.array,L=g.userData.lobe,A=g.userData.area;
+    for(let i=0;i<M.length;i++)M[i]=f.area?(A[i]===f.area?1:0):(f.lobe?(L[i]===f.lobe?1:0):0);
+    if(f.area||f.lobe)blurAttr(g.index.array,M,1,3);
+    g.attributes.aMatch.needsUpdate=true}
+}
+const hemis=[buildHemisphere(1),buildHemisphere(-1)];
+hemis.forEach(h=>brain.add(h));
+
+/* ---------- Estruturas ---------- */
+const TISSUE=new THREE.Color('#d9a49d');
+const structs=[];      // {mesh,key,color,external}
+const byKey={};
+function addStruct(geo,key,color,opts={}){
+  const vc=!!opts.vc;
+  const mat=new THREE.MeshStandardMaterial({color:new THREE.Color(color),roughness:0.55,metalness:0.02,transparent:true,opacity:1,vertexColors:vc,emissive:new THREE.Color(0)});
+  const m=new THREE.Mesh(geo,mat);
+  if(opts.pos)m.position.set(...opts.pos);
+  if(opts.rot)m.rotation.set(...opts.rot);
+  m.renderOrder=opts.external?5:2;
+  (opts.parent||brain).add(m);
+  const o={mesh:m,key,color:new THREE.Color(color),external:!!opts.external,tint:opts.tint!=null?opts.tint:(opts.external?1:0),alwaysDim:!!opts.alwaysDim};
+  structs.push(o);(byKey[key]=byKey[key]||[]).push(o);
+  return m;
+}
+const ell=(r,seg=[40,28])=>{const g=new THREE.SphereGeometry(1,seg[0],seg[1]);g.scale(r[0],r[1],r[2]);return g};
+function taperTube(pts,r0,r1,seg=90,rad=18){
+  const c=new THREE.CatmullRomCurve3(pts.map(p=>new THREE.Vector3(...p)));
+  const g=new THREE.TubeGeometry(c,seg,1,rad,false);
+  const P=g.attributes.position;
+  for(let j=0;j<=seg;j++){const u=j/seg;const cp=c.getPointAt(u);const rr=r0+(r1-r0)*Math.pow(u,0.8);const cap=Math.min(1,Math.sin(Math.min(u,1-u)*Math.PI*0.5*14)+0.001);
+    for(let k=0;k<=rad;k++){const i=j*(rad+1)+k;const v=new THREE.Vector3(P.getX(i),P.getY(i),P.getZ(i)).sub(cp).multiplyScalar(rr*Math.max(0.35,cap));P.setXYZ(i,cp.x+v.x,cp.y+v.y,cp.z+v.z)}}
+  g.computeVertexNormals();return g;
+}
+const C={lim:G.lim.color,die:G.die.color,gl:'#ffa15c',bg:G.bg.color,stem:'#5ec4ff',cb:G.stem.color,wm:G.wm.color,ins:'#ff9f7a',ob:'#c7f06a',vent:'#58a6ff',da:NTC.DA,s5:NTC.S5,ne:NTC.NE,ach:NTC.ACH,end:NTC.END};
+
+// Corpo caloso
+{const g=taperTube([[0,-0.07,0.29],[0,0.03,0.41],[0,0.16,0.37],[0,0.23,0.14],[0,0.24,-0.1],[0,0.2,-0.3],[0,0.09,-0.41],[0,0.0,-0.36]],0.034,0.05,120,16);g.scale(3.4,1,1);addStruct(g,'cc',C.wm);}
+for(const s of [1,-1]){
+  addStruct(ell([0.022,0.11,0.19]),'ins',C.ins,{pos:[0.5*s,-0.03,0.1],rot:[0.15,0,0.25*s]});
+  addStruct(taperTube([[0.055*s,-0.12,0.36],[0.055*s,0.08,0.52],[0.06*s,0.31,0.36],[0.06*s,0.38,0.06],[0.06*s,0.35,-0.2],[0.06*s,0.22,-0.46],[0.06*s,0.0,-0.47]],0.05,0.042,120,14),'cing',C.lim);
+  addStruct(taperTube([[0.3*s,-0.25,0.12],[0.31*s,-0.21,0.0],[0.29*s,-0.16,-0.14],[0.24*s,-0.08,-0.27],[0.18*s,0.0,-0.31]],0.052,0.02),'hipp',C.lim);
+  addStruct(ell([0.05,0.045,0.056]),'amy',C.lim,{pos:[0.31*s,-0.25,0.2]});
+  addStruct(ell([0.085,0.07,0.14]),'thal',C.die,{pos:[0.095*s,0.0,-0.06]});
+  addStruct(taperTube([[0.14*s,0.05,0.3],[0.17*s,0.15,0.16],[0.19*s,0.17,-0.05],[0.23*s,0.12,-0.25],[0.29*s,0.0,-0.32],[0.32*s,-0.1,-0.2],[0.33*s,-0.14,-0.03]],0.072,0.014),'caud',C.bg);
+  addStruct(ell([0.055,0.1,0.17]),'put',C.bg,{pos:[0.29*s,-0.02,0.07]});
+  addStruct(ell([0.034,0.07,0.1]),'gp',C.bg,{pos:[0.215*s,-0.04,0.03]});
+  addStruct(ell([0.04,0.035,0.045]),'nac',C.bg,{pos:[0.09*s,-0.1,0.26]});
+  addStruct(ell([0.06,0.018,0.042]),'sn',C.da,{pos:[0.07*s,-0.26,-0.11],rot:[0,0.4*s,0]});
+  addStruct(ell([0.018,0.018,0.018]),'lc',C.ne,{pos:[0.04*s,-0.43,-0.25]});
+  addStruct(ell([0.03,0.028,0.035]),'bf',C.ach,{pos:[0.12*s,-0.16,0.17]});
+  addStruct(ell([0.03,0.022,0.1]),'ob',C.ob,{pos:[0.07*s,-0.2,0.6],external:true,tint:0});
+  addStruct(taperTube([[0.07*s,-0.21,0.52],[0.1*s,-0.22,0.38],[0.15*s,-0.22,0.25]],0.012,0.009,30,8),'ob',C.ob,{external:true,tint:0});
+  addStruct(taperTube([[0.07*s,0.05,0.31],[0.09*s,0.14,0.15],[0.1*s,0.16,-0.1],[0.13*s,0.11,-0.3],[0.2*s,-0.02,-0.37],[0.27*s,-0.12,-0.22],[0.3*s,-0.16,-0.02]],0.045,0.022),'vent',C.vent);
+}
+addStruct(ell([0.05,0.045,0.07]),'hyp',C.die,{pos:[0,-0.13,0.08]});
+addStruct(ell([0.042,0.036,0.042]),'pit',C.gl,{pos:[0,-0.34,0.15],external:true,tint:0});
+addStruct(taperTube([[0,-0.17,0.1],[0,-0.25,0.13],[0,-0.31,0.15]],0.013,0.011,20,8),'pit',C.gl,{external:true,tint:0});
+addStruct(ell([0.022,0.02,0.036]),'pin',C.gl,{pos:[0,0.03,-0.25]});
+addStruct(ell([0.03,0.02,0.03]),'vta',C.da,{pos:[0,-0.27,-0.06]});
+addStruct(ell([0.012,0.12,0.03]),'raphe',C.s5,{pos:[0,-0.45,-0.21]});
+addStruct(ell([0.035,0.05,0.04]),'pag',C.end,{pos:[0,-0.25,-0.2]});
+addStruct(ell([0.012,0.085,0.12]),'vent',C.vent,{pos:[0,-0.06,-0.02]});
+addStruct(ell([0.06,0.02,0.05]),'vent',C.vent,{pos:[0,-0.44,-0.3],rot:[0.5,0,0]});
+
+// Tronco encefálico
+const stem=new THREE.Group();stem.position.set(0,-0.24,-0.16);stem.rotation.x=0.2;brain.add(stem);
+const lathe=(pts,seg=48)=>new THREE.LatheGeometry(pts.map(p=>new THREE.Vector2(p[0],p[1])),seg);
+addStruct(lathe([[0.001,0.06],[0.08,0.06],[0.12,0.03],[0.13,-0.05],[0.125,-0.12],[0.001,-0.12]]),'mb',C.stem,{parent:stem,external:true});
+{const g=lathe([[0.001,-0.09],[0.12,-0.1],[0.165,-0.16],[0.172,-0.22],[0.15,-0.29],[0.1,-0.32],[0.001,-0.32]]);g.scale(1,1,1.12);g.translate(0,0,0.035);addStruct(g,'pons',C.stem,{parent:stem,external:true});}
+addStruct(lathe([[0.001,-0.3],[0.105,-0.31],[0.11,-0.4],[0.095,-0.5],[0.075,-0.6],[0.001,-0.6]]),'med',C.stem,{parent:stem,external:true});
+addStruct(lathe([[0.001,-0.58],[0.066,-0.58],[0.063,-0.9],[0.058,-1.25],[0.03,-1.3],[0.001,-1.3]]),'sc','#8fb8ff',{parent:stem,external:true});
+
+// Cerebelo
+{
+  const g=new THREE.SphereGeometry(1,220,160);const P=g.attributes.position,cnt=P.count;const nz=makeNoise(77);const col=new Float32Array(cnt*3);
+  for(let i=0;i<cnt;i++){
+    let x=P.getX(i),y=P.getY(i),z=P.getZ(i);
+    const ang=Math.atan2(y,-z);
+    const fol=Math.pow(0.5+0.5*Math.sin(ang*30+nz(x*2.2,y*2.2,z*2.2)*2.4+x*1.2),3);
+    const verm=Math.exp(-(x*x)/0.015)*0.1*(z<0?1:0.2);
+    const rr=1-0.045*fol-verm;
+    x*=0.6*rr;y*=(y>0?0.23:0.29)*rr;z*=0.34*rr;
+    const notch=Math.exp(-(x*x)/0.02)*Math.max(0,z/0.34)*0.14;z-=notch;
+    P.setXYZ(i,x,y,z);
+    const c=0.42+0.58*(1-fol);col[i*3]=col[i*3+1]=col[i*3+2]=c;
+  }
+  g.setAttribute('color',new THREE.BufferAttribute(col,3));g.computeVertexNormals();
+  addStruct(g,'cb',G.stem.color,{pos:[0,-0.43,-0.65],external:true,vc:true});
+}
+scene.updateMatrixWorld(true);
+
+// Âncoras
+const anchors={};
+function meshCenter(m){m.geometry.computeBoundingBox();const c=new THREE.Vector3();m.geometry.boundingBox.getCenter(c);return c.applyMatrix4(m.matrixWorld)}
+for(const k in byKey){anchors[k]={center:meshCenter(byKey[k][0].mesh)};}
+function randomOn(key){
+  const list=byKey[key];const o=list[Math.floor(Math.random()*list.length)];const P=o.mesh.geometry.attributes.position;
+  const i=Math.floor(Math.random()*P.count);return new THREE.Vector3(P.getX(i),P.getY(i),P.getZ(i)).applyMatrix4(o.mesh.matrixWorld).lerp(meshCenter(o.mesh),0.35);
+}
+function sectionAnchor(s){
+  if(s.cam&&s.cam.t&&s.f&&(s.f.cortex||s.f.none||(s.f.s&&!s.f.s.length)))return new THREE.Vector3(...s.cam.t);
+  if(s.f&&s.f.lobe)return lobeCentroid[s.f.lobe].clone();
+  if(s.f&&s.f.area)return areaCentroid[s.f.area].clone();
+  if(s.f&&s.f.s&&s.f.s.length)return anchors[s.f.s[0]].center.clone();
+  return new THREE.Vector3(0,0,0);
+}
+S.forEach(s=>{
+  s._anchor=sectionAnchor(s);
+  const t=s.cam.t?new THREE.Vector3(...s.cam.t):s._anchor.clone();
+  if(s.f&&(s.f.lobe||s.f.area))t.lerp(new THREE.Vector3(0,0,0),0.35);
+  s._t=t;s._d=new THREE.Vector3(...s.cam.d).normalize();s._r=s.cam.r;
+});
+
+/* ---------- Rede sináptica (linhas) ---------- */
+const edges=[];
+for(let i=0;i<surfNodes.length;i++){
+  const a=surfNodes[i];const near=[];
+  for(let j=0;j<surfNodes.length;j++){if(i===j)continue;const b=surfNodes[j];if(b.side!==a.side)continue;const d=a.p.distanceTo(b.p);if(d<0.34)near.push([d,j])}
+  near.sort((x,y)=>x[0]-y[0]);near.slice(0,3).forEach(([d,j])=>{if(j>i)edges.push([i,j,0])});
+}
+const r0=rng(3);
+for(let k=0;k<70;k++){const i=Math.floor(r0()*surfNodes.length),j=Math.floor(r0()*surfNodes.length);if(i!==j&&surfNodes[i].p.distanceTo(surfNodes[j].p)>0.8)edges.push([i,j,1])}
+function ctrl(a,c,lift){const m=a.clone().add(c).multiplyScalar(0.5);const d=m.clone().sub(CENTER);const L=d.length()||1;return m.add(d.multiplyScalar(lift/L))}
+edges.forEach(e=>{const a=surfNodes[e[0]].p,c=surfNodes[e[1]].p;e.push(e[2]?ctrl(surfNodes[e[0]].q,surfNodes[e[1]].q,-0.35):ctrl(a,c,0.07))});
+{
+  const seg=10,arr=new Float32Array(edges.length*seg*6);let o=0;const v=new THREE.Vector3(),w=new THREE.Vector3();
+  edges.forEach(e=>{const a=e[2]?surfNodes[e[0]].q:surfNodes[e[0]].p,c=e[2]?surfNodes[e[1]].q:surfNodes[e[1]].p,b=e[3];
+    for(let s=0;s<seg;s++){bez(v,a,b,c,s/seg);bez(w,a,b,c,(s+1)/seg);arr[o++]=v.x;arr[o++]=v.y;arr[o++]=v.z;arr[o++]=w.x;arr[o++]=w.y;arr[o++]=w.z}});
+  const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.BufferAttribute(arr,3));
+  var netLines=new THREE.LineSegments(g,new THREE.LineBasicMaterial({color:0x8fe9ff,transparent:true,opacity:0,blending:THREE.AdditiveBlending,depthWrite:false}));
+  netLines.renderOrder=12;brain.add(netLines);
+  const ng=new THREE.BufferGeometry();const np=new Float32Array(surfNodes.length*3);surfNodes.forEach((s,i)=>{np[i*3]=s.p.x;np[i*3+1]=s.p.y;np[i*3+2]=s.p.z});
+  ng.setAttribute('position',new THREE.BufferAttribute(np,3));
+  var nodePts=new THREE.Points(ng,new THREE.PointsMaterial({color:0xcff6ff,size:0.022,transparent:true,opacity:0,blending:THREE.AdditiveBlending,depthWrite:false}));
+  nodePts.renderOrder=12;brain.add(nodePts);
+}
+function bez(out,a,b,c,t){const u=1-t;out.set(u*u*a.x+2*u*t*b.x+t*t*c.x,u*u*a.y+2*u*t*b.y+t*t*c.y,u*u*a.z+2*u*t*b.z+t*t*c.z);return out}
+
+/* ---------- Pulsos (impulsos e neurotransmissores) ---------- */
+const MAXP=520,TR=6;
+const pPos=new Float32Array(MAXP*TR*3),pCol=new Float32Array(MAXP*TR*3),pSize=new Float32Array(MAXP*TR);
+const pg=new THREE.BufferGeometry();
+pg.setAttribute('position',new THREE.BufferAttribute(pPos,3));
+pg.setAttribute('aCol',new THREE.BufferAttribute(pCol,3));
+pg.setAttribute('aSize',new THREE.BufferAttribute(pSize,1));
+const pointMat=new THREE.ShaderMaterial({transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,
+  uniforms:{uScale:{value:600},uAlpha:{value:1}},
+  vertexShader:`attribute float aSize;attribute vec3 aCol;varying vec3 vC;uniform float uScale;
+    void main(){vec4 mv=modelViewMatrix*vec4(position,1.0);gl_PointSize=aSize*uScale/max(0.1,-mv.z);vC=aCol;gl_Position=projectionMatrix*mv;}`,
+  fragmentShader:`varying vec3 vC;uniform float uAlpha;void main(){vec2 c=gl_PointCoord-0.5;float d=length(c);float a=smoothstep(0.5,0.0,d);a*=a;gl_FragColor=vec4(vC*a*uAlpha,a*uAlpha);}`});
+const pulsePts=new THREE.Points(pg,pointMat);pulsePts.frustumCulled=false;pulsePts.renderOrder=20;brain.add(pulsePts);
+const pulses=[];for(let i=0;i<MAXP;i++)pulses.push({a:new THREE.Vector3(),b:new THREE.Vector3(),c:new THREE.Vector3(),t:2,spd:1,col:new THREE.Color(),size:0.05,delay:Math.random()*2});
+
+const NTP={
+  DA:[{c:NTC.DA,src:['sn','vta'],dst:['caud','put','nac','CTXF','CTXF','amy'],w:1}],
+  S5:[{c:NTC.S5,src:['raphe'],dst:['CTX','CTX','CTX','hipp','amy','thal','cb','hyp','sc'],w:1}],
+  NE:[{c:NTC.NE,src:['lc'],dst:['CTX','CTX','CTX','thal','hipp','amy','cb','hyp','sc'],w:1}],
+  ADO:[{c:NTC.ADO,src:['CTXL'],dst:['NEAR'],w:1}],
+  ACH:[{c:NTC.ACH,src:['bf'],dst:['CTX','CTX','CTX','hipp','amy'],w:0.8},{c:NTC.ACH,src:['mb'],dst:['thal'],w:0.2}],
+  GG:[{c:NTC.GLU,src:['CTXL'],dst:['CTXL','CTXL','thal','caud','put'],w:0.55},{c:NTC.GABA,src:['caud','put'],dst:['gp'],w:0.2},{c:NTC.GABA,src:['gp'],dst:['thal'],w:0.15},{c:NTC.GABA,src:['cb'],dst:['cb'],w:0.1}],
+  OXT:[{c:NTC.OXT,src:['hyp'],dst:['pit','pit','amy','nac','hipp'],w:1}],
+  END:[{c:NTC.END,src:['hyp','pit'],dst:['pag','amy','nac','thal'],w:0.5},{c:NTC.END,src:['pag'],dst:['sc','med'],w:0.5}]
+};
+const frontNodes=surfNodes.filter(s=>s.lobe===1&&s.p.z>0.35);
+function pickPoint(key,from){
+  if(key==='CTX'){return surfNodes[Math.floor(Math.random()*surfNodes.length)].q.clone()}
+  if(key==='CTXF'){return frontNodes[Math.floor(Math.random()*frontNodes.length)].q.clone()}
+  if(key==='CTXL'){return surfNodes[Math.floor(Math.random()*surfNodes.length)].q.clone()}
+  if(key==='NEAR'){return from.clone().add(new THREE.Vector3((Math.random()-.5)*0.25,(Math.random()-.5)*0.25,(Math.random()-.5)*0.25))}
+  return randomOn(key);
+}
+let pulseMode='surface',pulseTarget=90;
+function spawn(p){
+  const mode=pulseMode;
+  if(mode==='surface'||mode==='network'){
+    const useLong=mode==='network'&&Math.random()<0.25;
+    let e;for(let k=0;k<6;k++){e=edges[Math.floor(Math.random()*edges.length)];if(!!e[2]===useLong)break}
+    const fw=Math.random()<0.5;const A=e[2]?surfNodes[e[0]].q:surfNodes[e[0]].p,C2=e[2]?surfNodes[e[1]].q:surfNodes[e[1]].p;
+    p.a.copy(fw?A:C2);p.c.copy(fw?C2:A);p.b.copy(e[3]);
+    p.col.set(mode==='network'?(Math.random()<0.8?'#8fe9ff':'#ffd9f0'):'#bfe0ff');
+    p.spd=(e[2]?0.45:0.9)*(0.7+Math.random()*0.6);p.size=mode==='network'?0.05:0.04;
+  }else{
+    const list=NTP[mode];let r=Math.random(),path=list[0];for(const q of list){if(r<q.w){path=q;break}r-=q.w}
+    const a=pickPoint(path.src[Math.floor(Math.random()*path.src.length)]);
+    const c=pickPoint(path.dst[Math.floor(Math.random()*path.dst.length)],a);
+    p.a.copy(a);p.c.copy(c);
+    const lift=mode==='ADO'?0.02:0.1+0.15*a.distanceTo(c);
+    p.b.copy(ctrl(a,c,lift)).add(new THREE.Vector3(0,0.05*a.distanceTo(c),0));
+    p.col.set(path.c);p.spd=(mode==='ADO'?0.35:0.55)*(0.7+Math.random()*0.6)/Math.max(0.4,a.distanceTo(c));p.size=mode==='ADO'?0.035:0.055;
+  }
+  if(reduced)p.spd*=0.4;
+  p.t=0;
+}
+const tmpV=new THREE.Vector3(),tmpC=new THREE.Color();
+function updatePulses(dt){
+  for(let i=0;i<MAXP;i++){
+    const p=pulses[i],base=i*TR;
+    const alive=i<pulseTarget;
+    if(p.delay>0){p.delay-=dt;for(let k=0;k<TR;k++)pSize[base+k]=0;continue}
+    p.t+=dt*p.spd;
+    if(p.t>1.25){if(alive){spawn(p);p.delay=Math.random()*0.8}else{for(let k=0;k<TR;k++)pSize[base+k]=0;p.delay=0.5;continue}}
+    for(let k=0;k<TR;k++){
+      const tt=p.t-k*0.035;const j=(base+k)*3;
+      if(tt<0||tt>1){pSize[base+k]=0;continue}
+      bez(tmpV,p.a,p.b,p.c,tt);pPos[j]=tmpV.x;pPos[j+1]=tmpV.y;pPos[j+2]=tmpV.z;
+      const f=1-k/TR;const env=Math.sin(Math.min(1,tt)*Math.PI)*0.6+0.4;
+      pCol[j]=p.col.r*f*env;pCol[j+1]=p.col.g*f*env;pCol[j+2]=p.col.b*f*env;pSize[base+k]=p.size*(k===0?1.25:f);
+    }
+  }
+  pg.attributes.position.needsUpdate=true;pg.attributes.aCol.needsUpdate=true;pg.attributes.aSize.needsUpdate=true;
+}
+
+/* ---------- Poeira neural (camadas de parallax) ---------- */
+const dust=[];
+[[380,5,9,0.018,'#6d63b8',0.2],[260,3.2,5,0.014,'#8a9ae0',0.45],[140,2.4,3.4,0.01,'#c7b8ff',0.8]].forEach(([cnt,rMin,rMax,size,col,k],li)=>{
+  const g=new THREE.BufferGeometry();const a=new Float32Array(cnt*3);const r=rng(40+li);
+  for(let i=0;i<cnt;i++){const u=r()*2-1,th=r()*Math.PI*2,rr=rMin+r()*(rMax-rMin);const s=Math.sqrt(1-u*u);a[i*3]=s*Math.cos(th)*rr;a[i*3+1]=u*rr*0.8;a[i*3+2]=s*Math.sin(th)*rr}
+  g.setAttribute('position',new THREE.BufferAttribute(a,3));
+  const m=new THREE.Points(g,new THREE.PointsMaterial({color:col,size:size*(li===0?3:2),transparent:true,opacity:0.55,blending:THREE.AdditiveBlending,depthWrite:false}));
+  m.userData.k=k;scene.add(m);dust.push(m);
+});
+
+/* ================================================================
+   ESTADO, CÂMERA E ROLAGEM
+   ================================================================ */
+const tag=document.getElementById('tag'),tagtxt=document.getElementById('tagtxt'),bar=document.getElementById('bar'),gridEl=document.getElementById('grid');
+const railBtns=[...rail.querySelectorAll('button')];
+let active=-1,sectionP=0;
+const cam={t:new THREE.Vector3(0,0,0),d:new THREE.Vector3(0.8,0.42,0.55).normalize(),r:4.4};
+const U=cortexMat.uniforms;
+const target={tint:0,xray:0,dim:0,net:0};
+let yawUser=0,pitchUser=0,idleT=0,autoYaw=0;
+let vw=innerWidth,vh=innerHeight,isMobile=vw<860;
+
+function setActive(i){
+  if(i===active)return;active=i;const s=S[i];
+  const c=colorOf(s);
+  document.documentElement.style.setProperty('--hi',c);
+  U.uHiCol.value.set(c);U.uHi.value=0;
+  const f=s.f||{};
+  setMatch(f);
+  target.tint=s.tint!=null?s.tint:0.1;
+  target.xray=s.mode==='xray'?1:0;
+  target.dim=(f.lobe||f.area)?1:0;
+  target.net=s.net||0;
+  pulseMode=s.pulse||(s.mode==='xray'?'surface':'surface');
+  pulseTarget=pulseMode==='surface'?(s.mode==='xray'?0:80):(pulseMode==='network'?420:(pulseMode==='ADO'?260:300));
+  // reinicia pulsos para o novo modo
+  pulses.forEach((p,k)=>{p.t=2;p.delay=Math.random()*(k<pulseTarget?1.2:0.1)});
+  const focusKeys=new Set((f.s)||[]);
+  structs.forEach(o=>{o.focus=focusKeys.has(o.key)});
+  const g=s.group;railBtns.forEach(b=>b.classList.toggle('on',b.dataset.g===g));
+  if(s.kind){tag.style.opacity=0}else{tagtxt.innerHTML=`<em>${s.code}</em>${s.name}`;tag.style.opacity=1}
+  if(s.syn)startSyn();
+}
+
+let offsets=[];
+function measure(){offsets=stepEls.map(el=>[el.offsetTop,el.offsetHeight])}
+function onScroll(){
+  const y=scrollY,mid=y+vh/2;let best=0,bd=1e9;
+  for(let i=0;i<offsets.length;i++){const c=offsets[i][0]+offsets[i][1]/2;const d=Math.abs(c-mid);if(d<bd){bd=d;best=i}}
+  setActive(best);
+  const o=offsets[best];sectionP=(mid-(o[0]+o[1]/2))/o[1];
+  const max=document.documentElement.scrollHeight-vh;bar.style.width=(max>0?y/max*100:0)+'%';
+  if(!reduced){
+    for(let i=0;i<ghosts.length;i++){const g=ghosts[i];if(!g)continue;const c=offsets[i][0]+offsets[i][1]/2;const d=c-mid;if(Math.abs(d)>vh*1.5)continue;g.style.transform=`translate3d(${d*-0.04}px,${d*-0.38}px,0)`}
+    gridEl.style.transform=`translate3d(0,${-(y*0.12)%64}px,0)`;
+  }
+}
+
+function resize(){
+  vw=innerWidth;vh=innerHeight;isMobile=vw<860;
+  renderer.setPixelRatio(Math.min(devicePixelRatio||1,2));renderer.setSize(vw,vh,false);
+  camera.aspect=vw/vh;
+  if(isMobile)camera.setViewOffset(vw,vh,0,vh*0.22,vw,vh);
+  else camera.setViewOffset(vw,vh,-Math.min(260,vw*0.17),0,vw,vh);
+  camera.updateProjectionMatrix();
+  pointMat.uniforms.uScale.value=vh*renderer.getPixelRatio()/(2*Math.tan(THREE.MathUtils.degToRad(camera.fov/2)));
+  measure();onScroll();sizeSyn();
+}
+addEventListener('resize',resize);
+addEventListener('scroll',onScroll,{passive:true});
+
+// Arrastar / clicar
+let dragging=false,downX=0,downY=0,lastX=0,lastY=0,moved=0;
+const mouse={x:0,y:0};
+canvas.addEventListener('pointerdown',e=>{dragging=true;moved=0;downX=lastX=e.clientX;downY=lastY=e.clientY;canvas.classList.add('drag');try{canvas.setPointerCapture(e.pointerId)}catch(_){} });
+addEventListener('pointermove',e=>{
+  mouse.x=e.clientX/vw*2-1;mouse.y=e.clientY/vh*2-1;
+  if(!dragging)return;const dx=e.clientX-lastX,dy=e.clientY-lastY;lastX=e.clientX;lastY=e.clientY;moved+=Math.abs(dx)+Math.abs(dy);
+  yawUser-=dx*0.007;pitchUser=Math.max(-1.1,Math.min(1.1,pitchUser+dy*0.005));idleT=0;
+});
+const endDrag=e=>{if(!dragging)return;dragging=false;canvas.classList.remove('drag');if(moved<6&&e.type==='pointerup')pick(e.clientX,e.clientY)};
+addEventListener('pointerup',endDrag);addEventListener('pointercancel',endDrag);
+const ray=new THREE.Raycaster(),ndc=new THREE.Vector2();
+function pick(x,y){
+  ndc.set(x/vw*2-1,-(y/vh)*2+1);ray.setFromCamera(ndc,camera);
+  const xr=U.uXray.value>0.5;
+  const targets=xr?structs.filter(o=>!o.external||true).map(o=>o.mesh):[...hemis,...structs.filter(o=>o.external).map(o=>o.mesh)];
+  const hit=ray.intersectObjects(targets,false)[0];if(!hit)return;
+  let idx=-1;
+  if(hit.object.userData.cortex){
+    const g=hit.object.geometry;const a=hit.face.a;const A=g.userData.area[a],L=g.userData.lobe[a];
+    idx=S.findIndex(s=>s.f&&s.f.area===A);if(idx<0)idx=S.findIndex(s=>s.f&&s.f.lobe===L);
+  }else{
+    const o=structs.find(o=>o.mesh===hit.object);if(o)idx=S.findIndex(s=>!s.kind&&s.f&&s.f.s&&s.f.s.includes(o.key)&&!s.pulse);
+    if(idx<0&&o)idx=S.findIndex(s=>s.f&&s.f.s&&s.f.s.includes(o.key));
+  }
+  if(idx>=0)goTo(idx);
+}
+
+/* ---------- Loop ---------- */
+const clock=new THREE.Clock();
+const tmpD=new THREE.Vector3(),tmpT=new THREE.Vector3(),yAxis=new THREE.Vector3(0,1,0),side=new THREE.Vector3(),proj=new THREE.Vector3();
+const hiC=new THREE.Color(),tmpCol=new THREE.Color(),tmpEm=new THREE.Color();
+function frame(){
+  const dt=Math.min(clock.getDelta(),0.05),t=clock.elapsedTime;
+  const s=S[active]||S[0];
+  const k=1-Math.exp(-dt*(reduced?6:2.6));
+  cam.t.lerp(s._t,k);cam.d.lerp(s._d,k).normalize();
+  const rr=s._r*(isMobile?(vw/vh<0.7?1.95:1.3):1);cam.r+=(rr-cam.r)*k;
+  if(!dragging){idleT+=dt;if(idleT>2.5){yawUser*=Math.exp(-dt*0.8);pitchUser*=Math.exp(-dt*0.8)}}
+  if(s.auto&&!reduced)autoYaw+=dt*0.12;else autoYaw*=Math.exp(-dt*1.5);
+  const scrollYaw=reduced?0:sectionP*0.35;
+  const mx=reduced?0:mouse.x*0.06,my=reduced?0:mouse.y*0.04;
+  tmpD.copy(cam.d).applyAxisAngle(yAxis,yawUser+autoYaw+scrollYaw+mx);
+  side.crossVectors(tmpD,yAxis).normalize();
+  tmpD.applyAxisAngle(side,pitchUser+my);
+  camera.position.copy(cam.t).addScaledVector(tmpD,cam.r);
+  camera.lookAt(cam.t);
+
+  // Uniforms
+  U.uTime.value=t;
+  U.uHi.value+=(1-U.uHi.value)*(1-Math.exp(-dt*3));
+  U.uTint.value+=(target.tint-U.uTint.value)*k;
+  U.uXray.value+=(target.xray-U.uXray.value)*(1-Math.exp(-dt*3.2));
+  U.uDim.value+=(target.dim-U.uDim.value)*k;
+  const xr=U.uXray.value;
+  cortexMat.depthWrite=xr<0.5;
+  netLines.material.opacity+=(target.net*0.22-netLines.material.opacity)*k;
+  nodePts.material.opacity+=(target.net*0.8-nodePts.material.opacity)*k;
+
+  // Estruturas
+  hiC.set(colorOf(s));
+  const pulse=0.55+0.45*Math.sin(t*3);
+  for(const o of structs){
+    const m=o.mesh.material;let op,em;
+    if(o.focus){tmpCol.copy(hiC).lerp(o.color,0.35);op=1;tmpEm.copy(hiC).multiplyScalar(0.35+0.3*pulse)}
+    else if(xr>0.5){tmpCol.copy(o.color).multiplyScalar(0.8);op=(s.f&&s.f.s&&s.f.s.length)||s.pulse?0.26:0.55;tmpEm.copy(o.color).multiplyScalar(0.12)}
+    else{tmpCol.copy(o.tint?TISSUE:o.color);op=1;tmpEm.setRGB(0,0,0);if(!o.tint&&o.external)tmpCol.lerp(TISSUE,0.35)}
+    m.color.lerp(tmpCol,k);m.emissive.lerp(tmpEm,k);m.opacity+=(op-m.opacity)*k;m.depthWrite=m.opacity>0.95;
+    o.mesh.visible=o.external||xr>0.02;
+  }
+
+  // Parallax da poeira
+  const sy=scrollY/vh;
+  for(const d of dust){d.position.y=sy*d.userData.k*0.35;d.rotation.y=t*0.01*(1+d.userData.k)}
+
+  updatePulses(dt);
+  pointMat.uniforms.uAlpha.value=pulseMode==='surface'&&xr>0.5?0:1;
+  renderer.render(scene,camera);
+
+  // Etiqueta 3D
+  if(!s.kind){
+    proj.copy(s._anchor).project(camera);
+    const x=(proj.x*0.5+0.5)*vw,y=(-proj.y*0.5+0.5)*vh;
+    const vis=proj.z<1&&x>0&&x<vw&&y>70&&y<vh&&!(isMobile&&y>vh*0.5);
+    const tw=tag.offsetWidth||0,flip=x+tw>vw-12;
+    tag.classList.toggle('flip',flip);
+    tag.style.transform=`translate3d(${flip?x-tw+5:x-5}px,${y-5}px,0)`;tag.style.opacity=vis?1:0;
+  }
+  if(synOn)drawSyn(t);
+  requestAnimationFrame(frame);
+}
+
+/* ================================================================
+   SINAPSE 2D
+   ================================================================ */
+let synCanvas=null,synCtx=null,synW=0,synH=0,synOn=false;const mols=[];const vesc=[];const recs=[];
+function sizeSyn(){synCanvas=document.getElementById('synCanvas');if(!synCanvas)return;const r=synCanvas.getBoundingClientRect();const dpr=Math.min(devicePixelRatio||1,2);synW=r.width;synH=r.height;synCanvas.width=Math.round(synW*dpr);synCanvas.height=Math.round(synH*dpr);synCtx=synCanvas.getContext('2d');synCtx.setTransform(dpr,0,0,dpr,0,0);
+  vesc.length=0;for(let i=0;i<11;i++)vesc.push({x:0.3+0.4*Math.random(),y:0.15+0.2*Math.random(),ph:Math.random(),r:6+Math.random()*3});
+  recs.length=0;for(let i=0;i<9;i++)recs.push({x:0.28+i*0.055,on:0});}
+function startSyn(){synOn=true;if(!synCtx)sizeSyn()}
+const synIO=new IntersectionObserver(es=>es.forEach(e=>{synOn=e.isIntersecting}),{threshold:0});
+function drawSyn(t){
+  if(!synCtx||!synW)return;const c=synCtx,w=synW,h=synH;c.clearRect(0,0,w,h);
+  const cx=w*0.52,memY=h*0.47,postY=h*0.6,half=Math.min(w*0.3,170);
+  // pré-sináptico
+  c.beginPath();c.moveTo(cx-16,-2);c.bezierCurveTo(cx-18,h*0.12,cx-half,h*0.14,cx-half,memY-24);c.quadraticCurveTo(cx-half,memY,cx-half+24,memY);c.lineTo(cx+half-24,memY);c.quadraticCurveTo(cx+half,memY,cx+half,memY-24);c.bezierCurveTo(cx+half,h*0.14,cx+18,h*0.12,cx+16,-2);c.closePath();
+  c.fillStyle='rgba(111,155,255,.13)';c.fill();c.strokeStyle='rgba(143,190,255,.8)';c.lineWidth=1.5;c.stroke();
+  // pós-sináptico
+  c.beginPath();c.moveTo(cx-half-10,h+2);c.lineTo(cx-half-10,postY+22);c.quadraticCurveTo(cx-half-10,postY,cx-half+14,postY);c.lineTo(cx+half-14,postY);c.quadraticCurveTo(cx+half+10,postY,cx+half+10,postY+22);c.lineTo(cx+half+10,h+2);c.closePath();
+  c.fillStyle='rgba(255,111,145,.1)';c.fill();c.strokeStyle='rgba(255,140,170,.75)';c.stroke();
+  // receptores
+  recs.forEach((r,i)=>{const x=cx-half+ (i+0.5)*(2*half/recs.length);r.px=x;r.on*=0.93;c.fillStyle=`rgba(255,${150+Math.round(r.on*100)},${170+Math.round(r.on*60)},${0.45+r.on*0.55})`;c.fillRect(x-4,postY-6,8,7);if(r.on>0.1){c.fillStyle=`rgba(255,220,240,${r.on*0.35})`;c.beginPath();c.arc(x,postY+8,10*r.on+2,0,Math.PI*2);c.fill()}});
+  // vesículas
+  vesc.forEach(v=>{v.ph+=0.004+0.002*Math.sin(t+v.x*10);if(v.ph>1){v.ph=0;v.x=0.3+0.4*Math.random();v.y=0.12+0.2*Math.random()}
+    const X=cx+(v.x-0.5)*2*half*0.9;
+    const y0=h*v.y,y1=memY-v.r-1;const k=Math.min(1,v.ph/0.8);const Y=y0+(y1-y0)*k*k;
+    if(v.ph<0.8){c.beginPath();c.arc(X,Y,v.r,0,Math.PI*2);c.fillStyle='rgba(255,207,77,.18)';c.fill();c.strokeStyle='rgba(255,207,77,.8)';c.lineWidth=1.2;c.stroke();
+      for(let q=0;q<4;q++){c.fillStyle='#ffcf4d';c.fillRect(X-3+((q*5)%7)-1,Y-3+((q*3)%6)-1,2,2)}}
+    else if(!v.fired){v.fired=true;for(let q=0;q<7;q++)mols.push({x:X+(Math.random()-.5)*8,y:memY+1,vx:(Math.random()-.5)*0.5,vy:0.35+Math.random()*0.5,life:1})}
+    if(v.ph<0.8)v.fired=false;
+    if(v.ph>=0.8){const a=(v.ph-0.8)/0.2;c.strokeStyle=`rgba(255,207,77,${0.8*(1-a)})`;c.beginPath();c.arc(X,memY,v.r*(1-a*0.6),Math.PI,0,false);c.stroke()}
+  });
+  // moléculas
+  for(let i=mols.length-1;i>=0;i--){const m=mols[i];m.x+=m.vx;m.y+=m.vy;m.vx+=(Math.random()-.5)*0.15;
+    if(m.y>=postY-6){let best=null,bd=1e9;recs.forEach(r=>{const d=Math.abs(r.px-m.x);if(d<bd){bd=d;best=r}});if(best&&bd<10)best.on=1;mols.splice(i,1);continue}
+    c.fillStyle='#ffcf4d';c.beginPath();c.arc(m.x,m.y,1.8,0,Math.PI*2);c.fill()}
+  // potencial de ação descendo pelo axônio
+  const ap=(t*0.8)%1;c.fillStyle='rgba(143,233,255,.9)';c.beginPath();c.arc(cx,ap*h*0.3,3.5,0,Math.PI*2);c.fill();
+  // rótulos
+  c.font='11px "IBM Plex Mono", ui-monospace, monospace';c.fillStyle='rgba(239,234,245,.72)';c.textBaseline='middle';
+  const lx=cx+half+16, fits=lx+130<w;
+  const lab=(txt,y,col)=>{c.fillStyle=col||'rgba(239,234,245,.72)';if(fits){c.textAlign='left';c.fillText(txt,lx,y)}else{c.textAlign='left';c.fillText(txt,6,y)}};
+  if(fits){lab('terminal pré-sináptico',h*0.2);lab('vesículas',h*0.33,'rgba(255,207,77,.9)');lab('fenda ~20 nm',(memY+postY)/2,'rgba(239,234,245,.9)');lab('receptores',postY+2,'rgba(255,160,185,.95)');lab('neurônio pós-sináptico',h*0.85)}
+  else{c.textAlign='left';c.fillStyle='rgba(239,234,245,.8)';c.fillText('pré-sináptico',6,h*0.3);c.fillText('fenda ~20 nm',6,(memY+postY)/2);c.fillText('pós-sináptico',6,h-12)}
+  c.textAlign='left';c.fillStyle='rgba(143,233,255,.9)';c.fillText('potencial de ação',cx+24,h*0.06+4);
+}
+
+/* ---------- Início ---------- */
+resize();
+const sc=document.getElementById('synCanvas');if(sc)synIO.observe(sc);
+setActive(0);onScroll();
+requestAnimationFrame(frame);
+if(location.hash){const i=S.findIndex(s=>'#'+s.id===location.hash);if(i>0)setTimeout(()=>goTo(i),300)}
+})();
+</script>
+</body></html>
