@@ -5,6 +5,7 @@ import json
 from pathlib import Path
 
 from .bus import Barramento, Mensagem
+from .linguagem import InterpretadorPalavras
 from .modulos import IMPLEMENTADOS, Passivo
 from .mundo import Mundo
 from .parametros import Parametros
@@ -29,8 +30,10 @@ def carregar_spec(caminho: Path | str = SPEC_PADRAO) -> dict:
 
 
 class Cerebro:
-    def __init__(self, mundo: Mundo | None = None, spec: dict | None = None, dt: float = 0.005):
+    def __init__(self, mundo: Mundo | None = None, spec: dict | None = None, dt: float = 0.005,
+                 interpretador=None):
         self.spec = spec or carregar_spec()
+        self.interpretador = interpretador or InterpretadorPalavras()
         self.componentes = {c["codigo"]: c for c in self.spec["componentes"]}
         self.dt = dt
         self.t_ms = 0.0

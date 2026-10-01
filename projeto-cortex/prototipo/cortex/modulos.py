@@ -75,31 +75,15 @@ class CortexAuditivo(Modulo):
 
 
 class Wernicke(Modulo):
+    """Compreensão de linguagem. O interpretador (Claude ou palavras-chave) vem do Cerebro.
+    O atraso da mensagem é a latência real do interpretador."""
     codigo = "CTX-WE"
-    PERIGO = re.compile(r"empurr|\bbat[ae]\b|bater|machuc|chut|derrub|ataq")
-
-    @classmethod
-    def interpretar(cls, texto: str) -> dict:
-        n = normalizar(texto)
-        if re.search(r"\b(pare|stop|chega)\b", n):
-            return {"acao": "parar", "conf": 0.97}
-        if "hora" in n:
-            return {"acao": "perguntar", "tema": "hora", "conf": 0.98}
-        if cls.PERIGO.search(n):
-            nome = next((x for x in ("ana", "joao") if re.search(rf"\b{x}\b", n)), None)
-            return {"acao": "empurrar", "alvo": "pessoa", "nome": nome, "conf": 0.91}
-        if re.search(r"\b(pegue|pega|pegar|traga|traz|busque)\b", n):
-            tipo = next((x for x in ("copo", "caixa") if x in n), None)
-            cor = next((x for x in ("azul", "vermelho", "verde") if x in n), None)
-            return {"acao": "pegar", "tipo": tipo, "cor": cor, "conf": 0.94 if tipo else 0.45}
-        if re.search(r"recarreg|bateria|\bbase\b", n):
-            return {"acao": "ir_base", "conf": 0.9}
-        return {"acao": "?", "conf": 0.21}
 
     def on_fala_audio(self, m):
-        intencao = self.interpretar(m.dados["texto"])
-        intencao["texto"] = m.dados["texto"]
-        self.pub("CTX-PF", "dados", "intencao", intencao, atraso=180)
+        intencao, latencia_ms = self.c.interpretador.interpretar(m.dados["texto"])
+        intencao = {**intencao, "texto": m.dados["texto"]}
+        intencao.setdefault("origem", self.c.interpretador.nome)
+        self.pub("CTX-PF", "dados", "intencao", intencao, atraso=latencia_ms, ttl=max(500, latencia_ms + 500))
 
 
 class Talamo(Modulo):
@@ -244,7 +228,7 @@ class Amigdala(Modulo):
 
     def on_risco_avaliar(self, m):
         d = m.dados
-        if d.get("acao") == "empurrar":
+        if d.get("acao") == "contato_com_pessoa":
             resposta = {"nivel": 0.97, "dano_pessoa": True}
         else:
             nivel = 0.04 + (0.3 if self._dmin < 0.8 else 0.0)
@@ -325,18 +309,27 @@ class PreFrontal(Modulo):
             self.falar("Não entendi. Pode repetir?")
             return
         acao = d["acao"]
+        if acao in ("conversar", "fora_do_escopo"):
+            resposta = d.get("resposta") or "Isso eu ainda não sei fazer."
+            self.registrar("conversa", acao=acao)
+            self.falar(resposta)
+            return
+        if acao == "nao_entendi":
+            self.falar("Não entendi. Pode repetir?")
+            return
         if acao == "parar":
             self.pendente = None
             self.pub("BG-00", "inibitorio", "cancelar.acoes", {})
             self.registrar("parada por voz")
             self.falar("Parei. Está tudo bem?")
-        elif acao == "perguntar":
+        elif acao == "perguntar_hora":
             self.pub("END-PN", "dados", "consulta", {"campo": "hora"})
         else:
             self.pendente = dict(d)
             self.c.params.definir("foco", 0.8, self.codigo, self.agora_s)
-            self.pub("DIE-TH", "modulador", "atencao.focar", {"alvo": d.get("tipo") or d.get("alvo")})
-            self.pub("LIM-AM", "dados", "risco.avaliar", {"acao": acao, "alvo": d.get("alvo") or d.get("tipo")})
+            alvo = d.get("tipo") or d.get("pessoa") or ""
+            self.pub("DIE-TH", "modulador", "atencao.focar", {"alvo": alvo})
+            self.pub("LIM-AM", "dados", "risco.avaliar", {"acao": acao, "alvo": alvo})
 
     def on_hora(self, m):
         self.falar(f"São {m.dados['valor']}.")
@@ -353,10 +346,14 @@ class PreFrontal(Modulo):
             self.pendente = None
             return
         if p["acao"] == "pegar":
+            if not p.get("tipo"):
+                self.falar("O que você quer que eu pegue?")
+                self.pendente = None
+                return
             alvo = next((o for o in self.mapa.values()
-                         if o["tipo"] == p["tipo"] and (p["cor"] is None or o["cor"] == p["cor"])), None)
+                         if o["tipo"] == p["tipo"] and (not p.get("cor") or o["cor"] == p["cor"])), None)
             if not alvo:
-                self.falar(f"Não estou vendo o {p['tipo']} {p['cor'] or ''}.".replace("  ", " "))
+                self.falar(f"Não estou vendo {p['tipo']} {p.get('cor', '')}".strip() + ".")
                 self.pendente = None
                 return
             p["alvo_id"] = alvo["id"]
@@ -373,7 +370,8 @@ class PreFrontal(Modulo):
         if p and p["acao"] == "pegar" and m.dados["estado"] == "preso":
             self.pub("MB-SN", "dados", "resultado", {"acao": "pegar", "sucesso": True})
             self.registrar("pegou objeto", alvo=p.get("alvo_id"))
-            self.falar(f"Peguei o {p['tipo']} {p['cor']}.")
+            artigo = "a" if p["tipo"] == "caixa" else "o"
+            self.falar(f"Peguei {artigo} {p['tipo']} {p.get('cor', '')}".strip() + ".")
             self.c.params.definir("foco", 0.4, self.codigo, self.agora_s)
             self.pendente = None
 

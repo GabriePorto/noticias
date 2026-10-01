@@ -3,6 +3,7 @@
 Uso:
     python -m cortex.simulador                 # roda todos e grava viewer/trilhas.js
     python -m cortex.simulador pegar pare      # roda só estes
+    python -m cortex.simulador --claude        # compreensão de linguagem com o Claude (precisa de chave)
 """
 from __future__ import annotations
 
@@ -82,20 +83,20 @@ CENARIOS = {
 }
 
 
-def montar(nome: str) -> Cerebro:
+def montar(nome: str, interpretador=None) -> Cerebro:
     cfg = CENARIOS[nome]
     mundo = Mundo(bateria=cfg.get("bateria", 80.0))
     for p in cfg.get("pessoas", []):
         mundo.pessoas[p.id] = Pessoa(p.id, p.nome, p.x, p.y, consentimento=p.consentimento, roteiro=list(p.roteiro))
-    c = Cerebro(mundo)
+    c = Cerebro(mundo, interpretador=interpretador)
     for t, acao in cfg["eventos"]:
         c.agendar(t, acao)
     return c
 
 
-def rodar(nome: str) -> tuple[Cerebro, dict]:
+def rodar(nome: str, interpretador=None) -> tuple[Cerebro, dict]:
     cfg = CENARIOS[nome]
-    c = montar(nome)
+    c = montar(nome, interpretador)
     quadros = []
 
     def gravar(cer):
@@ -111,6 +112,7 @@ def rodar(nome: str) -> tuple[Cerebro, dict]:
     c.rodar(cfg["duracao"], ao_quadro=gravar)
     trilha = {
         "id": nome,
+        "linguagem": c.interpretador.nome,
         "titulo": cfg["titulo"],
         "resumo": cfg["resumo"],
         "duracao": cfg["duracao"],
@@ -131,10 +133,18 @@ def _enxuto(d: dict) -> dict:
 
 
 def main(argv: list[str]) -> None:
+    interpretador = None
+    if "--claude" in argv:
+        from .linguagem import InterpretadorClaude
+        try:
+            interpretador = InterpretadorClaude()
+        except RuntimeError as erro:
+            sys.exit(str(erro))
+        argv = [a for a in argv if a != "--claude"]
     nomes = argv or list(CENARIOS)
     trilhas = []
     for nome in nomes:
-        c, t = rodar(nome)
+        c, t = rodar(nome, interpretador)
         trilhas.append(t)
         print(f"\n=== {t['titulo']} ({nome}) · {len(t['mensagens'])} mensagens, {t['fluxo']} de fluxo de sensores")
         for m in t["mensagens"]:
@@ -142,6 +152,10 @@ def main(argv: list[str]) -> None:
                   f"{m['tipo'][:4]:<4} {m['sinal']} {json.dumps(m['dados'], ensure_ascii=False)}")
         for t_s, texto in t["falas"]:
             print(f"  [voz {t_s:.2f} s] “{texto}”")
+    if interpretador is not None:
+        print("\nChamadas ao Claude:")
+        for ch in interpretador.chamadas:
+            print("  ", json.dumps(ch, ensure_ascii=False))
     destino = RAIZ / "viewer" / "trilhas.js"
     destino.write_text("window.TRILHAS = " + json.dumps(trilhas, ensure_ascii=False) + ";\n", encoding="utf-8")
     print(f"\nTrilhas gravadas em {destino.relative_to(RAIZ)}")
